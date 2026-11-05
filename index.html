@@ -68,6 +68,16 @@
             pointer-events: none;
             z-index: 5;
         }
+        #clear-btn {
+            pointer-events: auto;
+            margin-top: 5px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
 
         /* Mobile Controls UI */
         #joystick-container {
@@ -92,26 +102,32 @@
             border-radius: 50%;
             transform: translate(-50%, -50%);
         }
-        #plant-btn {
+        .mobile-action-btn {
             position: absolute;
-            bottom: 40px;
-            right: 30px;
-            width: 80px;
-            height: 80px;
-            background: #4caf50;
+            width: 70px;
+            height: 70px;
             color: white;
             border: 2px solid white;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 0.9rem;
             display: none;
             justify-content: center;
             align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             z-index: 8;
         }
-        #plant-btn:active {
-            background: #388e3c;
+        #plant-btn {
+            bottom: 40px;
+            right: 30px;
+            background: #4caf50;
+        }
+        #fly-btn {
+            bottom: 120px;
+            right: 30px;
+            background: #2196f3;
+        }
+        .mobile-action-btn:active {
             transform: scale(0.95);
         }
     </style>
@@ -121,24 +137,32 @@
 <body>
     <div id="canvas-container"></div>
     <div id="crosshair"></div>
-    <div id="hud">Flowers Planted: <span id="flower-count">0</span></div>
+    <div id="hud">
+        Flowers Planted: <span id="flower-count">0</span><br>
+        Mode: <span id="mode-indicator">Walk</span><br>
+        <button id="clear-btn">Reset Garden</button>
+    </div>
 
     <!-- Mobile Controls -->
     <div id="joystick-container"><div id="joystick-knob"></div></div>
-    <div id="plant-btn">PLANT</div>
+    <div id="plant-btn" class="mobile-action-btn">PLANT</div>
+    <div id="fly-btn" class="mobile-action-btn">FLY</div>
 
     <div id="instructions">
         <h1>3D Garden Explorer</h1>
         <p id="start-msg">Click anywhere to Start</p>
         <div id="desktop-instructions">
             <p><strong>WASD / Arrow Keys</strong>: Move</p>
+            <p><strong>Space / Shift</strong>: Up / Down (Fly Mode)</p>
+            <p><strong>F</strong>: Toggle Fly Mode</p>
             <p><strong>Mouse</strong>: Look around</p>
             <p><strong>Left Click</strong>: Plant a Flower</p>
             <p><strong>ESC</strong>: Pause / Release Mouse</p>
         </div>
         <div id="mobile-instructions" style="display:none;">
-            <p><strong>Left Screen Joystick</strong>: Move</p>
-            <p><strong>Right Screen Drag</strong>: Look around</p>
+            <p><strong>Left Joystick</strong>: Move</p>
+            <p><strong>Right Drag</strong>: Look around</p>
+            <p><strong>FLY Button</strong>: Toggle Flight Mode</p>
             <p><strong>PLANT Button</strong>: Plant a Flower</p>
         </div>
     </div>
@@ -151,7 +175,7 @@
             document.getElementById('mobile-instructions').style.display = 'block';
             document.getElementById('start-msg').innerText = 'Tap anywhere to Start';
             document.getElementById('joystick-container').style.display = 'block';
-            document.getElementById('plant-btn').style.display = 'flex';
+            document.querySelectorAll('.mobile-action-btn').forEach(btn => btn.style.display = 'flex');
         }
 
         // Scene setup
@@ -225,18 +249,23 @@
         const instructions = document.getElementById('instructions');
         let isPlaying = false;
         let isLocked = false;
+        let isFlying = false;
 
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
-        let moveForward = false;
-        let moveBackward = false;
-        let moveLeft = false;
-        let moveRight = false;
-        let flowerCount = 0;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let moveUp = false, moveDown = false;
+        let savedFlowers = [];
 
         let pitch = 0;
         let yaw = 0;
         camera.position.set(0, 1.7, 0);
+
+        function toggleFly() {
+            isFlying = !isFlying;
+            document.getElementById('mode-indicator').innerText = isFlying ? "Fly" : "Walk";
+            document.getElementById('fly-btn').style.background = isFlying ? "#ff9800" : "#2196f3";
+        }
 
         // Controls Logic
         instructions.addEventListener('click', () => {
@@ -271,9 +300,7 @@
 
         // Mobile Touch Look & Joystick
         let touchLookId = null;
-        let touchLookLastX = 0;
-        let touchLookLastY = 0;
-
+        let touchLookLastX = 0, touchLookLastY = 0;
         let joystickTouchId = null;
         const joystickContainer = document.getElementById('joystick-container');
         const joystickKnob = document.getElementById('joystick-knob');
@@ -284,20 +311,13 @@
 
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-
-                // Joystick target
                 if (isMobile && touch.clientX < window.innerWidth / 2 && joystickTouchId === null) {
                     joystickTouchId = touch.identifier;
                     const rect = joystickContainer.getBoundingClientRect();
-                    joystickCenter = {
-                        x: rect.left + rect.width / 2,
-                        y: rect.top + rect.height / 2
-                    };
+                    joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                     handleJoystickMove(touch);
-                } 
-                // Camera target
-                else if (isMobile && touch.clientX >= window.innerWidth / 2 && touchLookId === null) {
-                    if (e.target.id !== 'plant-btn') {
+                } else if (isMobile && touch.clientX >= window.innerWidth / 2 && touchLookId === null) {
+                    if (!e.target.classList.contains('mobile-action-btn')) {
                         touchLookId = touch.identifier;
                         touchLookLastX = touch.clientX;
                         touchLookLastY = touch.clientY;
@@ -311,7 +331,6 @@
 
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-
                 if (touch.identifier === joystickTouchId) {
                     handleJoystickMove(touch);
                 } else if (touch.identifier === touchLookId) {
@@ -337,24 +356,8 @@
         window.addEventListener('touchend', (e) => {
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-                if (touch.identifier === joystickTouchId) {
-                    joystickTouchId = null;
-                    resetJoystick();
-                } if (touch.identifier === touchLookId) {
-                    touchLookId = null;
-                }
-            }
-        });
-
-        window.addEventListener('touchcancel', (e) => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === joystickTouchId) {
-                    joystickTouchId = null;
-                    resetJoystick();
-                } if (touch.identifier === touchLookId) {
-                    touchLookId = null;
-                }
+                if (touch.identifier === joystickTouchId) { joystickTouchId = null; resetJoystick(); }
+                if (touch.identifier === touchLookId) { touchLookId = null; }
             }
         });
 
@@ -384,13 +387,16 @@
             camera.rotation.x = pitch;
         }
 
-        // Desktop Keyboard Controls
+        // Desktop Controls
         const onKeyDown = (event) => {
             switch (event.code) {
                 case 'KeyW': case 'ArrowUp': moveForward = true; break;
                 case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
                 case 'KeyS': case 'ArrowDown': moveBackward = true; break;
                 case 'KeyD': case 'ArrowRight': moveRight = true; break;
+                case 'Space': moveUp = true; break;
+                case 'ShiftLeft': moveDown = true; break;
+                case 'KeyF': toggleFly(); break;
             }
         };
 
@@ -400,53 +406,74 @@
                 case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
                 case 'KeyS': case 'ArrowDown': moveBackward = false; break;
                 case 'KeyD': case 'ArrowRight': moveRight = false; break;
+                case 'Space': moveUp = false; break;
+                case 'ShiftLeft': moveDown = false; break;
             }
         };
 
         document.addEventListener('keydown', onKeyDown);
         document.addEventListener('keyup', onKeyUp);
 
-        // Planting Logic
+        // Planting Logic & Storage Save
         const raycaster = new THREE.Raycaster();
         
+        function addFlowerMesh(x, y, z, colorHex) {
+            const flower = new THREE.Group();
+            
+            const stemGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5);
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x228b22 });
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.y = 0.25;
+            stem.castShadow = true;
+            flower.add(stem);
+
+            const petalGeo = new THREE.DodecahedronGeometry(0.2);
+            const petalMat = new THREE.MeshStandardMaterial({ color: colorHex });
+            const blossom = new THREE.Mesh(petalGeo, petalMat);
+            blossom.position.y = 0.5;
+            blossom.castShadow = true;
+            flower.add(blossom);
+
+            flower.position.set(x, y, z);
+            scene.add(flower);
+        }
+
         function plantFlower() {
             if (!isPlaying) return;
 
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycaster.intersectObject(ground);
 
-            if (intersects.length > 0 && intersects[0].distance < 10) {
+            if (intersects.length > 0 && intersects[0].distance < 15) {
                 const point = intersects[0].point;
-                const flower = new THREE.Group();
-                
-                const stemGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5);
-                const stemMat = new THREE.MeshStandardMaterial({ color: 0x228b22 });
-                const stem = new THREE.Mesh(stemGeo, stemMat);
-                stem.position.y = 0.25;
-                stem.castShadow = true;
-                flower.add(stem);
-
                 const colors = [0xff69b4, 0xff4500, 0x9370db, 0xffff00, 0xffffff];
-                const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                const petalGeo = new THREE.DodecahedronGeometry(0.2);
-                const petalMat = new THREE.MeshStandardMaterial({ color: randomColor });
-                const blossom = new THREE.Mesh(petalGeo, petalMat);
-                blossom.position.y = 0.5;
-                blossom.castShadow = true;
-                flower.add(blossom);
+                const selectedColor = colors[Math.floor(Math.random() * colors.length)];
 
-                flower.position.set(point.x, point.y, point.z);
-                scene.add(flower);
+                addFlowerMesh(point.x, point.y, point.z, selectedColor);
 
-                flowerCount++;
-                document.getElementById('flower-count').innerText = flowerCount;
+                savedFlowers.push({ x: point.x, y: point.y, z: point.z, color: selectedColor });
+                localStorage.setItem('garden_flowers', JSON.stringify(savedFlowers));
+                document.getElementById('flower-count').innerText = savedFlowers.length;
             }
         }
 
-        document.addEventListener('click', (event) => {
-            if (!isMobile && isLocked) {
-                plantFlower();
+        function loadFlowers() {
+            const data = localStorage.getItem('garden_flowers');
+            if (data) {
+                savedFlowers = JSON.parse(data);
+                savedFlowers.forEach(f => addFlowerMesh(f.x, f.y, f.z, f.color));
+                document.getElementById('flower-count').innerText = savedFlowers.length;
             }
+        }
+        loadFlowers();
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            localStorage.removeItem('garden_flowers');
+            location.reload();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!isMobile && isLocked) plantFlower();
         });
 
         document.getElementById('plant-btn').addEventListener('touchstart', (e) => {
@@ -454,7 +481,52 @@
             plantFlower();
         });
 
-        // Loop
+        document.getElementById('fly-btn').addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            toggleFly();
+        });
+
+        // Dinosaur Spawns
+        function createDinosaur() {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0x4a7c59, roughness: 0.6 });
+
+            // Body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 3), mat);
+            body.position.y = 2.5;
+            body.castShadow = true;
+            group.add(body);
+
+            // Head
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1.8), mat);
+            head.position.set(0, 4, 1.2);
+            head.castShadow = true;
+            group.add(head);
+
+            // Legs
+            const legGeo = new THREE.BoxGeometry(0.5, 2, 0.6);
+            const legL = new THREE.Mesh(legGeo, mat);
+            legL.position.set(-0.6, 1, 0);
+            const legR = new THREE.Mesh(legGeo, mat);
+            legR.position.set(0.6, 1, 0);
+            group.add(legL, legR);
+
+            // Random Map Spawn
+            const spawnX = (Math.random() - 0.5) * 120;
+            const spawnZ = (Math.random() - 0.5) * 120;
+            group.position.set(spawnX, 0, spawnZ);
+            group.rotation.y = Math.random() * Math.PI * 2;
+            scene.add(group);
+        }
+
+        // Spawn Dinosaur every 15 Seconds
+        setInterval(() => {
+            if (isPlaying) {
+                createDinosaur();
+            }
+        }, 15000);
+
+        // Animation Loop
         let prevTime = performance.now();
 
         function animate() {
@@ -466,14 +538,17 @@
             if (isPlaying) {
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
+                velocity.y -= velocity.y * 10.0 * delta;
 
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
+                direction.y = Number(moveUp) - Number(moveDown);
                 direction.normalize();
 
-                const speed = 12.0;
+                const speed = isFlying ? 20.0 : 12.0;
                 if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+                if (isFlying && (moveUp || moveDown)) velocity.y += direction.y * speed * delta;
 
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
                 const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -481,7 +556,12 @@
                 camera.position.addScaledVector(side, -velocity.x * delta);
                 camera.position.addScaledVector(forward, -velocity.z * delta);
 
-                camera.position.y = 1.7;
+                if (isFlying) {
+                    camera.position.y += velocity.y * delta;
+                    if (camera.position.y < 0.5) camera.position.y = 0.5;
+                } else {
+                    camera.position.y = 1.7;
+                }
             }
 
             prevTime = time;
