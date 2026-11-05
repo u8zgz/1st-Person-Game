@@ -80,7 +80,7 @@
             font-weight: bold;
         }
 
-        /* Mobile Controls UI - Fully separated from joystick */
+        /* Mobile Controls UI */
         #joystick-container {
             position: absolute;
             bottom: 30px;
@@ -105,13 +105,13 @@
         }
         .mobile-action-btn {
             position: absolute;
-            width: 60px;
-            height: 60px;
+            width: 55px;
+            height: 55px;
             color: white;
             border: 2px solid white;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             display: none;
             justify-content: center;
             align-items: center;
@@ -119,12 +119,14 @@
             z-index: 8;
         }
         #plant-btn { bottom: 30px; right: 30px; background: #4caf50; }
-        #fly-btn { bottom: 170px; right: 30px; background: #2196f3; }
-        #fly-up-btn { bottom: 170px; right: 100px; background: #03a9f4; display: none; }
-        #fly-down-btn { bottom: 100px; right: 100px; background: #0288d1; display: none; }
-        #rifle-btn { bottom: 100px; right: 30px; background: #795548; }
+        #jump-btn { bottom: 95px; right: 30px; background: #9c27b0; }
+        #fly-btn { bottom: 225px; right: 30px; background: #2196f3; }
+        #fly-up-btn { bottom: 225px; right: 95px; background: #03a9f4; display: none; }
+        #fly-down-btn { bottom: 160px; right: 95px; background: #0288d1; display: none; }
+        #rifle-btn { bottom: 160px; right: 30px; background: #795548; }
+        #aim-btn { bottom: 160px; right: 95px; background: #607d8b; display: none; }
         #shoot-btn { bottom: 30px; right: 30px; background: #e91e63; display: none; }
-        #reload-btn { bottom: 30px; right: 100px; background: #ff9800; display: none; }
+        #reload-btn { bottom: 30px; right: 95px; background: #ff9800; display: none; }
         .mobile-action-btn:active { transform: scale(0.95); }
     </style>
     <!-- Three.js Library -->
@@ -136,17 +138,19 @@
     <div id="hud">
         Flowers Planted: <span id="flower-count">0</span><br>
         Mode: <span id="mode-indicator">Walk</span> | Tool: <span id="tool-indicator">Planting</span><br>
-        Loaded: <span id="ammo-display">--</span> | Inventory Darts: <span id="reserve-display">--</span><br>
+        Loaded: <span id="ammo-display">--</span> | Reserve Darts: <span id="reserve-display">--</span><br>
         <button id="clear-btn">Reset Garden</button>
     </div>
 
     <!-- Mobile Controls -->
     <div id="joystick-container"><div id="joystick-knob"></div></div>
     <div id="plant-btn" class="mobile-action-btn">PLANT</div>
+    <div id="jump-btn" class="mobile-action-btn">JUMP</div>
     <div id="fly-btn" class="mobile-action-btn">FLY</div>
     <div id="fly-up-btn" class="mobile-action-btn">UP</div>
     <div id="fly-down-btn" class="mobile-action-btn">DOWN</div>
     <div id="rifle-btn" class="mobile-action-btn">RIFLE</div>
+    <div id="aim-btn" class="mobile-action-btn">AIM</div>
     <div id="shoot-btn" class="mobile-action-btn">SHOOT</div>
     <div id="reload-btn" class="mobile-action-btn">RELOAD</div>
 
@@ -154,17 +158,14 @@
         <h1>3D Garden Explorer</h1>
         <p id="start-msg">Click anywhere to Start</p>
         <div id="desktop-instructions">
-            <p><strong>WASD / Arrow Keys</strong>: Move</p>
-            <p><strong>Space / Shift</strong>: Fly Up / Down</p>
+            <p><strong>WASD</strong>: Move | <strong>Shift</strong>: Sprint | <strong>Space</strong>: Jump</p>
+            <p><strong>Right Click</strong>: Aim Gun | <strong>Left Click</strong>: Plant / Shoot</p>
             <p><strong>F</strong>: Toggle Fly Mode | <strong>R</strong>: Toggle Rifle / Reload</p>
-            <p><strong>Left Click</strong>: Plant / Shoot Tranq Dart</p>
-            <p>Walk over missed darts to pick them back up!</p>
             <p><strong>ESC</strong>: Pause / Release Mouse</p>
         </div>
         <div id="mobile-instructions" style="display:none;">
             <p><strong>Left Joystick</strong>: Move | <strong>Right Drag</strong>: Look</p>
-            <p><strong>FLY / RIFLE Buttons</strong>: Toggle Modes</p>
-            <p><strong>SHOOT / RELOAD / PLANT</strong>: Actions</p>
+            <p><strong>AIM / SHOOT / RELOAD / JUMP</strong>: Touch Buttons</p>
         </div>
     </div>
 
@@ -177,6 +178,7 @@
             document.getElementById('start-msg').innerText = 'Tap anywhere to Start';
             document.getElementById('joystick-container').style.display = 'block';
             document.getElementById('plant-btn').style.display = 'flex';
+            document.getElementById('jump-btn').style.display = 'flex';
             document.getElementById('fly-btn').style.display = 'flex';
             document.getElementById('rifle-btn').style.display = 'flex';
         }
@@ -248,44 +250,51 @@
             }
         }
 
-        // --- Build 3D First-Person Rifle ---
+        // --- Build 3D Rifle with Aiming Mechanics ---
         const rifleGroup = new THREE.Group();
         const stockMat = new THREE.MeshStandardMaterial({ color: 0x4a2c11 });
         const metalMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
 
-        // Stock
         const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.4), stockMat);
         stock.position.set(0, -0.05, 0.1);
         rifleGroup.add(stock);
 
-        // Barrel
         const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 16), metalMat);
         barrel.rotation.x = Math.PI / 2;
         barrel.position.set(0, 0.02, -0.3);
         rifleGroup.add(barrel);
 
-        // Scope
         const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 16), metalMat);
         scope.rotation.x = Math.PI / 2;
         scope.position.set(0, 0.07, -0.1);
         rifleGroup.add(scope);
 
-        // Position rifle in front of camera
-        rifleGroup.position.set(0.25, -0.2, -0.4);
+        const hipPosition = new THREE.Vector3(0.25, -0.2, -0.4);
+        const aimPosition = new THREE.Vector3(0, -0.07, -0.25);
+        rifleGroup.position.copy(hipPosition);
         rifleGroup.visible = false;
         camera.add(rifleGroup);
         scene.add(camera);
 
-        // Game State Variables
+        // State Variables
         const instructions = document.getElementById('instructions');
         let isPlaying = false;
         let isLocked = false;
         let isFlying = false;
+        let isAiming = false;
+        let isSprinting = false;
         let rifleActive = false;
         
         let loadedAmmo = 5;
         let magazineCapacity = 5;
         let reserveDarts = 20;
+
+        // Vertical Movement & Gravity Setup
+        let verticalVelocity = 0;
+        const gravity = -20;
+        const jumpStrength = 7;
+        const eyeHeight = 1.7;
+        let isGrounded = true;
 
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
@@ -297,11 +306,30 @@
 
         let pitch = 0;
         let yaw = 0;
-        camera.position.set(0, 1.7, 0);
+
+        // Load Saved Player Position
+        function loadPlayerPosition() {
+            const savedPos = localStorage.getItem('garden_player_pos');
+            if (savedPos) {
+                const pos = JSON.parse(savedPos);
+                camera.position.set(pos.x, pos.y, pos.z);
+            } else {
+                camera.position.set(0, eyeHeight, 0);
+            }
+        }
+        loadPlayerPosition();
+
+        function savePlayerPosition() {
+            localStorage.setItem('garden_player_pos', JSON.stringify({
+                x: camera.position.x,
+                y: camera.position.y,
+                z: camera.position.z
+            }));
+        }
 
         function updateHUD() {
             document.getElementById('mode-indicator').innerText = isFlying ? "Fly" : "Walk";
-            document.getElementById('tool-indicator').innerText = rifleActive ? "Rifle" : "Planting";
+            document.getElementById('tool-indicator').innerText = rifleActive ? (isAiming ? "Rifle (Aiming)" : "Rifle") : "Planting";
             document.getElementById('ammo-display').innerText = rifleActive ? `${loadedAmmo} / ${magazineCapacity}` : "--";
             document.getElementById('reserve-display').innerText = rifleActive ? `${reserveDarts}` : "--";
         }
@@ -323,6 +351,7 @@
             if (isMobile) {
                 document.getElementById('shoot-btn').style.display = rifleActive ? "flex" : "none";
                 document.getElementById('reload-btn').style.display = rifleActive ? "flex" : "none";
+                document.getElementById('aim-btn').style.display = rifleActive ? "flex" : "none";
                 document.getElementById('plant-btn').style.display = rifleActive ? "none" : "flex";
             }
             updateHUD();
@@ -336,6 +365,13 @@
                 loadedAmmo += toReload;
                 reserveDarts -= toReload;
                 updateHUD();
+            }
+        }
+
+        function jump() {
+            if (!isFlying && isGrounded) {
+                verticalVelocity = jumpStrength;
+                isGrounded = false;
             }
         }
 
@@ -361,14 +397,35 @@
             }
         });
 
-        // Desktop Mouse Look
+        // Desktop Mouse Look & Aiming
         document.addEventListener('mousemove', (event) => {
             if (!isLocked || isMobile) return;
-            yaw -= (event.movementX || 0) * 0.002;
-            pitch -= (event.movementY || 0) * 0.002;
+            const sens = isAiming ? 0.001 : 0.002;
+            yaw -= (event.movementX || 0) * sens;
+            pitch -= (event.movementY || 0) * sens;
             pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
             updateCameraRotation();
         });
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 2 && rifleActive) { // Right Click to Aim
+                isAiming = true;
+                camera.fov = 40;
+                camera.updateProjectionMatrix();
+                updateHUD();
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 2 && rifleActive) {
+                isAiming = false;
+                camera.fov = 75;
+                camera.updateProjectionMatrix();
+                updateHUD();
+            }
+        });
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
 
         // Mobile Touch Look & Joystick
         let touchLookId = null;
@@ -409,8 +466,9 @@
                     const deltaX = touch.clientX - touchLookLastX;
                     const deltaY = touch.clientY - touchLookLastY;
 
-                    yaw -= deltaX * 0.004;
-                    pitch -= deltaY * 0.004;
+                    const sens = isAiming ? 0.002 : 0.004;
+                    yaw -= deltaX * sens;
+                    pitch -= deltaY * sens;
                     pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
                     updateCameraRotation();
 
@@ -459,15 +517,18 @@
             camera.rotation.x = pitch;
         }
 
-        // Desktop Controls
+        // Desktop Key Events
         const onKeyDown = (event) => {
             switch (event.code) {
                 case 'KeyW': case 'ArrowUp': moveForward = true; break;
                 case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
                 case 'KeyS': case 'ArrowDown': moveBackward = true; break;
                 case 'KeyD': case 'ArrowRight': moveRight = true; break;
-                case 'Space': moveUp = true; break;
-                case 'ShiftLeft': moveDown = true; break;
+                case 'ShiftLeft': case 'ShiftRight': isSprinting = true; break;
+                case 'Space': 
+                    if (isFlying) moveUp = true;
+                    else jump();
+                    break;
                 case 'KeyF': toggleFly(); break;
                 case 'KeyR': 
                     if (rifleActive && loadedAmmo < magazineCapacity && reserveDarts > 0) reloadRifle();
@@ -482,8 +543,8 @@
                 case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
                 case 'KeyS': case 'ArrowDown': moveBackward = false; break;
                 case 'KeyD': case 'ArrowRight': moveRight = false; break;
+                case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
                 case 'Space': moveUp = false; break;
-                case 'ShiftLeft': moveDown = false; break;
             }
         };
 
@@ -493,7 +554,6 @@
         // 3D Tranquilizer Dart Creator
         function create3DDartMesh() {
             const dartGroup = new THREE.Group();
-            // Dart body
             const body = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.015, 0.015, 0.25, 8),
                 new THREE.MeshStandardMaterial({ color: 0xcccccc })
@@ -501,7 +561,6 @@
             body.rotation.x = Math.PI / 2;
             dartGroup.add(body);
 
-            // Tranquilizer container (Yellow/Bright)
             const vial = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.025, 0.025, 0.1, 8),
                 new THREE.MeshStandardMaterial({ color: 0xffff00 })
@@ -510,7 +569,6 @@
             vial.position.z = -0.02;
             dartGroup.add(vial);
 
-            // Feathers / Tail
             const tail = new THREE.Mesh(
                 new THREE.ConeGeometry(0.035, 0.08, 4),
                 new THREE.MeshStandardMaterial({ color: 0x00bcd4 })
@@ -522,7 +580,7 @@
             return dartGroup;
         }
 
-        // Action Logic (Plant or Shoot)
+        // Action Logic (Plant / Shoot)
         const raycaster = new THREE.Raycaster();
         
         function addFlowerMesh(x, y, z, colorHex) {
@@ -553,11 +611,6 @@
                 loadedAmmo--;
                 updateHUD();
 
-                // Recoil effect on 3D rifle
-                rifleGroup.position.z = -0.3;
-                setTimeout(() => { rifleGroup.position.z = -0.4; }, 100);
-
-                // Spawn 3D Dart projectile
                 const dartMesh = create3DDartMesh();
                 const dir = new THREE.Vector3();
                 camera.getWorldDirection(dir);
@@ -568,10 +621,9 @@
 
                 activeDarts.push({
                     mesh: dartMesh,
-                    velocity: dir.clone().multiplyScalar(40),
+                    velocity: dir.clone().multiplyScalar(45),
                     stuck: false
                 });
-
             } else {
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
                 const intersects = raycaster.intersectObject(ground);
@@ -602,26 +654,35 @@
 
         document.getElementById('clear-btn').addEventListener('click', () => {
             localStorage.removeItem('garden_flowers');
+            localStorage.removeItem('garden_player_pos');
             location.reload();
         });
 
-        document.addEventListener('click', () => {
-            if (!isMobile && isLocked) performAction();
+        document.addEventListener('click', (e) => {
+            if (!isMobile && isLocked && e.button === 0) performAction();
         });
 
-        // Touch Listeners for Action Buttons
+        // Touch Action Listeners
         document.getElementById('plant-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('shoot-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('reload-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); reloadRifle(); });
+        document.getElementById('jump-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); jump(); });
         document.getElementById('fly-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleFly(); });
         document.getElementById('rifle-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleRifle(); });
+        document.getElementById('aim-btn').addEventListener('touchstart', (e) => { 
+            e.stopPropagation(); 
+            isAiming = !isAiming;
+            camera.fov = isAiming ? 40 : 75;
+            camera.updateProjectionMatrix();
+            updateHUD();
+        });
 
         document.getElementById('fly-up-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveUp = true; });
         document.getElementById('fly-up-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveUp = false; });
         document.getElementById('fly-down-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveDown = true; });
         document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
 
-        // High Detail Connected Dinosaur Model
+        // Moving Dinosaur Spawns
         function spawnDinosaur() {
             if (dinosaurs.length >= 3) {
                 const oldest = dinosaurs.shift();
@@ -632,37 +693,31 @@
             const skinMat = new THREE.MeshStandardMaterial({ color: 0x3b5323, roughness: 0.6 });
             const bellyMat = new THREE.MeshStandardMaterial({ color: 0x688b42, roughness: 0.7 });
 
-            // Torso / Body
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.8, 3.2), skinMat);
             body.position.set(0, 2.2, 0);
             body.castShadow = true;
             group.add(body);
 
-            // Connected Neck Base
             const neck = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 1.0), skinMat);
             neck.position.set(0, 3.1, 1.2);
             neck.rotation.x = -Math.PI / 6;
             neck.castShadow = true;
             group.add(neck);
 
-            // Connected Head (Attached directly to top of neck)
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 1.6), skinMat);
             head.position.set(0, 3.7, 1.7);
             head.castShadow = true;
             group.add(head);
 
-            // Snout / Jaw
             const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 1.4), bellyMat);
             jaw.position.set(0, 3.4, 1.7);
             group.add(jaw);
 
-            // Tail Structure
-            const tail1 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 2.0), skinMat);
-            tail1.position.set(0, 2.1, -2.0);
-            tail1.rotation.x = -0.1;
-            group.add(tail1);
+            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 2.0), skinMat);
+            tail.position.set(0, 2.1, -2.0);
+            tail.rotation.x = -0.1;
+            group.add(tail);
 
-            // Legs & Arms
             const legGeo = new THREE.BoxGeometry(0.5, 2.2, 0.7);
             const legL = new THREE.Mesh(legGeo, skinMat);
             legL.position.set(-0.8, 1.1, 0.2);
@@ -670,16 +725,6 @@
             legR.position.set(0.8, 1.1, 0.2);
             group.add(legL, legR);
 
-            const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-            const armL = new THREE.Mesh(armGeo, skinMat);
-            armL.position.set(-0.75, 2.3, 1.3);
-            armL.rotation.x = Math.PI / 4;
-            const armR = new THREE.Mesh(armGeo, skinMat);
-            armR.position.set(0.75, 2.3, 1.3);
-            armR.rotation.x = Math.PI / 4;
-            group.add(armL, armR);
-
-            // Spawn Location
             const spawnX = (Math.random() - 0.5) * 100;
             const spawnZ = (Math.random() - 0.5) * 100;
             group.position.set(spawnX, 0, spawnZ);
@@ -691,16 +736,16 @@
                 legL: legL,
                 legR: legR,
                 fallen: false,
-                animOffset: Math.random() * 10
+                targetAngle: group.rotation.y,
+                changeDirTimer: 0
             });
         }
 
-        // Spawn Dinosaur periodically
         setInterval(() => {
             if (isPlaying) spawnDinosaur();
         }, 12000);
 
-        // Animation Loop
+        // Animation & Physics Loop
         let prevTime = performance.now();
 
         function animate() {
@@ -709,21 +754,24 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // Update Flying & Walking Physics
             if (isPlaying) {
+                // Smooth Gun Aim Interpolation
+                const targetGunPos = isAiming ? aimPosition : hipPosition;
+                rifleGroup.position.lerp(targetGunPos, delta * 15);
+
+                // Movement & Speed
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
-                velocity.y -= velocity.y * 10.0 * delta;
 
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
-                direction.y = Number(moveUp) - Number(moveDown);
                 direction.normalize();
 
-                const speed = isFlying ? 22.0 : 12.0;
-                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
-                if (isFlying && (moveUp || moveDown)) velocity.y += direction.y * speed * delta;
+                const baseSpeed = isSprinting ? 20.0 : 12.0;
+                const currentSpeed = isFlying ? baseSpeed * 1.5 : baseSpeed;
+
+                if (moveForward || moveBackward) velocity.z -= direction.z * currentSpeed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * currentSpeed * delta;
 
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
                 const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -731,14 +779,27 @@
                 camera.position.addScaledVector(side, -velocity.x * delta);
                 camera.position.addScaledVector(forward, -velocity.z * delta);
 
+                // Flying vs Gravity Physics
                 if (isFlying) {
-                    camera.position.y += velocity.y * delta;
-                    if (camera.position.y < 0.8) camera.position.y = 0.8;
+                    if (moveUp) camera.position.y += 15 * delta;
+                    if (moveDown) camera.position.y -= 15 * delta;
+                    if (camera.position.y < eyeHeight) camera.position.y = eyeHeight;
                 } else {
-                    camera.position.y = 1.7;
+                    // Apply Gravity & Jumping
+                    verticalVelocity += gravity * delta;
+                    camera.position.y += verticalVelocity * delta;
+
+                    if (camera.position.y <= eyeHeight) {
+                        camera.position.y = eyeHeight;
+                        verticalVelocity = 0;
+                        isGrounded = true;
+                    }
                 }
 
-                // Check for Dart Pickups
+                // Auto-save Position
+                savePlayerPosition();
+
+                // Check Dart Pickups
                 activeDarts.forEach((dart, idx) => {
                     if (dart.stuck) {
                         const dist = camera.position.distanceTo(dart.mesh.position);
@@ -752,18 +813,16 @@
                 });
             }
 
-            // Update 3D Projectiles (Darts)
+            // Projectile Physics (Darts)
             activeDarts.forEach((dart) => {
                 if (!dart.stuck) {
                     dart.mesh.position.addScaledVector(dart.velocity, delta);
 
-                    // Collision check with Ground
                     if (dart.mesh.position.y <= 0.1) {
                         dart.mesh.position.y = 0.05;
                         dart.stuck = true;
                     }
 
-                    // Collision check with Dinosaurs
                     dinosaurs.forEach((dino) => {
                         if (!dino.fallen) {
                             const dist = dart.mesh.position.distanceTo(dino.mesh.position);
@@ -772,19 +831,31 @@
                                 dino.mesh.rotation.z = Math.PI / 2;
                                 dino.mesh.position.y = 0.8;
                                 dart.stuck = true;
-                                dino.mesh.add(dart.mesh); // Attach dart to dino
+                                dino.mesh.add(dart.mesh);
                             }
                         }
                     });
                 }
             });
 
-            // Animate Dinosaurs (Leg movement & Idle sway)
+            // Dinosaur Movement Logic & Leg Animations
             dinosaurs.forEach((dino) => {
                 if (!dino.fallen) {
-                    const walkCycle = Math.sin(time * 0.004 + dino.animOffset);
-                    dino.legL.rotation.x = walkCycle * 0.4;
-                    dino.legR.rotation.x = -walkCycle * 0.4;
+                    dino.changeDirTimer -= delta;
+                    if (dino.changeDirTimer <= 0) {
+                        dino.targetAngle += (Math.random() - 0.5) * 2;
+                        dino.changeDirTimer = 3 + Math.random() * 4;
+                    }
+                    dino.mesh.rotation.y += (dino.targetAngle - dino.mesh.rotation.y) * delta * 2;
+
+                    // Move forward in local orientation
+                    const moveDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), dino.mesh.rotation.y);
+                    dino.mesh.position.addScaledVector(moveDir, delta * 3.5);
+
+                    // Leg animation while walking
+                    const walkCycle = Math.sin(time * 0.008);
+                    dino.legL.rotation.x = walkCycle * 0.5;
+                    dino.legR.rotation.x = -walkCycle * 0.5;
                 }
             });
 
