@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Garden Explorer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #instructions {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            color: #ffffff;
+            cursor: pointer;
+            text-align: center;
+            z-index: 10;
+        }
+        #instructions h1 {
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        #instructions p {
+            font-size: 1.2rem;
+            margin: 5px 0;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 5;
+        }
+        #hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Mobile Controls UI */
+        #joystick-container {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: none;
+            z-index: 8;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #plant-btn {
+            position: absolute;
+            bottom: 40px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: #4caf50;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 1rem;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 8;
+        }
+        #plant-btn:active {
+            background: #388e3c;
+            transform: scale(0.95);
+        }
+    </style>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="crosshair"></div>
+    <div id="hud">Flowers Planted: <span id="flower-count">0</span></div>
+
+    <!-- Mobile Controls -->
+    <div id="joystick-container"><div id="joystick-knob"></div></div>
+    <div id="plant-btn">PLANT</div>
+
+    <div id="instructions">
+        <h1>3D Garden Explorer</h1>
+        <p id="start-msg">Click anywhere to Start</p>
+        <div id="desktop-instructions">
+            <p><strong>WASD / Arrow Keys</strong>: Move</p>
+            <p><strong>Mouse</strong>: Look around</p>
+            <p><strong>Left Click</strong>: Plant a Flower</p>
+            <p><strong>ESC</strong>: Pause / Release Mouse</p>
+        </div>
+        <div id="mobile-instructions" style="display:none;">
+            <p><strong>Left Screen Joystick</strong>: Move</p>
+            <p><strong>Right Screen Drag</strong>: Look around</p>
+            <p><strong>PLANT Button</strong>: Plant a Flower</p>
+        </div>
+    </div>
+
+    <script>
+        const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+        if (isMobile) {
+            document.getElementById('desktop-instructions').style.display = 'none';
+            document.getElementById('mobile-instructions').style.display = 'block';
+            document.getElementById('start-msg').innerText = 'Tap anywhere to Start';
+            document.getElementById('joystick-container').style.display = 'block';
+            document.getElementById('plant-btn').style.display = 'flex';
+        }
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        sunLight.position.set(50, 80, 50);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 200;
+        const d = 50;
+        sunLight.shadow.camera.left = -d;
+        sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d;
+        sunLight.shadow.camera.bottom = -d;
+        scene.add(sunLight);
+
+        // Ground / Garden Bed
+        const groundGeometry = new THREE.PlaneGeometry(200, 200);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x557a2b, roughness: 0.8 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Add Trees
+        function createTree(x, z) {
+            const group = new THREE.Group();
+            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.5, 3, 8);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 1.5;
+            trunk.castShadow = true;
+            group.add(trunk);
+
+            const foliageGeo = new THREE.ConeGeometry(2, 4, 8);
+            const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2e5a1c });
+            const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+            foliage.position.y = 4;
+            foliage.castShadow = true;
+            group.add(foliage);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+
+        for (let i = 0; i < 40; i++) {
+            const x = (Math.random() - 0.5) * 160;
+            const z = (Math.random() - 0.5) * 160;
+            if (Math.abs(x) > 5 || Math.abs(z) > 5) {
+                createTree(x, z);
+            }
+        }
+
+        // Game State Variables
+        const instructions = document.getElementById('instructions');
+        let isPlaying = false;
+        let isLocked = false;
+
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+        let flowerCount = 0;
+
+        let pitch = 0;
+        let yaw = 0;
+        camera.position.set(0, 1.7, 0);
+
+        // Controls Logic
+        instructions.addEventListener('click', () => {
+            isPlaying = true;
+            instructions.style.display = 'none';
+            if (!isMobile) {
+                document.body.requestPointerLock();
+            }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            if (!isMobile) {
+                if (document.pointerLockElement === document.body) {
+                    isLocked = true;
+                    instructions.style.display = 'none';
+                } else {
+                    isLocked = false;
+                    isPlaying = false;
+                    instructions.style.display = 'flex';
+                }
+            }
+        });
+
+        // Desktop Mouse Look
+        document.addEventListener('mousemove', (event) => {
+            if (!isLocked || isMobile) return;
+            yaw -= (event.movementX || 0) * 0.002;
+            pitch -= (event.movementY || 0) * 0.002;
+            pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+            updateCameraRotation();
+        });
+
+        // Mobile Touch Look & Joystick
+        let touchLookId = null;
+        let touchLookLastX = 0;
+        let touchLookLastY = 0;
+
+        let joystickTouchId = null;
+        const joystickContainer = document.getElementById('joystick-container');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let joystickCenter = { x: 0, y: 0 };
+
+        window.addEventListener('touchstart', (e) => {
+            if (!isPlaying) return;
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+
+                // Joystick target
+                if (isMobile && touch.clientX < window.innerWidth / 2 && joystickTouchId === null) {
+                    joystickTouchId = touch.identifier;
+                    const rect = joystickContainer.getBoundingClientRect();
+                    joystickCenter = {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                    handleJoystickMove(touch);
+                } 
+                // Camera target
+                else if (isMobile && touch.clientX >= window.innerWidth / 2 && touchLookId === null) {
+                    if (e.target.id !== 'plant-btn') {
+                        touchLookId = touch.identifier;
+                        touchLookLastX = touch.clientX;
+                        touchLookLastY = touch.clientY;
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isPlaying) return;
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+
+                if (touch.identifier === joystickTouchId) {
+                    handleJoystickMove(touch);
+                } else if (touch.identifier === touchLookId) {
+                    const deltaX = touch.clientX - touchLookLastX;
+                    const deltaY = touch.clientY - touchLookLastY;
+
+                    yaw -= deltaX * 0.004;
+                    pitch -= deltaY * 0.004;
+                    pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+                    updateCameraRotation();
+
+                    touchLookLastX = touch.clientX;
+                    touchLookLastY = touch.clientY;
+                }
+            }
+        });
+
+        const resetJoystick = () => {
+            joystickKnob.style.transform = `translate(-50%, -50%)`;
+            moveForward = moveBackward = moveLeft = moveRight = false;
+        };
+
+        window.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === joystickTouchId) {
+                    joystickTouchId = null;
+                    resetJoystick();
+                } if (touch.identifier === touchLookId) {
+                    touchLookId = null;
+                }
+            }
+        });
+
+        window.addEventListener('touchcancel', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === joystickTouchId) {
+                    joystickTouchId = null;
+                    resetJoystick();
+                } if (touch.identifier === touchLookId) {
+                    touchLookId = null;
+                }
+            }
+        });
+
+        function handleJoystickMove(touch) {
+            const maxRadius = 40;
+            let dx = touch.clientX - joystickCenter.x;
+            let dy = touch.clientY - joystickCenter.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > maxRadius) {
+                dx = (dx / dist) * maxRadius;
+                dy = (dy / dist) * maxRadius;
+            }
+
+            joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+            const threshold = 10;
+            moveForward = dy < -threshold;
+            moveBackward = dy > threshold;
+            moveLeft = dx < -threshold;
+            moveRight = dx > threshold;
+        }
+
+        function updateCameraRotation() {
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = yaw;
+            camera.rotation.x = pitch;
+        }
+
+        // Desktop Keyboard Controls
+        const onKeyDown = (event) => {
+            switch (event.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = true; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = true; break;
+                case 'KeyD': case 'ArrowRight': moveRight = true; break;
+            }
+        };
+
+        const onKeyUp = (event) => {
+            switch (event.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = false; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = false; break;
+                case 'KeyD': case 'ArrowRight': moveRight = false; break;
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
+        // Planting Logic
+        const raycaster = new THREE.Raycaster();
+        
+        function plantFlower() {
+            if (!isPlaying) return;
+
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObject(ground);
+
+            if (intersects.length > 0 && intersects[0].distance < 10) {
+                const point = intersects[0].point;
+                const flower = new THREE.Group();
+                
+                const stemGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5);
+                const stemMat = new THREE.MeshStandardMaterial({ color: 0x228b22 });
+                const stem = new THREE.Mesh(stemGeo, stemMat);
+                stem.position.y = 0.25;
+                stem.castShadow = true;
+                flower.add(stem);
+
+                const colors = [0xff69b4, 0xff4500, 0x9370db, 0xffff00, 0xffffff];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                const petalGeo = new THREE.DodecahedronGeometry(0.2);
+                const petalMat = new THREE.MeshStandardMaterial({ color: randomColor });
+                const blossom = new THREE.Mesh(petalGeo, petalMat);
+                blossom.position.y = 0.5;
+                blossom.castShadow = true;
+                flower.add(blossom);
+
+                flower.position.set(point.x, point.y, point.z);
+                scene.add(flower);
+
+                flowerCount++;
+                document.getElementById('flower-count').innerText = flowerCount;
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            if (!isMobile && isLocked) {
+                plantFlower();
+            }
+        });
+
+        document.getElementById('plant-btn').addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            plantFlower();
+        });
+
+        // Loop
+        let prevTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            if (isPlaying) {
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                const speed = 12.0;
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+                const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+                camera.position.addScaledVector(side, -velocity.x * delta);
+                camera.position.addScaledVector(forward, -velocity.z * delta);
+
+                camera.position.y = 1.7;
+            }
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
