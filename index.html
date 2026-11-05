@@ -41,16 +41,16 @@
             font-size: 2.5rem;
         }
         #instructions p {
-            font-size: 1.2rem;
-            margin: 5px 0;
+            font-size: 1.1rem;
+            margin: 4px 0;
         }
         #crosshair {
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 10px;
-            height: 10px;
-            background-color: rgba(255, 255, 255, 0.7);
+            width: 8px;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.8);
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
@@ -58,28 +58,29 @@
         }
         #hud {
             position: absolute;
-            bottom: 20px;
+            top: 20px;
             left: 20px;
             color: white;
             font-size: 1.1rem;
             background: rgba(0, 0, 0, 0.5);
-            padding: 10px 15px;
+            padding: 12px 18px;
             border-radius: 8px;
             pointer-events: none;
             z-index: 5;
         }
         #clear-btn {
             pointer-events: auto;
-            margin-top: 5px;
+            margin-top: 8px;
             background: #ff4444;
             color: white;
             border: none;
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
+            font-weight: bold;
         }
 
-        /* Mobile Controls UI - Repositioned to avoid overlapping */
+        /* Mobile Controls UI - Fully separated from joystick */
         #joystick-container {
             position: absolute;
             bottom: 30px;
@@ -104,13 +105,13 @@
         }
         .mobile-action-btn {
             position: absolute;
-            width: 65px;
-            height: 65px;
+            width: 60px;
+            height: 60px;
             color: white;
             border: 2px solid white;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             display: none;
             justify-content: center;
             align-items: center;
@@ -118,9 +119,12 @@
             z-index: 8;
         }
         #plant-btn { bottom: 30px; right: 30px; background: #4caf50; }
-        #fly-btn { bottom: 110px; right: 30px; background: #2196f3; }
-        #rifle-btn { bottom: 190px; right: 30px; background: #795548; }
-        #shoot-btn { bottom: 110px; right: 110px; background: #e91e63; display: none; }
+        #fly-btn { bottom: 170px; right: 30px; background: #2196f3; }
+        #fly-up-btn { bottom: 170px; right: 100px; background: #03a9f4; display: none; }
+        #fly-down-btn { bottom: 100px; right: 100px; background: #0288d1; display: none; }
+        #rifle-btn { bottom: 100px; right: 30px; background: #795548; }
+        #shoot-btn { bottom: 30px; right: 30px; background: #e91e63; display: none; }
+        #reload-btn { bottom: 30px; right: 100px; background: #ff9800; display: none; }
         .mobile-action-btn:active { transform: scale(0.95); }
     </style>
     <!-- Three.js Library -->
@@ -132,7 +136,7 @@
     <div id="hud">
         Flowers Planted: <span id="flower-count">0</span><br>
         Mode: <span id="mode-indicator">Walk</span> | Tool: <span id="tool-indicator">Planting</span><br>
-        Ammo: <span id="ammo-display">--</span><br>
+        Loaded: <span id="ammo-display">--</span> | Inventory Darts: <span id="reserve-display">--</span><br>
         <button id="clear-btn">Reset Garden</button>
     </div>
 
@@ -140,24 +144,27 @@
     <div id="joystick-container"><div id="joystick-knob"></div></div>
     <div id="plant-btn" class="mobile-action-btn">PLANT</div>
     <div id="fly-btn" class="mobile-action-btn">FLY</div>
+    <div id="fly-up-btn" class="mobile-action-btn">UP</div>
+    <div id="fly-down-btn" class="mobile-action-btn">DOWN</div>
     <div id="rifle-btn" class="mobile-action-btn">RIFLE</div>
     <div id="shoot-btn" class="mobile-action-btn">SHOOT</div>
+    <div id="reload-btn" class="mobile-action-btn">RELOAD</div>
 
     <div id="instructions">
         <h1>3D Garden Explorer</h1>
         <p id="start-msg">Click anywhere to Start</p>
         <div id="desktop-instructions">
             <p><strong>WASD / Arrow Keys</strong>: Move</p>
-            <p><strong>Space / Shift</strong>: Up / Down (Fly Mode)</p>
-            <p><strong>F</strong>: Toggle Fly Mode | <strong>R</strong>: Toggle Rifle</p>
+            <p><strong>Space / Shift</strong>: Fly Up / Down</p>
+            <p><strong>F</strong>: Toggle Fly Mode | <strong>R</strong>: Toggle Rifle / Reload</p>
             <p><strong>Left Click</strong>: Plant / Shoot Tranq Dart</p>
-            <p><strong>R</strong> (while rifle out): Reload</p>
+            <p>Walk over missed darts to pick them back up!</p>
             <p><strong>ESC</strong>: Pause / Release Mouse</p>
         </div>
         <div id="mobile-instructions" style="display:none;">
             <p><strong>Left Joystick</strong>: Move | <strong>Right Drag</strong>: Look</p>
-            <p><strong>FLY / RIFLE Buttons</strong>: Toggle States</p>
-            <p><strong>SHOOT / PLANT Buttons</strong>: Action</p>
+            <p><strong>FLY / RIFLE Buttons</strong>: Toggle Modes</p>
+            <p><strong>SHOOT / RELOAD / PLANT</strong>: Actions</p>
         </div>
     </div>
 
@@ -169,8 +176,9 @@
             document.getElementById('mobile-instructions').style.display = 'block';
             document.getElementById('start-msg').innerText = 'Tap anywhere to Start';
             document.getElementById('joystick-container').style.display = 'block';
-            document.querySelectorAll('.mobile-action-btn').forEach(btn => btn.style.display = 'flex');
-            document.getElementById('shoot-btn').style.display = 'none'; // Only shows when rifle is active
+            document.getElementById('plant-btn').style.display = 'flex';
+            document.getElementById('fly-btn').style.display = 'flex';
+            document.getElementById('rifle-btn').style.display = 'flex';
         }
 
         // Scene setup
@@ -240,14 +248,44 @@
             }
         }
 
+        // --- Build 3D First-Person Rifle ---
+        const rifleGroup = new THREE.Group();
+        const stockMat = new THREE.MeshStandardMaterial({ color: 0x4a2c11 });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
+
+        // Stock
+        const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.4), stockMat);
+        stock.position.set(0, -0.05, 0.1);
+        rifleGroup.add(stock);
+
+        // Barrel
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 16), metalMat);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.02, -0.3);
+        rifleGroup.add(barrel);
+
+        // Scope
+        const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 16), metalMat);
+        scope.rotation.x = Math.PI / 2;
+        scope.position.set(0, 0.07, -0.1);
+        rifleGroup.add(scope);
+
+        // Position rifle in front of camera
+        rifleGroup.position.set(0.25, -0.2, -0.4);
+        rifleGroup.visible = false;
+        camera.add(rifleGroup);
+        scene.add(camera);
+
         // Game State Variables
         const instructions = document.getElementById('instructions');
         let isPlaying = false;
         let isLocked = false;
         let isFlying = false;
         let rifleActive = false;
-        let ammo = 5;
-        let maxAmmo = 5;
+        
+        let loadedAmmo = 5;
+        let magazineCapacity = 5;
+        let reserveDarts = 20;
 
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
@@ -255,32 +293,49 @@
         let moveUp = false, moveDown = false;
         let savedFlowers = [];
         let dinosaurs = [];
+        let activeDarts = [];
 
         let pitch = 0;
         let yaw = 0;
         camera.position.set(0, 1.7, 0);
 
+        function updateHUD() {
+            document.getElementById('mode-indicator').innerText = isFlying ? "Fly" : "Walk";
+            document.getElementById('tool-indicator').innerText = rifleActive ? "Rifle" : "Planting";
+            document.getElementById('ammo-display').innerText = rifleActive ? `${loadedAmmo} / ${magazineCapacity}` : "--";
+            document.getElementById('reserve-display').innerText = rifleActive ? `${reserveDarts}` : "--";
+        }
+
         function toggleFly() {
             isFlying = !isFlying;
-            document.getElementById('mode-indicator').innerText = isFlying ? "Fly" : "Walk";
             document.getElementById('fly-btn').style.background = isFlying ? "#ff9800" : "#2196f3";
+            if (isMobile) {
+                document.getElementById('fly-up-btn').style.display = isFlying ? "flex" : "none";
+                document.getElementById('fly-down-btn').style.display = isFlying ? "flex" : "none";
+            }
+            updateHUD();
         }
 
         function toggleRifle() {
             rifleActive = !rifleActive;
-            document.getElementById('tool-indicator').innerText = rifleActive ? "Rifle (Tranquilizer)" : "Planting";
+            rifleGroup.visible = rifleActive;
             document.getElementById('rifle-btn').style.background = rifleActive ? "#e65100" : "#795548";
-            document.getElementById('ammo-display').innerText = rifleActive ? `${ammo} / ${maxAmmo}` : "--";
             if (isMobile) {
                 document.getElementById('shoot-btn').style.display = rifleActive ? "flex" : "none";
+                document.getElementById('reload-btn').style.display = rifleActive ? "flex" : "none";
                 document.getElementById('plant-btn').style.display = rifleActive ? "none" : "flex";
             }
+            updateHUD();
         }
 
         function reloadRifle() {
-            if (rifleActive) {
-                ammo = maxAmmo;
-                document.getElementById('ammo-display').innerText = `${ammo} / ${maxAmmo}`;
+            if (!rifleActive) return;
+            const needed = magazineCapacity - loadedAmmo;
+            if (needed > 0 && reserveDarts > 0) {
+                const toReload = Math.min(needed, reserveDarts);
+                loadedAmmo += toReload;
+                reserveDarts -= toReload;
+                updateHUD();
             }
         }
 
@@ -415,7 +470,7 @@
                 case 'ShiftLeft': moveDown = true; break;
                 case 'KeyF': toggleFly(); break;
                 case 'KeyR': 
-                    if (rifleActive) reloadRifle();
+                    if (rifleActive && loadedAmmo < magazineCapacity && reserveDarts > 0) reloadRifle();
                     else toggleRifle();
                     break;
             }
@@ -434,6 +489,38 @@
 
         document.addEventListener('keydown', onKeyDown);
         document.addEventListener('keyup', onKeyUp);
+
+        // 3D Tranquilizer Dart Creator
+        function create3DDartMesh() {
+            const dartGroup = new THREE.Group();
+            // Dart body
+            const body = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.015, 0.015, 0.25, 8),
+                new THREE.MeshStandardMaterial({ color: 0xcccccc })
+            );
+            body.rotation.x = Math.PI / 2;
+            dartGroup.add(body);
+
+            // Tranquilizer container (Yellow/Bright)
+            const vial = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.025, 0.025, 0.1, 8),
+                new THREE.MeshStandardMaterial({ color: 0xffff00 })
+            );
+            vial.rotation.x = Math.PI / 2;
+            vial.position.z = -0.02;
+            dartGroup.add(vial);
+
+            // Feathers / Tail
+            const tail = new THREE.Mesh(
+                new THREE.ConeGeometry(0.035, 0.08, 4),
+                new THREE.MeshStandardMaterial({ color: 0x00bcd4 })
+            );
+            tail.rotation.x = -Math.PI / 2;
+            tail.position.z = 0.12;
+            dartGroup.add(tail);
+
+            return dartGroup;
+        }
 
         // Action Logic (Plant or Shoot)
         const raycaster = new THREE.Raycaster();
@@ -462,24 +549,29 @@
             if (!isPlaying) return;
 
             if (rifleActive) {
-                if (ammo <= 0) return;
-                ammo--;
-                document.getElementById('ammo-display').innerText = `${ammo} / ${maxAmmo}`;
+                if (loadedAmmo <= 0) return;
+                loadedAmmo--;
+                updateHUD();
 
-                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                const dinoMeshes = dinosaurs.map(d => d.mesh);
-                const intersects = raycaster.intersectObjects(dinoMeshes, true);
+                // Recoil effect on 3D rifle
+                rifleGroup.position.z = -0.3;
+                setTimeout(() => { rifleGroup.position.z = -0.4; }, 100);
 
-                if (intersects.length > 0) {
-                    const hitObj = intersects[0].object;
-                    const targetDino = dinosaurs.find(d => d.mesh === hitObj || d.mesh.children.includes(hitObj));
-                    if (targetDino && !targetDino.fallen) {
-                        targetDino.fallen = true;
-                        // Animate falling sideways
-                        targetDino.mesh.rotation.z = Math.PI / 2;
-                        targetDino.mesh.position.y = 0.8; // Lower to ground
-                    }
-                }
+                // Spawn 3D Dart projectile
+                const dartMesh = create3DDartMesh();
+                const dir = new THREE.Vector3();
+                camera.getWorldDirection(dir);
+                
+                dartMesh.position.copy(camera.position).addScaledVector(dir, 0.5);
+                dartMesh.quaternion.copy(camera.quaternion);
+                scene.add(dartMesh);
+
+                activeDarts.push({
+                    mesh: dartMesh,
+                    velocity: dir.clone().multiplyScalar(40),
+                    stuck: false
+                });
+
             } else {
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
                 const intersects = raycaster.intersectObject(ground);
@@ -517,66 +609,95 @@
             if (!isMobile && isLocked) performAction();
         });
 
+        // Touch Listeners for Action Buttons
         document.getElementById('plant-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('shoot-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
+        document.getElementById('reload-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); reloadRifle(); });
         document.getElementById('fly-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleFly(); });
         document.getElementById('rifle-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleRifle(); });
 
-        // Realistic Dinosaurs with 3-limit render distance constraint
+        document.getElementById('fly-up-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveUp = true; });
+        document.getElementById('fly-up-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveUp = false; });
+        document.getElementById('fly-down-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveDown = true; });
+        document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
+
+        // High Detail Connected Dinosaur Model
         function spawnDinosaur() {
             if (dinosaurs.length >= 3) {
-                // Remove the oldest dinosaur to maintain max 3 limit
                 const oldest = dinosaurs.shift();
                 scene.remove(oldest.mesh);
             }
 
             const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({ color: 0x3b5323, roughness: 0.5 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0x3b5323, roughness: 0.6 });
+            const bellyMat = new THREE.MeshStandardMaterial({ color: 0x688b42, roughness: 0.7 });
 
-            // Body
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 3.2), mat);
-            body.position.y = 2.2;
+            // Torso / Body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.8, 3.2), skinMat);
+            body.position.set(0, 2.2, 0);
             body.castShadow = true;
             group.add(body);
 
-            // Neck & Head
-            const headGroup = new THREE.Group();
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 1.5), mat);
-            head.position.set(0, 1.2, 1.2);
+            // Connected Neck Base
+            const neck = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 1.0), skinMat);
+            neck.position.set(0, 3.1, 1.2);
+            neck.rotation.x = -Math.PI / 6;
+            neck.castShadow = true;
+            group.add(neck);
+
+            // Connected Head (Attached directly to top of neck)
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 1.6), skinMat);
+            head.position.set(0, 3.7, 1.7);
             head.castShadow = true;
-            headGroup.add(head);
-            headGroup.position.set(0, 2.5, 1.2);
-            group.add(headGroup);
+            group.add(head);
 
-            // Tail
-            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 3), mat);
-            tail.position.set(0, 2.5, -2.5);
-            tail.castShadow = true;
-            group.add(tail);
+            // Snout / Jaw
+            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 1.4), bellyMat);
+            jaw.position.set(0, 3.4, 1.7);
+            group.add(jaw);
 
-            // Articulated Legs
-            const legGeo = new THREE.BoxGeometry(0.4, 2, 0.5);
-            const legL = new THREE.Mesh(legGeo, mat);
-            legL.position.set(-0.7, 1, 0);
-            const legR = new THREE.Mesh(legGeo, mat);
-            legR.position.set(0.7, 1, 0);
+            // Tail Structure
+            const tail1 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 2.0), skinMat);
+            tail1.position.set(0, 2.1, -2.0);
+            tail1.rotation.x = -0.1;
+            group.add(tail1);
+
+            // Legs & Arms
+            const legGeo = new THREE.BoxGeometry(0.5, 2.2, 0.7);
+            const legL = new THREE.Mesh(legGeo, skinMat);
+            legL.position.set(-0.8, 1.1, 0.2);
+            const legR = new THREE.Mesh(legGeo, skinMat);
+            legR.position.set(0.8, 1.1, 0.2);
             group.add(legL, legR);
 
-            // Spawn near player or random range
-            const spawnX = (Math.random() - 0.5) * 80;
-            const spawnZ = (Math.random() - 0.5) * 80;
+            const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+            const armL = new THREE.Mesh(armGeo, skinMat);
+            armL.position.set(-0.75, 2.3, 1.3);
+            armL.rotation.x = Math.PI / 4;
+            const armR = new THREE.Mesh(armGeo, skinMat);
+            armR.position.set(0.75, 2.3, 1.3);
+            armR.rotation.x = Math.PI / 4;
+            group.add(armL, armR);
+
+            // Spawn Location
+            const spawnX = (Math.random() - 0.5) * 100;
+            const spawnZ = (Math.random() - 0.5) * 100;
             group.position.set(spawnX, 0, spawnZ);
             group.rotation.y = Math.random() * Math.PI * 2;
             scene.add(group);
 
-            dinosaurs.push({ mesh: group, fallen: false, animOffset: Math.random() * 10 });
+            dinosaurs.push({
+                mesh: group,
+                legL: legL,
+                legR: legR,
+                fallen: false,
+                animOffset: Math.random() * 10
+            });
         }
 
-        // Spawn dinosaurs periodically
+        // Spawn Dinosaur periodically
         setInterval(() => {
-            if (isPlaying) {
-                spawnDinosaur();
-            }
+            if (isPlaying) spawnDinosaur();
         }, 12000);
 
         // Animation Loop
@@ -588,14 +709,7 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // Animate Dinosaurs (idle breathing / shifting when awake)
-            dinosaurs.forEach((dino, idx) => {
-                if (!dino.fallen) {
-                    const pulse = Math.sin(time * 0.003 + dino.animOffset) * 0.05;
-                    dino.mesh.position.y = pulse;
-                }
-            });
-
+            // Update Flying & Walking Physics
             if (isPlaying) {
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
@@ -606,7 +720,7 @@
                 direction.y = Number(moveUp) - Number(moveDown);
                 direction.normalize();
 
-                const speed = isFlying ? 20.0 : 12.0;
+                const speed = isFlying ? 22.0 : 12.0;
                 if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
                 if (isFlying && (moveUp || moveDown)) velocity.y += direction.y * speed * delta;
@@ -619,11 +733,60 @@
 
                 if (isFlying) {
                     camera.position.y += velocity.y * delta;
-                    if (camera.position.y < 0.5) camera.position.y = 0.5;
+                    if (camera.position.y < 0.8) camera.position.y = 0.8;
                 } else {
                     camera.position.y = 1.7;
                 }
+
+                // Check for Dart Pickups
+                activeDarts.forEach((dart, idx) => {
+                    if (dart.stuck) {
+                        const dist = camera.position.distanceTo(dart.mesh.position);
+                        if (dist < 2.0) {
+                            scene.remove(dart.mesh);
+                            activeDarts.splice(idx, 1);
+                            reserveDarts++;
+                            updateHUD();
+                        }
+                    }
+                });
             }
+
+            // Update 3D Projectiles (Darts)
+            activeDarts.forEach((dart) => {
+                if (!dart.stuck) {
+                    dart.mesh.position.addScaledVector(dart.velocity, delta);
+
+                    // Collision check with Ground
+                    if (dart.mesh.position.y <= 0.1) {
+                        dart.mesh.position.y = 0.05;
+                        dart.stuck = true;
+                    }
+
+                    // Collision check with Dinosaurs
+                    dinosaurs.forEach((dino) => {
+                        if (!dino.fallen) {
+                            const dist = dart.mesh.position.distanceTo(dino.mesh.position);
+                            if (dist < 2.5) {
+                                dino.fallen = true;
+                                dino.mesh.rotation.z = Math.PI / 2;
+                                dino.mesh.position.y = 0.8;
+                                dart.stuck = true;
+                                dino.mesh.add(dart.mesh); // Attach dart to dino
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Animate Dinosaurs (Leg movement & Idle sway)
+            dinosaurs.forEach((dino) => {
+                if (!dino.fallen) {
+                    const walkCycle = Math.sin(time * 0.004 + dino.animOffset);
+                    dino.legL.rotation.x = walkCycle * 0.4;
+                    dino.legR.rotation.x = -walkCycle * 0.4;
+                }
+            });
 
             prevTime = time;
             renderer.render(scene, camera);
