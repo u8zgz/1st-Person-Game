@@ -57,7 +57,6 @@
             pointer-events: none;
             z-index: 5;
         }
-        /* Scope Overlay */
         #scope-overlay {
             position: absolute;
             top: 0;
@@ -101,8 +100,6 @@
             cursor: pointer;
             font-weight: bold;
         }
-
-        /* Hotbar UI */
         #hotbar {
             position: absolute;
             bottom: 20px;
@@ -133,8 +130,6 @@
             border-color: #ffca28;
             background: rgba(255, 202, 40, 0.25);
         }
-
-        /* Inventory Toggle & Panel */
         #inv-toggle-btn {
             position: absolute;
             top: 20px;
@@ -173,8 +168,6 @@
             margin-top: 10px;
             font-weight: bold;
         }
-
-        /* Mobile Controls UI - High Z-Index to remain above scope & overlays */
         #joystick-container {
             position: absolute;
             bottom: 30px;
@@ -185,7 +178,7 @@
             border: 2px solid rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             display: none;
-            z-Index: 25;
+            z-index: 25;
         }
         #joystick-knob {
             position: absolute;
@@ -224,7 +217,6 @@
         #reload-btn { bottom: 25px; right: 95px; background: #ff9800; display: none; }
         .mobile-action-btn:active { transform: scale(0.95); }
     </style>
-    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -243,7 +235,6 @@
 
     <button id="inv-toggle-btn">Inventory (I)</button>
 
-    <!-- Crafting & Inventory Panel -->
     <div id="crafting-panel">
         <h3>Crafting Inventory</h3>
         <div>Wood: <span id="wood-inventory">0</span></div>
@@ -251,14 +242,12 @@
         <button class="craft-btn" id="craft-btn">Craft 1 Dart (1 Wood)</button>
     </div>
 
-    <!-- Hotbar UI -->
     <div id="hotbar">
         <div class="hotbar-slot active" id="slot-0">1: Plant</div>
         <div class="hotbar-slot" id="slot-1">2: Rifle</div>
         <div class="hotbar-slot" id="slot-2">3: Axe</div>
     </div>
 
-    <!-- Mobile Controls -->
     <div id="joystick-container"><div id="joystick-knob"></div></div>
     <div id="plant-btn" class="mobile-action-btn">ACTION</div>
     <div id="jump-btn" class="mobile-action-btn">JUMP</div>
@@ -300,7 +289,6 @@
             document.getElementById('fly-down-btn').style.display = 'none';
         }
 
-        // Scene Setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
         scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
@@ -312,7 +300,6 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // Dynamic Lighting System
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambientLight);
 
@@ -329,7 +316,6 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Flashlight Attached to Camera
         const flashlight = new THREE.SpotLight(0xffffff, 0, 50, Math.PI / 5, 0.3, 1);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -1);
@@ -337,12 +323,10 @@
         camera.add(flashlight.target);
         let flashlightOn = false;
 
-        // Terrain Height Generator
         function getTerrainHeight(x, z) {
             return Math.sin(x * 0.03) * Math.cos(z * 0.03) * 4.0 + Math.sin(x * 0.09 + z * 0.07) * 2.0;
         }
 
-        // Terrain Mesh Setup
         const mapSize = 500;
         const segments = 120;
         const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, segments, segments);
@@ -361,11 +345,11 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Dense Grass Everywhere
-        const grassCount = 12000;
+        // Dense Grass Everywhere with Dynamic Bending Support
+        const grassCount = 15000;
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x558b2f, roughness: 0.8, side: THREE.DoubleSide });
-        const grassGeo = new THREE.PlaneGeometry(0.35, 0.9);
-        grassGeo.translate(0, 0.45, 0);
+        const grassGeo = new THREE.PlaneGeometry(0.3, 0.6); // Shortened grass matching reference image
+        grassGeo.translate(0, 0.3, 0);
 
         const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
         const dummy = new THREE.Object3D();
@@ -381,53 +365,56 @@
             dummy.scale.setScalar(0.7 + Math.random() * 0.6);
             dummy.updateMatrix();
             instancedGrass.setMatrixAt(i, dummy.matrix);
-            grassData.push({ x: gx, z: gz, baseY: gy });
+            grassData.push({ x: gx, z: gz, baseY: gy, baseRotX: dummy.rotation.x });
         }
         scene.add(instancedGrass);
 
-        // Reference-Accurate Realistic Trees (Based on Image[cite: 1])
+        // True Realistic Trees with Individual Leaf Planes
         let trees = [];
         function createRealisticTree(x, z) {
             const group = new THREE.Group();
             const y = getTerrainHeight(x, z);
 
             const barkMat = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.9 });
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e5c1e, roughness: 0.6, flatShading: true });
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e5c1e, roughness: 0.6, side: THREE.DoubleSide });
 
-            // Distinct Single Central Trunk
-            const trunkGeo = new THREE.CylinderGeometry(0.6, 1.0, 6.0, 10);
+            const trunkGeo = new THREE.CylinderGeometry(0.5, 0.9, 5.5, 10);
             const trunk = new THREE.Mesh(trunkGeo, barkMat);
-            trunk.position.y = 3.0;
+            trunk.position.y = 2.75;
             trunk.castShadow = true;
             trunk.receiveShadow = true;
             group.add(trunk);
 
-            // Large Dense Round Canopy Cluster
             const foliageGroup = new THREE.Group();
-            const leafGeo = new THREE.DodecahedronGeometry(2.2, 1);
-            
-            const offsets = [
-                [0, 6.5, 0], [-1.8, 5.8, 0.8], [1.8, 5.8, -0.8],
-                [-1.2, 7.2, -0.6], [1.2, 7.2, 0.6], [0, 8.0, 0],
-                [-2.2, 4.8, 0], [2.2, 4.8, 0], [0, 5.0, 2.0], [0, 5.0, -2.0]
-            ];
+            const leafPlaneGeo = new THREE.PlaneGeometry(0.4, 0.4);
 
-            offsets.forEach(pos => {
-                const cluster = new THREE.Mesh(leafGeo, leafMat);
-                cluster.position.set(pos[0], pos[1], pos[2]);
-                cluster.scale.set(1.2 + Math.random()*0.3, 1.0 + Math.random()*0.2, 1.2 + Math.random()*0.3);
-                cluster.castShadow = true;
-                foliageGroup.add(cluster);
-            });
+            // Procedurally cluster individual small leaf planes forming a natural canopy crown
+            for (let i = 0; i < 180; i++) {
+                const leafMesh = new THREE.Mesh(leafPlaneGeo, leafMat);
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 2.2 * Math.cbrt(Math.random());
+                
+                const lx = r * Math.sin(phi) * Math.cos(theta);
+                const ly = r * Math.sin(phi) * Math.sin(theta) + 6.2;
+                const lz = r * Math.cos(phi);
+
+                leafMesh.position.set(lx, ly, lz);
+                leafMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                leafMesh.castShadow = true;
+                foliageGroup.add(leafMesh);
+            }
 
             group.add(foliageGroup);
             group.position.set(x, y, z);
             scene.add(group);
 
-            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.2 });
+            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.1 });
         }
 
-        for (let i = 0; i < 90; i++) {
+        for (let i = 0; i < 85; i++) {
             const x = (Math.random() - 0.5) * 460;
             const z = (Math.random() - 0.5) * 460;
             if (Math.abs(x) > 12 || Math.abs(z) > 12) {
@@ -435,7 +422,6 @@
             }
         }
 
-        // --- Weapons Setup ---
         const weaponGroup = new THREE.Group();
         const stockMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.7 });
         const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, metalness: 0.85, roughness: 0.2 });
@@ -456,7 +442,6 @@
         scopeOuter.position.set(0, 0.07, -0.1);
         rifleMesh.add(scopeOuter);
 
-        // Opaque scope glass when not zooming, translucent when aiming
         const opaqueGlassMat = new THREE.MeshStandardMaterial({ color: 0x224466, roughness: 0.2, metalness: 0.8 });
         const scopeLensFront = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), opaqueGlassMat);
         scopeLensFront.position.set(0, 0.07, -0.22);
@@ -494,13 +479,12 @@
         weaponGroup.add(axeMesh);
 
         const hipPosition = new THREE.Vector3(0.24, -0.2, -0.4);
-        const aimPosition = new THREE.Vector3(0, 0, 0); // Centers perfectly when zooming so it disappears from side
+        const aimPosition = new THREE.Vector3(0, 0, 0);
         weaponGroup.position.copy(hipPosition);
         weaponGroup.visible = false;
         camera.add(weaponGroup);
         scene.add(camera);
 
-        // State Variables
         let isPlaying = false, isLocked = false, isFlying = false, isAiming = false, isSprinting = false;
         let activeTool = 0;
         let loadedAmmo = 5, magazineCapacity = 5, reserveDarts = 20, woodCount = 0;
@@ -640,7 +624,6 @@
             }
         }
 
-        // Pointer Lock & Controls Setup
         const instructions = document.getElementById('instructions');
         instructions.addEventListener('click', () => {
             isPlaying = true;
@@ -675,7 +658,7 @@
         document.addEventListener('mousedown', (e) => {
             if (e.button === 2 && activeTool === 1) {
                 isAiming = true;
-                camera.fov = 30;
+                camera.fov = 15; // Deeper zoom to fix under-terrain look clipping
                 camera.updateProjectionMatrix();
                 document.getElementById('scope-overlay').style.display = 'block';
                 updateHUD();
@@ -693,7 +676,6 @@
         });
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Strict Joystick Bounding Handling (Only moves when touching inside the joystick element)
         let touchLookId = null;
         let touchLookLastX = 0, touchLookLastY = 0;
         let joystickTouchId = null;
@@ -706,8 +688,6 @@
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
                 const rect = joystickContainer.getBoundingClientRect();
-                
-                // Check if touch is strictly inside the joystick circle
                 const inJoystick = touch.clientX >= rect.left && touch.clientX <= rect.right &&
                                     touch.clientY >= rect.top && touch.clientY <= rect.bottom;
 
@@ -884,7 +864,7 @@
                     localStorage.setItem('garden_flowers', JSON.stringify(savedFlowers));
                     document.getElementById('flower-count').innerText = savedFlowers.length;
                 }
-            } else if (activeTool === 1) { // Shooting
+            } else if (activeTool === 1) { // Shooting - Extended Rifle Range (increased muzzle velocity)
                 if (loadedAmmo <= 0) return;
                 loadedAmmo--;
                 updateHUD();
@@ -898,7 +878,7 @@
 
                 activeDarts.push({
                     mesh: dartMesh,
-                    velocity: dir.clone().multiplyScalar(55),
+                    velocity: dir.clone().multiplyScalar(95),
                     stuck: false
                 });
             } else if (activeTool === 2) { // Axe Chopping
@@ -958,7 +938,6 @@
             if (!isMobile && isLocked && e.button === 0) performAction();
         });
 
-        // Mobile UI Button Events
         document.getElementById('plant-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('shoot-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('reload-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); reloadRifle(); });
@@ -969,7 +948,7 @@
         document.getElementById('aim-btn').addEventListener('touchstart', (e) => { 
             e.stopPropagation(); 
             isAiming = !isAiming;
-            camera.fov = isAiming ? 30 : 75;
+            camera.fov = isAiming ? 15 : 75;
             camera.updateProjectionMatrix();
             document.getElementById('scope-overlay').style.display = isAiming ? 'block' : 'none';
             updateHUD();
@@ -980,7 +959,6 @@
         document.getElementById('fly-down-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveDown = true; });
         document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
 
-        // Dinosaurs AI with Realistic Ragdoll Tumble
         function spawnDinosaur() {
             if (dinosaurs.length >= 3) {
                 const oldest = dinosaurs.shift();
@@ -988,7 +966,6 @@
             }
             const group = new THREE.Group();
             const skinMat = new THREE.MeshStandardMaterial({ color: 0x3b5323, roughness: 0.6 });
-            const bellyMat = new THREE.MeshStandardMaterial({ color: 0x688b42, roughness: 0.7 });
 
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.8, 3.2), skinMat);
             body.position.set(0, 2.2, 0);
@@ -1032,7 +1009,6 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // Day / Night Cycle (600 seconds = 10 minutes total cycle)
             gameTime = (gameTime + (delta / 600) * 24) % 24;
             const timeHours = Math.floor(gameTime);
             const timeMinutes = Math.floor((gameTime - timeHours) * 60);
@@ -1118,6 +1094,21 @@
                 }
                 savePlayerPosition();
 
+                // Dynamic Grass Bending Around Player
+                for (let i = 0; i < grassData.length; i++) {
+                    const g = grassData[i];
+                    const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
+                    if (distToPlayer < 3.5) {
+                        dummy.position.set(g.x, g.baseY, g.z);
+                        dummy.rotation.y = Math.atan2(camera.position.x - g.x, camera.position.z - g.z);
+                        dummy.rotation.x = 0.9; // Bend away from player feet
+                        dummy.scale.setScalar(0.8);
+                        dummy.updateMatrix();
+                        instancedGrass.setMatrixAt(i, dummy.matrix);
+                        instancedGrass.instanceMatrix.needsUpdate = true;
+                    }
+                }
+
                 droppedWood.forEach((wood, idx) => {
                     if (camera.position.distanceTo(wood.mesh.position) < 2.0) {
                         scene.remove(wood.mesh);
@@ -1163,15 +1154,13 @@
                 }
             });
 
-            // Dinosaur AI & Realistic Ragdoll Tumble
             dinosaurs.forEach((dino) => {
                 if (dino.fallen) {
                     if (dino.fallProgress < 1.0) {
                         dino.fallProgress += delta * 3.5;
-                        // Smooth arc-based side tumble with bounce effect
                         const rotProgress = Math.min(dino.fallProgress, 1.0);
                         dino.mesh.rotation.z = rotProgress * (Math.PI / 2);
-                        dino.mesh.rotation.x = Math.sin(rotProgress * Math.PI) * 0.3; // bounce wobble
+                        dino.mesh.rotation.x = Math.sin(rotProgress * Math.PI) * 0.3;
                         dino.mesh.position.y = getTerrainHeight(dino.mesh.position.x, dino.mesh.position.z) + Math.sin(rotProgress * Math.PI) * 0.4;
                     }
                 } else {
