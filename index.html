@@ -300,10 +300,10 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.1);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 2048;
         sunLight.shadow.mapSize.height = 2048;
@@ -327,137 +327,139 @@
             return Math.sin(x * 0.03) * Math.cos(z * 0.03) * 4.0 + Math.sin(x * 0.09 + z * 0.07) * 2.0;
         }
 
-        const mapSize = 500;
-        const segments = 120;
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, segments, segments);
-        groundGeometry.rotateX(-Math.PI / 2);
+        // Infinite Procedural Terrain Chunks Manager
+        const chunkSize = 120;
+        const renderDistance = 3; // Chunks radius around player
+        const terrainChunks = new Map();
 
-        const posAttr = groundGeometry.attributes.position;
-        for (let i = 0; i < posAttr.count; i++) {
-            const x = posAttr.getX(i);
-            const z = posAttr.getZ(i);
-            posAttr.setY(i, getTerrainHeight(x, z));
-        }
-        groundGeometry.computeVertexNormals();
+        const grassGeo = new THREE.PlaneGeometry(0.16, 0.3);
+        grassGeo.translate(0, 0.15, 0);
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x4d7c1e, roughness: 0.85, side: THREE.DoubleSide });
 
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x3d6622, roughness: 0.95 });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.receiveShadow = true;
-        scene.add(ground);
+        function createTerrainChunk(cx, cz) {
+            const chunkKey = `${cx},${cz}`;
+            if (terrainChunks.has(chunkKey)) return;
 
-        // Ultrafine Short Grass Covering Every Pixel With Individual Offsets and Shadows
-        const grassCount = 45000;
-        const grassMat = new THREE.MeshStandardMaterial({ color: 0x558b2f, roughness: 0.8, side: THREE.DoubleSide });
-        const grassGeo = new THREE.PlaneGeometry(0.18, 0.32); // Much smaller and shorter matching the reference image scale
-        grassGeo.translate(0, 0.16, 0);
-
-        const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
-        instancedGrass.castShadow = true;
-        instancedGrass.receiveShadow = true;
-        const dummy = new THREE.Object3D();
-        const grassData = [];
-
-        for (let i = 0; i < grassCount; i++) {
-            const gx = (Math.random() - 0.5) * 490;
-            const gz = (Math.random() - 0.5) * 490;
-            const gy = getTerrainHeight(gx, gz);
-            dummy.position.set(gx, gy, gz);
-            dummy.rotation.y = Math.random() * Math.PI * 2;
-            const baseRx = (Math.random() - 0.5) * 0.15;
-            const baseRz = (Math.random() - 0.5) * 0.15;
-            dummy.rotation.x = baseRx;
-            dummy.rotation.z = baseRz;
-            dummy.scale.setScalar(0.4 + Math.random() * 0.5);
-            dummy.updateMatrix();
-            instancedGrass.setMatrixAt(i, dummy.matrix);
-            
-            grassData.push({
-                x: gx, z: gz, baseY: gy,
-                phaseOffset: Math.random() * Math.PI * 2,
-                freqOffset: 0.8 + Math.random() * 0.8,
-                baseRotX: baseRx,
-                baseRotZ: baseRz,
-                scale: dummy.scale.x
-            });
-        }
-        scene.add(instancedGrass);
-
-        // Hyper-Realistic Trees Matching Reference Image with Real Clustered Branch Canopies & Detailed Leaf Plates
-        let trees = [];
-        const leafClustersData = [];
-
-        function createRealisticTree(x, z) {
             const group = new THREE.Group();
-            const y = getTerrainHeight(x, z);
+            const segments = 32;
+            const planeGeo = new THREE.PlaneGeometry(chunkSize, chunkSize, segments, segments);
+            planeGeo.rotateX(-Math.PI / 2);
 
-            const barkMat = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 });
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e5c1e, roughness: 0.6, side: THREE.DoubleSide, flatShading: true });
+            const posAttr = planeGeo.attributes.position;
+            const startX = cx * chunkSize;
+            const startZ = cz * chunkSize;
 
-            // Tapered Natural Trunk
-            const trunkGeo = new THREE.CylinderGeometry(0.45, 0.95, 5.8, 10);
-            const trunk = new THREE.Mesh(trunkGeo, barkMat);
-            trunk.position.y = 2.9;
-            trunk.castShadow = true;
-            trunk.receiveShadow = true;
-            group.add(trunk);
+            for (let i = 0; i < posAttr.count; i++) {
+                const x = posAttr.getX(i) + startX;
+                const z = posAttr.getZ(i) + startZ;
+                posAttr.setY(i, getTerrainHeight(x, z));
+            }
+            planeGeo.computeVertexNormals();
 
-            // Natural Branch Framework matching reference silhouette
-            const branchGeo = new THREE.CylinderGeometry(0.18, 0.3, 3.2, 6);
-            const b1 = new THREE.Mesh(branchGeo, barkMat);
-            b1.position.set(0.7, 4.3, 0.2);
-            b1.rotation.z = -Math.PI / 3;
-            b1.castShadow = true;
-            group.add(b1);
+            const groundMesh = new THREE.Mesh(planeGeo, new THREE.MeshStandardMaterial({ color: 0x3d6622, roughness: 0.95 }));
+            groundMesh.position.set(startX, 0, startZ);
+            groundMesh.receiveShadow = true;
+            group.add(groundMesh);
 
-            const b2 = new THREE.Mesh(branchGeo, barkMat);
-            b2.position.set(-0.6, 4.6, -0.3);
-            b2.rotation.z = Math.PI / 3;
-            b2.rotation.x = Math.PI / 5;
-            b2.castShadow = true;
-            group.add(b2);
+            // Dense Instanced Grass per Chunk
+            const grassCount = 2500;
+            const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
+            instancedGrass.castShadow = true;
+            instancedGrass.receiveShadow = true;
+            const dummy = new THREE.Object3D();
+            const chunkGrassData = [];
 
-            const foliageGroup = new THREE.Group();
-            const leafPlaneGeo = new THREE.PlaneGeometry(0.25, 0.25);
-
-            // True organic clustered foliage canopy built from hundreds of individual angled leaves
-            for (let i = 0; i < 350; i++) {
-                const leafMesh = new THREE.Mesh(leafPlaneGeo, leafMat);
-                const u = Math.random();
-                const v = Math.random();
-                const theta = u * 2.0 * Math.PI;
-                const phi = Math.acos(2.0 * v - 1.0);
-                const r = 2.5 * Math.cbrt(Math.random());
+            // Pseudo-random deterministic placement per chunk
+            for (let i = 0; i < grassCount; i++) {
+                const gx = startX + (Math.sin(i * 12.9898 + cx * 78.233) * 43758.5453 % 1) * chunkSize;
+                const gz = startZ + (Math.cos(i * 78.233 + cz * 12.9898) * 43758.5453 % 1) * chunkSize;
+                const gy = getTerrainHeight(gx, gz);
                 
-                const lx = r * Math.sin(phi) * Math.cos(theta) * 1.3;
-                const ly = r * Math.sin(phi) * Math.sin(theta) + 6.2;
-                const lz = r * Math.cos(phi);
+                dummy.position.set(gx, gy, gz);
+                dummy.rotation.y = Math.random() * Math.PI * 2;
+                const baseRx = (Math.random() - 0.5) * 0.15;
+                const baseRz = (Math.random() - 0.5) * 0.15;
+                dummy.rotation.x = baseRx;
+                dummy.rotation.z = baseRz;
+                dummy.scale.setScalar(0.4 + Math.random() * 0.45);
+                dummy.updateMatrix();
+                instancedGrass.setMatrixAt(i, dummy.matrix);
 
-                leafMesh.position.set(lx, ly, lz);
-                leafMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-                leafMesh.castShadow = true;
-                foliageGroup.add(leafMesh);
-
-                leafClustersData.push({
-                    mesh: leafMesh,
-                    basePos: new THREE.Vector3(x + lx, y + ly, z + lz),
-                    phase: Math.random() * Math.PI * 2,
-                    speed: 1.0 + Math.random() * 2.0,
-                    randDir: new THREE.Vector3((Math.random()-0.5)*0.15, (Math.random()-0.5)*0.1, (Math.random()-0.5)*0.15)
+                chunkGrassData.push({
+                    x: gx, z: gz, baseY: gy,
+                    phaseOffset: Math.random() * Math.PI * 2,
+                    freqOffset: 0.8 + Math.random() * 0.8,
+                    baseRotX: baseRx,
+                    baseRotZ: baseRz,
+                    scale: dummy.scale.x
                 });
             }
+            group.add(instancedGrass);
 
-            group.add(foliageGroup);
-            group.position.set(x, y, z);
+            // Procedural Trees per Chunk (No leaves on trees as requested - bare detailed natural branches)
+            const chunkTrees = [];
+            const barkMat = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 });
+            for (let t = 0; t < 3; t++) {
+                const tx = startX + ((Math.sin(t * 45.19 + cx) * 10000) % 1) * (chunkSize - 20) + 10;
+                const tz = startZ + ((Math.cos(t * 31.47 + cz) * 10000) % 1) * (chunkSize - 20) + 10;
+                if (Math.abs(tx) > 15 || Math.abs(tz) > 15) {
+                    const ty = getTerrainHeight(tx, tz);
+                    const treeGroup = new THREE.Group();
+
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.95, 5.8, 10), barkMat);
+                    trunk.position.y = 2.9;
+                    trunk.castShadow = true;
+                    trunk.receiveShadow = true;
+                    treeGroup.add(trunk);
+
+                    const branchGeo = new THREE.CylinderGeometry(0.18, 0.3, 3.2, 6);
+                    const b1 = new THREE.Mesh(branchGeo, barkMat);
+                    b1.position.set(0.7, 4.3, 0.2);
+                    b1.rotation.z = -Math.PI / 3;
+                    b1.castShadow = true;
+                    treeGroup.add(b1);
+
+                    const b2 = new THREE.Mesh(branchGeo, barkMat);
+                    b2.position.set(-0.6, 4.6, -0.3);
+                    b2.rotation.z = Math.PI / 3;
+                    b2.rotation.x = Math.PI / 5;
+                    b2.castShadow = true;
+                    treeGroup.add(b2);
+
+                    treeGroup.position.set(tx, ty, tz);
+                    group.add(treeGroup);
+                    chunkTrees.push({ group: treeGroup, x: tx, z: tz, y: ty, health: 3, radius: 1.1 });
+                }
+            }
+
             scene.add(group);
-
-            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.1 });
+            terrainChunks.set(chunkKey, { group, grassMesh: instancedGrass, grassData: chunkGrassData, trees: chunkTrees });
         }
 
-        for (let i = 0; i < 75; i++) {
-            const x = (Math.random() - 0.5) * 460;
-            const z = (Math.random() - 0.5) * 460;
-            if (Math.abs(x) > 12 || Math.abs(z) > 12) {
-                createRealisticTree(x, z);
+        function updateTerrainChunks(playerX, playerZ) {
+            const pChunkX = Math.floor((playerX + chunkSize / 2) / chunkSize);
+            const pChunkZ = Math.floor((playerZ + chunkSize / 2) / chunkSize);
+
+            const activeKeys = new Set();
+            for (let x = -renderDistance; x <= renderDistance; x++) {
+                for (let z = -renderDistance; z <= renderDistance; z++) {
+                    const cx = pChunkX + x;
+                    const cz = pChunkZ + z;
+                    activeKeys.add(`${cx},${cz}`);
+                    createTerrainChunk(cx, cz);
+                }
+            }
+
+            // Remove distant chunks
+            for (const [key, chunk] of terrainChunks.entries()) {
+                if (!activeKeys.has(key)) {
+                    scene.remove(chunk.group);
+                    chunk.group.traverse(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) child.material.dispose();
+                    });
+                    terrainChunks.delete(key);
+                }
             }
         }
 
@@ -561,6 +563,7 @@
                 camera.position.set(0, getTerrainHeight(0, 0) + eyeHeight, 0);
             }
             lastPlayerPos.copy(camera.position);
+            updateTerrainChunks(camera.position.x, camera.position.z);
         }
         loadPlayerPosition();
 
@@ -896,7 +899,11 @@
 
             if (activeTool === 0) { // Planting
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                const intersects = raycaster.intersectObject(ground);
+                const groundMeshes = [];
+                terrainChunks.forEach(chunk => {
+                    if (chunk.group.children[0]) groundMeshes.push(chunk.group.children[0]);
+                });
+                const intersects = raycaster.intersectObjects(groundMeshes);
                 if (intersects.length > 0 && intersects[0].distance < 15) {
                     const point = intersects[0].point;
                     const colors = [0xff69b4, 0xff4500, 0x9370db, 0xffff00, 0xffffff];
@@ -939,18 +946,26 @@
                 }, 200);
 
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                const treeMeshes = trees.map(t => t.group);
-                const intersects = raycaster.intersectObjects(treeMeshes, true);
+                const allTreeMeshes = [];
+                terrainChunks.forEach(chunk => {
+                    chunk.trees.forEach(t => allTreeMeshes.push(t.group));
+                });
+                const intersects = raycaster.intersectObjects(allTreeMeshes, true);
                 if (intersects.length > 0 && intersects[0].distance < 6) {
-                    const hitTree = trees.find(t => t.group === intersects[0].object.parent || t.group === intersects[0].object.parent.parent);
+                    let hitTree = null;
+                    terrainChunks.forEach(chunk => {
+                        const found = chunk.trees.find(t => t.group === intersects[0].object.parent || t.group === intersects[0].object.parent.parent);
+                        if (found) hitTree = { chunk, tree: found };
+                    });
+
                     if (hitTree) {
-                        hitTree.health--;
-                        if (hitTree.health <= 0) {
-                            scene.remove(hitTree.group);
-                            trees = trees.filter(t => t !== hitTree);
+                        hitTree.tree.health--;
+                        if (hitTree.tree.health <= 0) {
+                            hitTree.chunk.group.remove(hitTree.tree.group);
+                            hitTree.chunk.trees = hitTree.chunk.trees.filter(t => t !== hitTree.tree);
                             for (let i = 0; i < 3; i++) {
-                                const ox = hitTree.x + (Math.random() - 0.5) * 1.5;
-                                const oz = hitTree.z + (Math.random() - 0.5) * 1.5;
+                                const ox = hitTree.tree.x + (Math.random() - 0.5) * 1.5;
+                                const oz = hitTree.tree.z + (Math.random() - 0.5) * 1.5;
                                 const oy = getTerrainHeight(ox, oz);
                                 createWoodPickupMesh(ox, oy, oz);
                             }
@@ -1002,6 +1017,10 @@
         document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
 
         function spawnDinosaur() {
+            // Dinosaurs do not spawn at night
+            const isNight = sunLight.position.y < 0;
+            if (isNight) return;
+
             if (dinosaurs.length >= 3) {
                 const oldest = dinosaurs.shift();
                 scene.remove(oldest.mesh);
@@ -1030,14 +1049,14 @@
             legR.position.set(0.8, 1.1, 0.2);
             group.add(legL, legR);
 
-            const dx = (Math.random() - 0.5) * 300;
-            const dz = (Math.random() - 0.5) * 300;
+            const dx = camera.position.x + (Math.random() - 0.5) * 150;
+            const dz = camera.position.z + (Math.random() - 0.5) * 150;
             group.position.set(dx, getTerrainHeight(dx, dz), dz);
             scene.add(group);
 
             dinosaurs.push({
                 mesh: group, legL, legR, fallen: false, fallProgress: 0,
-                targetPos: new THREE.Vector3((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300),
+                targetPos: new THREE.Vector3(dx + (Math.random() - 0.5) * 100, 0, dz + (Math.random() - 0.5) * 100),
                 isStopping: false, actionTimer: 0
             });
         }
@@ -1074,6 +1093,10 @@
                 ambientLight.intensity = 0.3 + dayProgress * 0.2;
             }
             scene.background.copy(skyColor);
+
+            // Dynamic Fog Density fluctuating naturally over time
+            const dynamicFogDensity = 0.006 + Math.sin(time * 0.0005) * 0.003 + Math.cos(time * 0.0002) * 0.002;
+            scene.fog.density = Math.max(0.002, dynamicFogDensity);
             scene.fog.color.copy(skyColor);
 
             if (isPlaying) {
@@ -1106,18 +1129,29 @@
                 }
                 lastPlayerPos.copy(nextPos);
 
-                trees.forEach(tree => {
-                    const dist = Math.hypot(nextPos.x - tree.x, nextPos.z - tree.z);
-                    const minDist = tree.radius + 0.4;
-                    if (dist < minDist) {
-                        const overlap = minDist - dist;
-                        const pushDir = new THREE.Vector3(nextPos.x - tree.x, 0, nextPos.z - tree.z).normalize();
-                        nextPos.addScaledVector(pushDir, overlap);
+                // Collision with active chunk trees
+                const pChunkX = Math.floor((nextPos.x + chunkSize / 2) / chunkSize);
+                const pChunkZ = Math.floor((nextPos.z + chunkSize / 2) / chunkSize);
+                for (let x = -1; x <= 1; x++) {
+                    for (let z = -1; z <= 1; z++) {
+                        const chunk = terrainChunks.get(`${pChunkX + x},${pChunkZ + z}`);
+                        if (chunk) {
+                            chunk.trees.forEach(tree => {
+                                const dist = Math.hypot(nextPos.x - tree.x, nextPos.z - tree.z);
+                                const minDist = tree.radius + 0.4;
+                                if (dist < minDist) {
+                                    const overlap = minDist - dist;
+                                    const pushDir = new THREE.Vector3(nextPos.x - tree.x, 0, nextPos.z - tree.z).normalize();
+                                    nextPos.addScaledVector(pushDir, overlap);
+                                }
+                            });
+                        }
                     }
-                });
+                }
 
                 camera.position.x = nextPos.x;
                 camera.position.z = nextPos.z;
+                updateTerrainChunks(camera.position.x, camera.position.z);
 
                 const currentTerrainY = getTerrainHeight(camera.position.x, camera.position.z) + eyeHeight;
 
@@ -1157,43 +1191,36 @@
                 });
             }
 
-            // True Multidirectional Independent Wind & Smooth Player Walking Bending Vector for Grass
+            // Animate grass across all active chunks with wind and player bending
             const globalWindX = Math.sin(time * 0.0012) * 0.25 + Math.cos(time * 0.0007) * 0.15;
             const globalWindZ = Math.cos(time * 0.0009) * 0.25;
+            const dummy = new THREE.Object3D();
 
-            for (let i = 0; i < grassData.length; i++) {
-                const g = grassData[i];
-                const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
-                
-                dummy.position.set(g.x, g.baseY, g.z);
-                dummy.scale.setScalar(g.scale);
+            terrainChunks.forEach(chunk => {
+                for (let i = 0; i < chunk.grassData.length; i++) {
+                    const g = chunk.grassData[i];
+                    const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
+                    
+                    dummy.position.set(g.x, g.baseY, g.z);
+                    dummy.scale.setScalar(g.scale);
 
-                // Independent localized phase offsets so each blade sways uniquely
-                const bladeSway = Math.sin(time * 0.0025 * g.freqOffset + g.phaseOffset) * 0.2;
-                let targetRotX = g.baseRotX + globalWindX * 0.3 + bladeSway;
-                let targetRotZ = g.baseRotZ + globalWindZ * 0.3 + bladeSway * 0.8;
-                let targetRotY = Math.atan2(globalWindX, globalWindZ) + (g.phaseOffset * 0.1);
+                    const bladeSway = Math.sin(time * 0.0025 * g.freqOffset + g.phaseOffset) * 0.2;
+                    let targetRotX = g.baseRotX + globalWindX * 0.3 + bladeSway;
+                    let targetRotZ = g.baseRotZ + globalWindZ * 0.3 + bladeSway * 0.8;
+                    let targetRotY = Math.atan2(globalWindX, globalWindZ) + (g.phaseOffset * 0.1);
 
-                // Grass bends precisely in the direction the player is walking
-                if (distToPlayer < 2.8) {
-                    const factor = (1.0 - distToPlayer / 2.8);
-                    targetRotX += playerWalkDir.z * factor * 1.1;
-                    targetRotZ -= playerWalkDir.x * factor * 1.1;
-                    targetRotY = Math.atan2(playerWalkDir.x, playerWalkDir.z);
+                    if (distToPlayer < 2.8) {
+                        const factor = (1.0 - distToPlayer / 2.8);
+                        targetRotX += playerWalkDir.z * factor * 1.1;
+                        targetRotZ -= playerWalkDir.x * factor * 1.1;
+                        targetRotY = Math.atan2(playerWalkDir.x, playerWalkDir.z);
+                    }
+
+                    dummy.rotation.set(targetRotX, targetRotY, targetRotZ);
+                    dummy.updateMatrix();
+                    chunk.grassMesh.setMatrixAt(i, dummy.matrix);
                 }
-
-                dummy.rotation.set(targetRotX, targetRotY, targetRotZ);
-                dummy.updateMatrix();
-                instancedGrass.setMatrixAt(i, dummy.matrix);
-            }
-            instancedGrass.instanceMatrix.needsUpdate = true;
-
-            // Individual chaotic multidirectional wind for every single tree leaf
-            leafClustersData.forEach(leaf => {
-                const indWindX = Math.sin(time * 0.002 * leaf.speed + leaf.phase) * 0.06;
-                const indWindZ = Math.cos(time * 0.0017 * leaf.speed + leaf.phase) * 0.06;
-                leaf.mesh.position.x = leaf.basePos.x + leaf.randDir.x + indWindX;
-                leaf.mesh.position.z = leaf.basePos.z + leaf.randDir.z + indWindZ;
+                chunk.grassMesh.instanceMatrix.needsUpdate = true;
             });
 
             activeDarts.forEach((dart) => {
@@ -1237,7 +1264,7 @@
                         dino.isStopping = Math.random() < 0.35;
                         dino.actionTimer = 3 + Math.random() * 5;
                         if (!dino.isStopping) {
-                            dino.targetPos.set((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300);
+                            dino.targetPos.set(dino.mesh.position.x + (Math.random() - 0.5) * 100, 0, dino.mesh.position.z + (Math.random() - 0.5) * 100);
                         }
                     }
 
@@ -1247,7 +1274,7 @@
                         const dist = dirToTarget.length();
 
                         if (dist < 2) {
-                            dino.targetPos.set((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300);
+                            dino.targetPos.set(dino.mesh.position.x + (Math.random() - 0.5) * 100, 0, dino.mesh.position.z + (Math.random() - 0.5) * 100);
                         } else {
                             dirToTarget.normalize();
                             const targetAngle = Math.atan2(dirToTarget.x, dirToTarget.z);
