@@ -15,6 +15,7 @@
             font-family: Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            background: #000;
         }
         #canvas-container {
             width: 100vw;
@@ -30,11 +31,11 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
             color: #ffffff;
             cursor: pointer;
             text-align: center;
-            z-index: 20;
+            z-index: 30;
         }
         #instructions h1 {
             margin-bottom: 10px;
@@ -48,22 +49,22 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             background-color: rgba(255, 255, 255, 0.8);
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 5;
         }
-        /* Sniper Scope Overlay */
+        /* Scope Overlay */
         #scope-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.85) 60%);
+            background: radial-gradient(circle, transparent 28%, rgba(0,0,0,0.92) 55%);
             display: none;
             pointer-events: none;
             z-index: 15;
@@ -72,17 +73,17 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             transform: translate(-50%, -50%);
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><line x1="0" y1="50" x2="100" y2="50" stroke="black" stroke-width="2"/><line x1="50" y1="0" x2="50" y2="100" stroke="black" stroke-width="2"/></svg>') no-repeat center;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><line x1="0" y1="60" x2="120" y2="60" stroke="%23111" stroke-width="1.5"/><line x1="60" y1="0" x2="60" y2="120" stroke="%23111" stroke-width="1.5"/><circle cx="60" cy="60" r="55" stroke="%23111" stroke-width="2" fill="none"/></svg>') no-repeat center;
         }
         #hud {
             position: absolute;
             top: 20px;
             left: 20px;
             color: white;
-            font-size: 1.1rem;
+            font-size: 1rem;
             background: rgba(0, 0, 0, 0.5);
             padding: 12px 18px;
             border-radius: 8px;
@@ -101,18 +102,64 @@
             font-weight: bold;
         }
 
-        /* Inventory & Crafting UI Panel */
-        #crafting-panel {
+        /* Hotbar UI */
+        #hotbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        .hotbar-slot {
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .hotbar-slot.active {
+            border-color: #ffca28;
+            background: rgba(255, 202, 40, 0.25);
+        }
+
+        /* Inventory Toggle & Panel */
+        #inv-toggle-btn {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.7);
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 25;
+        }
+        #crafting-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
             color: white;
             padding: 15px;
             border-radius: 8px;
-            z-index: 10;
+            z-index: 25;
             display: none;
             width: 220px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         #crafting-panel h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
         .craft-btn {
@@ -123,10 +170,9 @@
             width: 100%;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 10px;
             font-weight: bold;
         }
-        .craft-btn:active { background: #388e3c; }
 
         /* Mobile Controls UI */
         #joystick-container {
@@ -166,15 +212,13 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             z-index: 8;
         }
-        #plant-btn { bottom: 30px; right: 30px; background: #4caf50; }
-        #jump-btn { bottom: 95px; right: 30px; background: #9c27b0; }
-        #fly-btn { bottom: 290px; right: 30px; background: #2196f3; }
-        #fly-up-btn { bottom: 290px; right: 95px; background: #03a9f4; display: none; }
-        #fly-down-btn { bottom: 225px; right: 95px; background: #0288d1; display: none; }
-        #tool-btn { bottom: 160px; right: 30px; background: #795548; }
-        #aim-btn { bottom: 225px; right: 30px; background: #607d8b; display: none; }
-        #shoot-btn { bottom: 30px; right: 30px; background: #e91e63; display: none; }
-        #reload-btn { bottom: 95px; right: 95px; background: #ff9800; display: none; }
+        #plant-btn { bottom: 90px; right: 30px; background: #4caf50; }
+        #jump-btn { bottom: 155px; right: 30px; background: #9c27b0; }
+        #flashlight-btn { bottom: 220px; right: 30px; background: #ffb300; }
+        #fly-btn { bottom: 285px; right: 30px; background: #2196f3; }
+        #aim-btn { bottom: 155px; right: 95px; background: #607d8b; display: none; }
+        #shoot-btn { bottom: 90px; right: 95px; background: #e91e63; display: none; }
+        #reload-btn { bottom: 25px; right: 95px; background: #ff9800; display: none; }
         .mobile-action-btn:active { transform: scale(0.95); }
     </style>
     <!-- Three.js Library -->
@@ -186,29 +230,37 @@
     <div id="scope-overlay"><div id="scope-crosshair"></div></div>
     
     <div id="hud">
-        Flowers Planted: <span id="flower-count">0</span><br>
-        Mode: <span id="mode-indicator">Walk</span> | Tool: <span id="tool-indicator">Planting</span><br>
+        Time: <span id="time-display">12:00</span><br>
+        Flowers: <span id="flower-count">0</span> | Mode: <span id="mode-indicator">Walk</span><br>
+        Tool: <span id="tool-indicator">Planting</span><br>
         Ammo: <span id="ammo-display">--</span> / Reserve: <span id="reserve-display">--</span><br>
         Wood: <span id="wood-count">0</span><br>
         <button id="clear-btn">Reset Garden</button>
     </div>
 
+    <button id="inv-toggle-btn">Inventory (I)</button>
+
     <!-- Crafting & Inventory Panel -->
-    <div id="crafting-panel" style="display:block;">
+    <div id="crafting-panel">
         <h3>Crafting Inventory</h3>
         <div>Wood: <span id="wood-inventory">0</span></div>
         <div>Darts: <span id="dart-inventory">20</span></div>
         <button class="craft-btn" id="craft-btn">Craft 1 Dart (1 Wood)</button>
     </div>
 
+    <!-- Hotbar UI -->
+    <div id="hotbar">
+        <div class="hotbar-slot active" id="slot-0">1: Plant</div>
+        <div class="hotbar-slot" id="slot-1">2: Rifle</div>
+        <div class="hotbar-slot" id="slot-2">3: Axe</div>
+    </div>
+
     <!-- Mobile Controls -->
     <div id="joystick-container"><div id="joystick-knob"></div></div>
     <div id="plant-btn" class="mobile-action-btn">PLANT</div>
     <div id="jump-btn" class="mobile-action-btn">JUMP</div>
+    <div id="flashlight-btn" class="mobile-action-btn">LIGHT</div>
     <div id="fly-btn" class="mobile-action-btn">FLY</div>
-    <div id="fly-up-btn" class="mobile-action-btn">UP</div>
-    <div id="fly-down-btn" class="mobile-action-btn">DOWN</div>
-    <div id="tool-btn" class="mobile-action-btn">TOOL</div>
     <div id="aim-btn" class="mobile-action-btn">AIM</div>
     <div id="shoot-btn" class="mobile-action-btn">SHOOT</div>
     <div id="reload-btn" class="mobile-action-btn">RELOAD</div>
@@ -220,12 +272,12 @@
             <p><strong>WASD</strong>: Move | <strong>Shift</strong>: Sprint | <strong>Space</strong>: Jump</p>
             <p><strong>1, 2, 3</strong>: Switch Tools (Planting, Rifle, Axe)</p>
             <p><strong>Right Click</strong>: Aim Scope | <strong>Left Click</strong>: Action</p>
-            <p><strong>F</strong>: Toggle Fly | <strong>R</strong>: Reload | <strong>E</strong>: Craft Dart</p>
+            <p><strong>F</strong>: Toggle Flashlight | <strong>V</strong>: Toggle Fly | <strong>I</strong>: Inventory</p>
             <p><strong>ESC</strong>: Pause / Release Mouse</p>
         </div>
         <div id="mobile-instructions" style="display:none;">
             <p><strong>Left Joystick</strong>: Move | <strong>Right Drag</strong>: Look</p>
-            <p><strong>TOOL Button</strong>: Switch Tool (Plant -> Rifle -> Axe)</p>
+            <p>Use Hotbar at bottom to switch tools</p>
         </div>
     </div>
 
@@ -243,7 +295,7 @@
             document.getElementById('reload-btn').style.display = 'none';
         }
 
-        // Scene setup
+        // Scene Setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
         scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
@@ -255,109 +307,166 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // Lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        // Dynamic Lighting System (Day/Night Cycle)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        sunLight.position.set(100, 150, 100);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 2048;
         sunLight.shadow.mapSize.height = 2048;
         sunLight.shadow.camera.near = 0.5;
         sunLight.shadow.camera.far = 400;
-        const d = 100;
+        const d = 120;
         sunLight.shadow.camera.left = -d;
         sunLight.shadow.camera.right = d;
         sunLight.shadow.camera.top = d;
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Bigger Ground / Garden Bed (500x500)
+        // Flashlight Attached to Camera
+        const flashlight = new THREE.SpotLight(0xffffff, 0, 40, Math.PI / 6, 0.3, 1);
+        flashlight.position.set(0, 0, 0);
+        flashlight.target.position.set(0, 0, -1);
+        camera.add(flashlight);
+        camera.add(flashlight.target);
+        let flashlightOn = false;
+
+        // Ground Mesh
         const groundGeometry = new THREE.PlaneGeometry(500, 500);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x557a2b, roughness: 0.8 });
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x4d7425, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Trees & Wood Management
+        // Realistic Trees with Wind Sway & Physics Collisions
         let trees = [];
-        function createTree(x, z) {
+        function createRealisticTree(x, z) {
             const group = new THREE.Group();
-            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 4, 8);
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
+            
+            // Detailed Trunk
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.9 });
+            const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 5, 10);
             const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 2;
+            trunk.position.y = 2.5;
             trunk.castShadow = true;
+            trunk.receiveShadow = true;
             group.add(trunk);
 
-            const foliageGeo = new THREE.ConeGeometry(2.5, 5, 8);
-            const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2e5a1c });
-            const foliage = new THREE.Mesh(foliageGeo, foliageMat);
-            foliage.position.y = 5;
-            foliage.castShadow = true;
-            group.add(foliage);
+            // Layered Foliage Leaves with Realistic Shading
+            const foliageGroup = new THREE.Group();
+            foliageGroup.position.y = 4.5;
 
+            const leafMat = new THREE.MeshStandardMaterial({
+                color: 0x2d5e1e,
+                roughness: 0.6,
+                flatShading: true
+            });
+
+            const layer1 = new THREE.Mesh(new THREE.ConeGeometry(3.5, 4, 8), leafMat);
+            layer1.position.y = 1;
+            layer1.castShadow = true;
+            foliageGroup.add(layer1);
+
+            const layer2 = new THREE.Mesh(new THREE.ConeGeometry(2.8, 3.5, 8), leafMat);
+            layer2.position.y = 2.5;
+            layer2.castShadow = true;
+            foliageGroup.add(layer2);
+
+            const layer3 = new THREE.Mesh(new THREE.ConeGeometry(2.0, 3.0, 8), leafMat);
+            layer3.position.y = 4.0;
+            layer3.castShadow = true;
+            foliageGroup.add(layer3);
+
+            group.add(foliageGroup);
             group.position.set(x, 0, z);
             scene.add(group);
-            trees.push({ group, x, z, health: 3 });
+
+            trees.push({ group, foliageGroup, x, z, health: 3, radius: 0.85 });
         }
 
-        // Spawn Expanded Forest
-        for (let i = 0; i < 120; i++) {
+        // Spawn Detailed Trees Across Map
+        for (let i = 0; i < 110; i++) {
             const x = (Math.random() - 0.5) * 440;
             const z = (Math.random() - 0.5) * 440;
             if (Math.abs(x) > 8 || Math.abs(z) > 8) {
-                createTree(x, z);
+                createRealisticTree(x, z);
             }
         }
 
-        // --- Build 3D Rifle & Axe ---
+        // --- Build 3D Weapons (Hollow Scope Rifle & Realistic Axe) ---
         const weaponGroup = new THREE.Group();
-        const stockMat = new THREE.MeshStandardMaterial({ color: 0x4a2c11 });
-        const metalMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
+        const stockMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.7 });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, metalness: 0.85, roughness: 0.2 });
 
-        // Rifle Model
+        // Rifle Model with Hollow Clear Scope
         const rifleMesh = new THREE.Group();
         const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.4), stockMat);
         stock.position.set(0, -0.05, 0.1);
         rifleMesh.add(stock);
 
-        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 16), metalMat);
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.75, 16), metalMat);
         barrel.rotation.x = Math.PI / 2;
-        barrel.position.set(0, 0.02, -0.3);
+        barrel.position.set(0, 0.02, -0.32);
         rifleMesh.add(barrel);
 
-        const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 16), metalMat);
-        scope.rotation.x = Math.PI / 2;
-        scope.position.set(0, 0.07, -0.1);
-        rifleMesh.add(scope);
+        // Scope Ring Outer Body
+        const scopeOuter = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 16, 1, true), metalMat);
+        scopeOuter.rotation.x = Math.PI / 2;
+        scopeOuter.position.set(0, 0.07, -0.1);
+        rifleMesh.add(scopeOuter);
+
+        // Transparent Scope Lens Glass (Clear view through lens)
+        const glassMat = new THREE.MeshPhysicalMaterial({
+            color: 0xaaccff,
+            transparent: true,
+            opacity: 0.25,
+            roughness: 0.1,
+            transmission: 0.9
+        });
+        const scopeLensFront = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), glassMat);
+        scopeLensFront.position.set(0, 0.07, -0.22);
+        const scopeLensBack = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), glassMat);
+        scopeLensBack.position.set(0, 0.07, 0.02);
+        scopeLensBack.rotation.y = Math.PI;
+        rifleMesh.add(scopeLensFront, scopeLensBack);
+
         weaponGroup.add(rifleMesh);
 
-        // Axe Model
+        // Realistic Axe Model
         const axeMesh = new THREE.Group();
-        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8), stockMat);
-        handle.rotation.z = Math.PI / 4;
-        axeMesh.add(handle);
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.3), metalMat);
-        blade.position.set(0.2, 0.2, 0);
-        axeMesh.add(blade);
+        const axeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.75, 12), stockMat);
+        axeHandle.position.set(0, 0, 0);
+        axeHandle.rotation.z = -Math.PI / 8;
+        axeMesh.add(axeHandle);
+
+        const axeHead = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.12), metalMat);
+        axeHead.position.set(0.1, 0.3, 0);
+        axeMesh.add(axeHead);
+
+        const axeBladeGeo = new THREE.ConeGeometry(0.18, 0.28, 4);
+        const axeBlade = new THREE.Mesh(axeBladeGeo, metalMat);
+        axeBlade.rotation.z = Math.PI / 2;
+        axeBlade.position.set(0.18, 0.3, 0);
+        axeMesh.add(axeBlade);
+
         axeMesh.visible = false;
         weaponGroup.add(axeMesh);
 
-        const hipPosition = new THREE.Vector3(0.25, -0.2, -0.4);
-        const aimPosition = new THREE.Vector3(0, -0.07, -0.25);
+        const hipPosition = new THREE.Vector3(0.24, -0.2, -0.4);
+        const aimPosition = new THREE.Vector3(0, -0.07, -0.18);
         weaponGroup.position.copy(hipPosition);
         weaponGroup.visible = false;
         camera.add(weaponGroup);
         scene.add(camera);
 
-        // State Variables
+        // State & Inventory Variables
         let isPlaying = false, isLocked = false, isFlying = false, isAiming = false, isSprinting = false;
-        let activeTool = 0; // 0: Planting, 1: Rifle, 2: Axe
+        let activeTool = 0; // 0: Plant, 1: Rifle, 2: Axe
         
         let loadedAmmo = 5, magazineCapacity = 5, reserveDarts = 20, woodCount = 0;
+        let gameTime = 12.0; // 12:00 PM start
 
         let verticalVelocity = 0;
         const gravity = -20;
@@ -413,6 +522,10 @@
             camera.fov = 75;
             camera.updateProjectionMatrix();
 
+            document.querySelectorAll('.hotbar-slot').forEach((slot, idx) => {
+                slot.classList.toggle('active', idx === toolIndex);
+            });
+
             if (activeTool === 0) {
                 weaponGroup.visible = false;
             } else if (activeTool === 1) {
@@ -434,13 +547,26 @@
             updateHUD();
         }
 
+        document.getElementById('slot-0').addEventListener('click', () => setTool(0));
+        document.getElementById('slot-1').addEventListener('click', () => setTool(1));
+        document.getElementById('slot-2').addEventListener('click', () => setTool(2));
+
+        // Inventory Toggle
+        const craftingPanel = document.getElementById('crafting-panel');
+        document.getElementById('inv-toggle-btn').addEventListener('click', () => {
+            const isVisible = craftingPanel.style.display === 'block';
+            craftingPanel.style.display = isVisible ? 'none' : 'block';
+        });
+
+        function toggleFlashlight() {
+            flashlightOn = !flashlightOn;
+            flashlight.intensity = flashlightOn ? 2.5 : 0;
+            document.getElementById('flashlight-btn').style.background = flashlightOn ? "#ff9800" : "#ffb300";
+        }
+
         function toggleFly() {
             isFlying = !isFlying;
             document.getElementById('fly-btn').style.background = isFlying ? "#ff9800" : "#2196f3";
-            if (isMobile) {
-                document.getElementById('fly-up-btn').style.display = isFlying ? "flex" : "none";
-                document.getElementById('fly-down-btn').style.display = isFlying ? "flex" : "none";
-            }
             updateHUD();
         }
 
@@ -471,7 +597,7 @@
             }
         }
 
-        // Controls Logic & Robust Touch / Mouse Handling
+        // Pointer Lock & Mouse Look
         const instructions = document.getElementById('instructions');
         instructions.addEventListener('click', () => {
             isPlaying = true;
@@ -524,7 +650,7 @@
         });
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Multi-touch Robust Joystick & Look
+        // Touch Control Implementation
         let touchLookId = null;
         let touchLookLastX = 0, touchLookLastY = 0;
         let joystickTouchId = null;
@@ -542,7 +668,7 @@
                     joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                     handleJoystickMove(touch);
                 } else if (isMobile && touch.clientX >= window.innerWidth / 2 && touchLookId === null) {
-                    if (!e.target.classList.contains('mobile-action-btn') && e.target.id !== 'crafting-panel') {
+                    if (!e.target.classList.contains('mobile-action-btn') && e.target.id !== 'crafting-panel' && e.target.id !== 'inv-toggle-btn') {
                         touchLookId = touch.identifier;
                         touchLookLastX = touch.clientX;
                         touchLookLastY = touch.clientY;
@@ -577,14 +703,6 @@
         };
 
         window.addEventListener('touchend', (e) => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === joystickTouchId) { joystickTouchId = null; resetJoystick(); }
-                if (touch.identifier === touchLookId) { touchLookId = null; }
-            }
-        });
-
-        window.addEventListener('touchcancel', (e) => {
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
                 if (touch.identifier === joystickTouchId) { joystickTouchId = null; resetJoystick(); }
@@ -629,10 +747,10 @@
                 case 'Digit1': setTool(0); break;
                 case 'Digit2': setTool(1); break;
                 case 'Digit3': setTool(2); break;
-                case 'KeyF': toggleFly(); break;
-                case 'KeyR': 
-                    if (activeTool === 1 && loadedAmmo < magazineCapacity && reserveDarts > 0) reloadRifle();
-                    break;
+                case 'KeyF': toggleFlashlight(); break;
+                case 'KeyV': toggleFly(); break;
+                case 'KeyI': craftingPanel.style.display = (craftingPanel.style.display === 'block') ? 'none' : 'block'; break;
+                case 'KeyR': if (activeTool === 1) reloadRifle(); break;
                 case 'KeyE': craftDart(); break;
             }
         };
@@ -697,7 +815,7 @@
                     localStorage.setItem('garden_flowers', JSON.stringify(savedFlowers));
                     document.getElementById('flower-count').innerText = savedFlowers.length;
                 }
-            } else if (activeTool === 1) { // Rifle Shooting with Bullet Drop
+            } else if (activeTool === 1) { // Shooting
                 if (loadedAmmo <= 0) return;
                 loadedAmmo--;
                 updateHUD();
@@ -714,12 +832,16 @@
                     velocity: dir.clone().multiplyScalar(50),
                     stuck: false
                 });
-            } else if (activeTool === 2) { // Axe Chopping Trees
+            } else if (activeTool === 2) { // Axe Chopping
+                // Swing Animation
+                axeMesh.rotation.x = -Math.PI / 4;
+                setTimeout(() => { axeMesh.rotation.x = 0; }, 150);
+
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
                 const treeMeshes = trees.map(t => t.group);
                 const intersects = raycaster.intersectObjects(treeMeshes, true);
                 if (intersects.length > 0 && intersects[0].distance < 6) {
-                    const hitTree = trees.find(t => t.group === intersects[0].object.parent || t.group === intersects[0].object);
+                    const hitTree = trees.find(t => t.group === intersects[0].object.parent || t.group === intersects[0].object.parent.parent);
                     if (hitTree) {
                         hitTree.health--;
                         if (hitTree.health <= 0) {
@@ -753,18 +875,13 @@
             if (!isMobile && isLocked && e.button === 0) performAction();
         });
 
-        // Mobile UI Listeners
-        let toolCycle = 0;
-        document.getElementById('tool-btn').addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-            toolCycle = (toolCycle + 1) % 3;
-            setTool(toolCycle);
-        });
+        // Mobile UI Button Events
         document.getElementById('plant-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('shoot-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('reload-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); reloadRifle(); });
         document.getElementById('jump-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); jump(); });
         document.getElementById('fly-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleFly(); });
+        document.getElementById('flashlight-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleFlashlight(); });
         document.getElementById('aim-btn').addEventListener('touchstart', (e) => { 
             e.stopPropagation(); 
             isAiming = !isAiming;
@@ -773,12 +890,8 @@
             document.getElementById('scope-overlay').style.display = isAiming ? 'block' : 'none';
             updateHUD();
         });
-        document.getElementById('fly-up-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveUp = true; });
-        document.getElementById('fly-up-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveUp = false; });
-        document.getElementById('fly-down-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveDown = true; });
-        document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
 
-        // Dinosaurs AI & Trampling
+        // Dinosaurs AI
         function spawnDinosaur() {
             if (dinosaurs.length >= 3) {
                 const oldest = dinosaurs.shift();
@@ -828,6 +941,39 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
+            // Day/Night Cycle & Sky Color Calculations
+            gameTime = (gameTime + delta * 0.15) % 24; // 24hr cycle
+            const timeHours = Math.floor(gameTime);
+            const timeMinutes = Math.floor((gameTime - timeHours) * 60);
+            document.getElementById('time-display').innerText = `${timeHours.toString().padStart(2, '0')}:${timeMinutes.toString().padStart(2, '0')}`;
+
+            const sunAngle = (gameTime / 24) * Math.PI * 2 - Math.PI / 2;
+            sunLight.position.x = Math.cos(sunAngle) * 200;
+            sunLight.position.y = Math.sin(sunAngle) * 200;
+            sunLight.position.z = Math.sin(sunAngle * 0.5) * 100;
+
+            const isNight = sunLight.position.y < 0;
+            const skyColor = new THREE.Color();
+            if (isNight) {
+                skyColor.setHSL(0.6, 0.5, 0.05); // Dark blue night
+                sunLight.intensity = 0.05;
+                ambientLight.intensity = 0.1;
+            } else {
+                const dayProgress = sunLight.position.y / 200;
+                skyColor.setHSL(0.6, 0.6, 0.3 + dayProgress * 0.4); // Bright daytime sky
+                sunLight.intensity = Math.max(0.2, dayProgress * 1.2);
+                ambientLight.intensity = 0.3 + dayProgress * 0.2;
+            }
+            scene.background.copy(skyColor);
+            scene.fog.color.copy(skyColor);
+
+            // Realistic Tree Wind Sway Animation
+            const windSway = Math.sin(time * 0.002) * 0.05;
+            trees.forEach(tree => {
+                tree.foliageGroup.rotation.z = windSway;
+                tree.foliageGroup.rotation.x = Math.cos(time * 0.0015) * 0.03;
+            });
+
             if (isPlaying) {
                 const targetGunPos = isAiming ? aimPosition : hipPosition;
                 weaponGroup.position.lerp(targetGunPos, delta * 15);
@@ -848,8 +994,24 @@
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
                 const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
 
-                camera.position.addScaledVector(side, -velocity.x * delta);
-                camera.position.addScaledVector(forward, -velocity.z * delta);
+                // Proposed next position
+                const nextPos = camera.position.clone();
+                nextPos.addScaledVector(side, -velocity.x * delta);
+                nextPos.addScaledVector(forward, -velocity.z * delta);
+
+                // Tree Physics Collision Resolution (Solid Trees)
+                trees.forEach(tree => {
+                    const dist = Math.hypot(nextPos.x - tree.x, nextPos.z - tree.z);
+                    const minDist = tree.radius + 0.4;
+                    if (dist < minDist) {
+                        const overlap = minDist - dist;
+                        const pushDir = new THREE.Vector3(nextPos.x - tree.x, 0, nextPos.z - tree.z).normalize();
+                        nextPos.addScaledVector(pushDir, overlap);
+                    }
+                });
+
+                camera.position.x = nextPos.x;
+                camera.position.z = nextPos.z;
 
                 if (isFlying) {
                     if (moveUp) camera.position.y += 6 * delta;
@@ -866,7 +1028,7 @@
                 }
                 savePlayerPosition();
 
-                // Pick up missed darts
+                // Pick up Darts
                 activeDarts.forEach((dart, idx) => {
                     if (dart.stuck) {
                         if (camera.position.distanceTo(dart.mesh.position) < 2.0) {
@@ -879,10 +1041,10 @@
                 });
             }
 
-            // Dart Bullet Drop Simulation
+            // Bullet Drop Projectile Simulation
             activeDarts.forEach((dart) => {
                 if (!dart.stuck) {
-                    dart.velocity.y += gravity * 0.5 * delta; // Bullet drop gravity
+                    dart.velocity.y += gravity * 0.4 * delta;
                     dart.mesh.position.addScaledVector(dart.velocity, delta);
 
                     if (dart.mesh.position.y <= 0.1) {
@@ -904,7 +1066,7 @@
                 }
             });
 
-            // Dinosaur AI & Trampling
+            // Dinosaur Movement AI & Trampling
             dinosaurs.forEach((dino) => {
                 if (!dino.fallen) {
                     dino.actionTimer -= delta;
