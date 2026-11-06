@@ -64,10 +64,10 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: radial-gradient(circle, transparent 28%, rgba(0,0,0,0.92) 55%);
+            background: radial-gradient(circle, transparent 28%, rgba(0,0,0,0.95) 55%);
             display: none;
             pointer-events: none;
-            z-index: 15;
+            z-index: 20;
         }
         #scope-crosshair {
             position: absolute;
@@ -174,18 +174,18 @@
             font-weight: bold;
         }
 
-        /* Mobile Controls UI */
+        /* Mobile Controls UI - High Z-Index to remain above scope & overlays */
         #joystick-container {
             position: absolute;
             bottom: 30px;
             left: 30px;
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             display: none;
-            z-index: 8;
+            z-Index: 25;
         }
         #joystick-knob {
             position: absolute;
@@ -210,7 +210,7 @@
             justify-content: center;
             align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 8;
+            z-index: 25;
         }
         #plant-btn { bottom: 90px; right: 30px; background: #4caf50; }
         #jump-btn { bottom: 155px; right: 30px; background: #9c27b0; }
@@ -296,9 +296,6 @@
             document.getElementById('start-msg').innerText = 'Tap anywhere to Start';
             document.getElementById('joystick-container').style.display = 'block';
             document.querySelectorAll('.mobile-action-btn').forEach(btn => btn.style.display = 'flex');
-            document.getElementById('aim-btn').style.display = 'none';
-            document.getElementById('shoot-btn').style.display = 'none';
-            document.getElementById('reload-btn').style.display = 'none';
             document.getElementById('fly-up-btn').style.display = 'none';
             document.getElementById('fly-down-btn').style.display = 'none';
         }
@@ -364,7 +361,7 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Dense Grass Everywhere with Bending Support
+        // Dense Grass Everywhere
         const grassCount = 12000;
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x558b2f, roughness: 0.8, side: THREE.DoubleSide });
         const grassGeo = new THREE.PlaneGeometry(0.35, 0.9);
@@ -388,46 +385,37 @@
         }
         scene.add(instancedGrass);
 
-        // Ultra-Realistic Branching Trees
+        // Reference-Accurate Realistic Trees (Based on Image[cite: 1])
         let trees = [];
         function createRealisticTree(x, z) {
             const group = new THREE.Group();
             const y = getTerrainHeight(x, z);
 
             const barkMat = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.9 });
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x1e4620, roughness: 0.65, flatShading: true });
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e5c1e, roughness: 0.6, flatShading: true });
 
-            const trunkGeo = new THREE.CylinderGeometry(0.5, 0.9, 5.5, 10);
+            // Distinct Single Central Trunk
+            const trunkGeo = new THREE.CylinderGeometry(0.6, 1.0, 6.0, 10);
             const trunk = new THREE.Mesh(trunkGeo, barkMat);
-            trunk.position.y = 2.75;
+            trunk.position.y = 3.0;
             trunk.castShadow = true;
             trunk.receiveShadow = true;
             group.add(trunk);
 
-            const branchGeo = new THREE.CylinderGeometry(0.2, 0.35, 3.0, 8);
-            const b1 = new THREE.Mesh(branchGeo, barkMat);
-            b1.position.set(0.6, 4.2, 0);
-            b1.rotation.z = -Math.PI / 3;
-            b1.castShadow = true;
-            group.add(b1);
-
-            const b2 = new THREE.Mesh(branchGeo, barkMat);
-            b2.position.set(-0.5, 4.6, 0.3);
-            b2.rotation.z = Math.PI / 3;
-            b2.rotation.x = Math.PI / 5;
-            b2.castShadow = true;
-            group.add(b2);
-
+            // Large Dense Round Canopy Cluster
             const foliageGroup = new THREE.Group();
-            const leafGeo = new THREE.DodecahedronGeometry(1.8, 1);
+            const leafGeo = new THREE.DodecahedronGeometry(2.2, 1);
+            
             const offsets = [
-                [0, 5.8, 0], [-1.5, 5.2, 0.6], [1.5, 5.0, -0.5],
-                [0, 6.8, 0.8], [1.0, 6.4, 1.0], [-1.0, 6.2, -1.0], [0, 7.2, -0.3]
+                [0, 6.5, 0], [-1.8, 5.8, 0.8], [1.8, 5.8, -0.8],
+                [-1.2, 7.2, -0.6], [1.2, 7.2, 0.6], [0, 8.0, 0],
+                [-2.2, 4.8, 0], [2.2, 4.8, 0], [0, 5.0, 2.0], [0, 5.0, -2.0]
             ];
 
             offsets.forEach(pos => {
                 const cluster = new THREE.Mesh(leafGeo, leafMat);
                 cluster.position.set(pos[0], pos[1], pos[2]);
+                cluster.scale.set(1.2 + Math.random()*0.3, 1.0 + Math.random()*0.2, 1.2 + Math.random()*0.3);
                 cluster.castShadow = true;
                 foliageGroup.add(cluster);
             });
@@ -436,10 +424,10 @@
             group.position.set(x, y, z);
             scene.add(group);
 
-            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.0 });
+            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.2 });
         }
 
-        for (let i = 0; i < 110; i++) {
+        for (let i = 0; i < 90; i++) {
             const x = (Math.random() - 0.5) * 460;
             const z = (Math.random() - 0.5) * 460;
             if (Math.abs(x) > 12 || Math.abs(z) > 12) {
@@ -468,10 +456,11 @@
         scopeOuter.position.set(0, 0.07, -0.1);
         rifleMesh.add(scopeOuter);
 
-        const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xaaccff, transparent: true, opacity: 0.25, roughness: 0.1, transmission: 0.9 });
-        const scopeLensFront = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), glassMat);
+        // Opaque scope glass when not zooming, translucent when aiming
+        const opaqueGlassMat = new THREE.MeshStandardMaterial({ color: 0x224466, roughness: 0.2, metalness: 0.8 });
+        const scopeLensFront = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), opaqueGlassMat);
         scopeLensFront.position.set(0, 0.07, -0.22);
-        const scopeLensBack = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), glassMat);
+        const scopeLensBack = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), opaqueGlassMat);
         scopeLensBack.position.set(0, 0.07, 0.02);
         scopeLensBack.rotation.y = Math.PI;
         rifleMesh.add(scopeLensFront, scopeLensBack);
@@ -505,7 +494,7 @@
         weaponGroup.add(axeMesh);
 
         const hipPosition = new THREE.Vector3(0.24, -0.2, -0.4);
-        const aimPosition = new THREE.Vector3(0, -0.07, -0.18);
+        const aimPosition = new THREE.Vector3(0, 0, 0); // Centers perfectly when zooming so it disappears from side
         weaponGroup.position.copy(hipPosition);
         weaponGroup.visible = false;
         camera.add(weaponGroup);
@@ -704,7 +693,7 @@
         });
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Robust Touch Handling
+        // Strict Joystick Bounding Handling (Only moves when touching inside the joystick element)
         let touchLookId = null;
         let touchLookLastX = 0, touchLookLastY = 0;
         let joystickTouchId = null;
@@ -716,12 +705,17 @@
             if (!isPlaying) return;
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-                if (isMobile && touch.clientX < window.innerWidth / 2 && joystickTouchId === null) {
+                const rect = joystickContainer.getBoundingClientRect();
+                
+                // Check if touch is strictly inside the joystick circle
+                const inJoystick = touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                                    touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+
+                if (isMobile && inJoystick && joystickTouchId === null) {
                     joystickTouchId = touch.identifier;
-                    const rect = joystickContainer.getBoundingClientRect();
                     joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                     handleJoystickMove(touch);
-                } else if (isMobile && touch.clientX >= window.innerWidth / 2 && touchLookId === null) {
+                } else if (isMobile && !inJoystick && touch.clientX >= window.innerWidth / 2 && touchLookId === null) {
                     if (!e.target.classList.contains('mobile-action-btn') && e.target.id !== 'crafting-panel' && e.target.id !== 'inv-toggle-btn') {
                         touchLookId = touch.identifier;
                         touchLookLastX = touch.clientX;
@@ -773,7 +767,7 @@
         });
 
         function handleJoystickMove(touch) {
-            const maxRadius = 40;
+            const maxRadius = 45;
             let dx = touch.clientX - joystickCenter.x;
             let dy = touch.clientY - joystickCenter.y;
             const dist = Math.hypot(dx, dy);
@@ -986,7 +980,7 @@
         document.getElementById('fly-down-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveDown = true; });
         document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
 
-        // Dinosaurs AI
+        // Dinosaurs AI with Realistic Ragdoll Tumble
         function spawnDinosaur() {
             if (dinosaurs.length >= 3) {
                 const oldest = dinosaurs.shift();
@@ -1023,7 +1017,7 @@
             scene.add(group);
 
             dinosaurs.push({
-                mesh: group, legL, legR, fallen: false,
+                mesh: group, legL, legR, fallen: false, fallProgress: 0,
                 targetPos: new THREE.Vector3((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300),
                 isStopping: false, actionTimer: 0
             });
@@ -1038,7 +1032,7 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // 5 Min Day / 5 Min Night Cycle (600 seconds per full rotation)
+            // Day / Night Cycle (600 seconds = 10 minutes total cycle)
             gameTime = (gameTime + (delta / 600) * 24) % 24;
             const timeHours = Math.floor(gameTime);
             const timeMinutes = Math.floor((gameTime - timeHours) * 60);
@@ -1064,7 +1058,6 @@
             scene.background.copy(skyColor);
             scene.fog.color.copy(skyColor);
 
-            // Realistic Tree Wind Sway Animation
             const windSway = Math.sin(time * 0.002) * 0.05;
             trees.forEach(tree => {
                 tree.foliageGroup.rotation.z = windSway;
@@ -1095,7 +1088,6 @@
                 nextPos.addScaledVector(side, -velocity.x * delta);
                 nextPos.addScaledVector(forward, -velocity.z * delta);
 
-                // Tree Collisions
                 trees.forEach(tree => {
                     const dist = Math.hypot(nextPos.x - tree.x, nextPos.z - tree.z);
                     const minDist = tree.radius + 0.4;
@@ -1126,22 +1118,6 @@
                 }
                 savePlayerPosition();
 
-                // Dynamic Grass Bending Around Player
-                for (let i = 0; i < grassData.length; i++) {
-                    const g = grassData[i];
-                    const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
-                    if (distToPlayer < 3.5) {
-                        dummy.position.set(g.x, g.baseY, g.z);
-                        dummy.rotation.y = Math.atan2(camera.position.x - g.x, camera.position.z - g.z);
-                        dummy.rotation.x = 0.9; // Bend away from player
-                        dummy.scale.setScalar(0.8);
-                        dummy.updateMatrix();
-                        instancedGrass.setMatrixAt(i, dummy.matrix);
-                        instancedGrass.instanceMatrix.needsUpdate = true;
-                    }
-                }
-
-                // Pick up Wood Logs
                 droppedWood.forEach((wood, idx) => {
                     if (camera.position.distanceTo(wood.mesh.position) < 2.0) {
                         scene.remove(wood.mesh);
@@ -1151,7 +1127,6 @@
                     }
                 });
 
-                // Pick up Missed Darts
                 activeDarts.forEach((dart, idx) => {
                     if (dart.stuck) {
                         if (camera.position.distanceTo(dart.mesh.position) < 2.0) {
@@ -1164,7 +1139,6 @@
                 });
             }
 
-            // Bullet Drop Simulation
             activeDarts.forEach((dart) => {
                 if (!dart.stuck) {
                     dart.velocity.y += gravity * 0.4 * delta;
@@ -1180,7 +1154,7 @@
                         if (!dino.fallen) {
                             if (dart.mesh.position.distanceTo(dino.mesh.position) < 2.5) {
                                 dino.fallen = true;
-                                dino.mesh.rotation.z = Math.PI / 2;
+                                dino.fallProgress = 0;
                                 dart.stuck = true;
                                 dino.mesh.add(dart.mesh);
                             }
@@ -1189,9 +1163,18 @@
                 }
             });
 
-            // Dinosaur AI Movement & Trampling
+            // Dinosaur AI & Realistic Ragdoll Tumble
             dinosaurs.forEach((dino) => {
-                if (!dino.fallen) {
+                if (dino.fallen) {
+                    if (dino.fallProgress < 1.0) {
+                        dino.fallProgress += delta * 3.5;
+                        // Smooth arc-based side tumble with bounce effect
+                        const rotProgress = Math.min(dino.fallProgress, 1.0);
+                        dino.mesh.rotation.z = rotProgress * (Math.PI / 2);
+                        dino.mesh.rotation.x = Math.sin(rotProgress * Math.PI) * 0.3; // bounce wobble
+                        dino.mesh.position.y = getTerrainHeight(dino.mesh.position.x, dino.mesh.position.z) + Math.sin(rotProgress * Math.PI) * 0.4;
+                    }
+                } else {
                     dino.mesh.position.y = getTerrainHeight(dino.mesh.position.x, dino.mesh.position.z);
                     dino.actionTimer -= delta;
 
