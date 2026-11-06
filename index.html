@@ -34,7 +34,7 @@
             color: #ffffff;
             cursor: pointer;
             text-align: center;
-            z-index: 10;
+            z-index: 20;
         }
         #instructions h1 {
             margin-bottom: 10px;
@@ -55,6 +55,27 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 5;
+        }
+        /* Sniper Scope Overlay */
+        #scope-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.85) 60%);
+            display: none;
+            pointer-events: none;
+            z-index: 15;
+        }
+        #scope-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100px;
+            height: 100px;
+            transform: translate(-50%, -50%);
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><line x1="0" y1="50" x2="100" y2="50" stroke="black" stroke-width="2"/><line x1="50" y1="0" x2="50" y2="100" stroke="black" stroke-width="2"/></svg>') no-repeat center;
         }
         #hud {
             position: absolute;
@@ -79,6 +100,33 @@
             cursor: pointer;
             font-weight: bold;
         }
+
+        /* Inventory & Crafting UI Panel */
+        #crafting-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 10;
+            display: none;
+            width: 220px;
+        }
+        #crafting-panel h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
+        .craft-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+        .craft-btn:active { background: #388e3c; }
 
         /* Mobile Controls UI */
         #joystick-container {
@@ -111,7 +159,7 @@
             border: 2px solid white;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             display: none;
             justify-content: center;
             align-items: center;
@@ -120,13 +168,13 @@
         }
         #plant-btn { bottom: 30px; right: 30px; background: #4caf50; }
         #jump-btn { bottom: 95px; right: 30px; background: #9c27b0; }
-        #fly-btn { bottom: 225px; right: 30px; background: #2196f3; }
-        #fly-up-btn { bottom: 225px; right: 95px; background: #03a9f4; display: none; }
-        #fly-down-btn { bottom: 160px; right: 95px; background: #0288d1; display: none; }
-        #rifle-btn { bottom: 160px; right: 30px; background: #795548; }
-        #aim-btn { bottom: 160px; right: 95px; background: #607d8b; display: none; }
+        #fly-btn { bottom: 290px; right: 30px; background: #2196f3; }
+        #fly-up-btn { bottom: 290px; right: 95px; background: #03a9f4; display: none; }
+        #fly-down-btn { bottom: 225px; right: 95px; background: #0288d1; display: none; }
+        #tool-btn { bottom: 160px; right: 30px; background: #795548; }
+        #aim-btn { bottom: 225px; right: 30px; background: #607d8b; display: none; }
         #shoot-btn { bottom: 30px; right: 30px; background: #e91e63; display: none; }
-        #reload-btn { bottom: 30px; right: 95px; background: #ff9800; display: none; }
+        #reload-btn { bottom: 95px; right: 95px; background: #ff9800; display: none; }
         .mobile-action-btn:active { transform: scale(0.95); }
     </style>
     <!-- Three.js Library -->
@@ -135,11 +183,22 @@
 <body>
     <div id="canvas-container"></div>
     <div id="crosshair"></div>
+    <div id="scope-overlay"><div id="scope-crosshair"></div></div>
+    
     <div id="hud">
         Flowers Planted: <span id="flower-count">0</span><br>
         Mode: <span id="mode-indicator">Walk</span> | Tool: <span id="tool-indicator">Planting</span><br>
-        Loaded: <span id="ammo-display">--</span> | Reserve Darts: <span id="reserve-display">--</span><br>
+        Ammo: <span id="ammo-display">--</span> / Reserve: <span id="reserve-display">--</span><br>
+        Wood: <span id="wood-count">0</span><br>
         <button id="clear-btn">Reset Garden</button>
+    </div>
+
+    <!-- Crafting & Inventory Panel -->
+    <div id="crafting-panel" style="display:block;">
+        <h3>Crafting Inventory</h3>
+        <div>Wood: <span id="wood-inventory">0</span></div>
+        <div>Darts: <span id="dart-inventory">20</span></div>
+        <button class="craft-btn" id="craft-btn">Craft 1 Dart (1 Wood)</button>
     </div>
 
     <!-- Mobile Controls -->
@@ -149,7 +208,7 @@
     <div id="fly-btn" class="mobile-action-btn">FLY</div>
     <div id="fly-up-btn" class="mobile-action-btn">UP</div>
     <div id="fly-down-btn" class="mobile-action-btn">DOWN</div>
-    <div id="rifle-btn" class="mobile-action-btn">RIFLE</div>
+    <div id="tool-btn" class="mobile-action-btn">TOOL</div>
     <div id="aim-btn" class="mobile-action-btn">AIM</div>
     <div id="shoot-btn" class="mobile-action-btn">SHOOT</div>
     <div id="reload-btn" class="mobile-action-btn">RELOAD</div>
@@ -159,13 +218,14 @@
         <p id="start-msg">Click anywhere to Start</p>
         <div id="desktop-instructions">
             <p><strong>WASD</strong>: Move | <strong>Shift</strong>: Sprint | <strong>Space</strong>: Jump</p>
-            <p><strong>Right Click</strong>: Aim Gun | <strong>Left Click</strong>: Plant / Shoot</p>
-            <p><strong>F</strong>: Toggle Fly Mode | <strong>R</strong>: Toggle Rifle / Reload</p>
+            <p><strong>1, 2, 3</strong>: Switch Tools (Planting, Rifle, Axe)</p>
+            <p><strong>Right Click</strong>: Aim Scope | <strong>Left Click</strong>: Action</p>
+            <p><strong>F</strong>: Toggle Fly | <strong>R</strong>: Reload | <strong>E</strong>: Craft Dart</p>
             <p><strong>ESC</strong>: Pause / Release Mouse</p>
         </div>
         <div id="mobile-instructions" style="display:none;">
             <p><strong>Left Joystick</strong>: Move | <strong>Right Drag</strong>: Look</p>
-            <p><strong>AIM / SHOOT / RELOAD / JUMP</strong>: Touch Buttons</p>
+            <p><strong>TOOL Button</strong>: Switch Tool (Plant -> Rifle -> Axe)</p>
         </div>
     </div>
 
@@ -177,16 +237,16 @@
             document.getElementById('mobile-instructions').style.display = 'block';
             document.getElementById('start-msg').innerText = 'Tap anywhere to Start';
             document.getElementById('joystick-container').style.display = 'block';
-            document.getElementById('plant-btn').style.display = 'flex';
-            document.getElementById('jump-btn').style.display = 'flex';
-            document.getElementById('fly-btn').style.display = 'flex';
-            document.getElementById('rifle-btn').style.display = 'flex';
+            document.querySelectorAll('.mobile-action-btn').forEach(btn => btn.style.display = 'flex');
+            document.getElementById('aim-btn').style.display = 'none';
+            document.getElementById('shoot-btn').style.display = 'none';
+            document.getElementById('reload-btn').style.display = 'none';
         }
 
         // Scene setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -200,96 +260,105 @@
         scene.add(ambientLight);
 
         const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        sunLight.position.set(50, 80, 50);
+        sunLight.position.set(100, 150, 100);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 2048;
         sunLight.shadow.mapSize.height = 2048;
         sunLight.shadow.camera.near = 0.5;
-        sunLight.shadow.camera.far = 200;
-        const d = 50;
+        sunLight.shadow.camera.far = 400;
+        const d = 100;
         sunLight.shadow.camera.left = -d;
         sunLight.shadow.camera.right = d;
         sunLight.shadow.camera.top = d;
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Ground / Garden Bed
-        const groundGeometry = new THREE.PlaneGeometry(200, 200);
+        // Bigger Ground / Garden Bed (500x500)
+        const groundGeometry = new THREE.PlaneGeometry(500, 500);
         const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x557a2b, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Add Trees
+        // Trees & Wood Management
+        let trees = [];
         function createTree(x, z) {
             const group = new THREE.Group();
-            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.5, 3, 8);
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 4, 8);
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
             const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 1.5;
+            trunk.position.y = 2;
             trunk.castShadow = true;
             group.add(trunk);
 
-            const foliageGeo = new THREE.ConeGeometry(2, 4, 8);
+            const foliageGeo = new THREE.ConeGeometry(2.5, 5, 8);
             const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2e5a1c });
             const foliage = new THREE.Mesh(foliageGeo, foliageMat);
-            foliage.position.y = 4;
+            foliage.position.y = 5;
             foliage.castShadow = true;
             group.add(foliage);
 
             group.position.set(x, 0, z);
             scene.add(group);
+            trees.push({ group, x, z, health: 3 });
         }
 
-        for (let i = 0; i < 40; i++) {
-            const x = (Math.random() - 0.5) * 160;
-            const z = (Math.random() - 0.5) * 160;
-            if (Math.abs(x) > 5 || Math.abs(z) > 5) {
+        // Spawn Expanded Forest
+        for (let i = 0; i < 120; i++) {
+            const x = (Math.random() - 0.5) * 440;
+            const z = (Math.random() - 0.5) * 440;
+            if (Math.abs(x) > 8 || Math.abs(z) > 8) {
                 createTree(x, z);
             }
         }
 
-        // --- Build 3D Rifle with Aiming Mechanics ---
-        const rifleGroup = new THREE.Group();
+        // --- Build 3D Rifle & Axe ---
+        const weaponGroup = new THREE.Group();
         const stockMat = new THREE.MeshStandardMaterial({ color: 0x4a2c11 });
         const metalMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
 
+        // Rifle Model
+        const rifleMesh = new THREE.Group();
         const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.4), stockMat);
         stock.position.set(0, -0.05, 0.1);
-        rifleGroup.add(stock);
+        rifleMesh.add(stock);
 
         const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 16), metalMat);
         barrel.rotation.x = Math.PI / 2;
         barrel.position.set(0, 0.02, -0.3);
-        rifleGroup.add(barrel);
+        rifleMesh.add(barrel);
 
         const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 16), metalMat);
         scope.rotation.x = Math.PI / 2;
         scope.position.set(0, 0.07, -0.1);
-        rifleGroup.add(scope);
+        rifleMesh.add(scope);
+        weaponGroup.add(rifleMesh);
+
+        // Axe Model
+        const axeMesh = new THREE.Group();
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8), stockMat);
+        handle.rotation.z = Math.PI / 4;
+        axeMesh.add(handle);
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.3), metalMat);
+        blade.position.set(0.2, 0.2, 0);
+        axeMesh.add(blade);
+        axeMesh.visible = false;
+        weaponGroup.add(axeMesh);
 
         const hipPosition = new THREE.Vector3(0.25, -0.2, -0.4);
         const aimPosition = new THREE.Vector3(0, -0.07, -0.25);
-        rifleGroup.position.copy(hipPosition);
-        rifleGroup.visible = false;
-        camera.add(rifleGroup);
+        weaponGroup.position.copy(hipPosition);
+        weaponGroup.visible = false;
+        camera.add(weaponGroup);
         scene.add(camera);
 
         // State Variables
-        const instructions = document.getElementById('instructions');
-        let isPlaying = false;
-        let isLocked = false;
-        let isFlying = false;
-        let isAiming = false;
-        let isSprinting = false;
-        let rifleActive = false;
+        let isPlaying = false, isLocked = false, isFlying = false, isAiming = false, isSprinting = false;
+        let activeTool = 0; // 0: Planting, 1: Rifle, 2: Axe
         
-        let loadedAmmo = 5;
-        let magazineCapacity = 5;
-        let reserveDarts = 20;
+        let loadedAmmo = 5, magazineCapacity = 5, reserveDarts = 20, woodCount = 0;
 
-        // Vertical Movement & Gravity Setup
         let verticalVelocity = 0;
         const gravity = -20;
         const jumpStrength = 7;
@@ -301,13 +370,12 @@
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let moveUp = false, moveDown = false;
         let savedFlowers = [];
+        let flowers = [];
         let dinosaurs = [];
         let activeDarts = [];
 
-        let pitch = 0;
-        let yaw = 0;
+        let pitch = 0, yaw = 0;
 
-        // Load Saved Player Position
         function loadPlayerPosition() {
             const savedPos = localStorage.getItem('garden_player_pos');
             if (savedPos) {
@@ -328,10 +396,42 @@
         }
 
         function updateHUD() {
+            const toolNames = ["Planting", "Rifle", "Axe"];
             document.getElementById('mode-indicator').innerText = isFlying ? "Fly" : "Walk";
-            document.getElementById('tool-indicator').innerText = rifleActive ? (isAiming ? "Rifle (Aiming)" : "Rifle") : "Planting";
-            document.getElementById('ammo-display').innerText = rifleActive ? `${loadedAmmo} / ${magazineCapacity}` : "--";
-            document.getElementById('reserve-display').innerText = rifleActive ? `${reserveDarts}` : "--";
+            document.getElementById('tool-indicator').innerText = toolNames[activeTool] + (isAiming && activeTool === 1 ? " (Aiming)" : "");
+            document.getElementById('ammo-display').innerText = activeTool === 1 ? `${loadedAmmo} / ${magazineCapacity}` : "--";
+            document.getElementById('reserve-display').innerText = activeTool === 1 ? `${reserveDarts}` : "--";
+            document.getElementById('wood-count').innerText = woodCount;
+            document.getElementById('wood-inventory').innerText = woodCount;
+            document.getElementById('dart-inventory').innerText = reserveDarts;
+        }
+
+        function setTool(toolIndex) {
+            activeTool = toolIndex;
+            isAiming = false;
+            document.getElementById('scope-overlay').style.display = 'none';
+            camera.fov = 75;
+            camera.updateProjectionMatrix();
+
+            if (activeTool === 0) {
+                weaponGroup.visible = false;
+            } else if (activeTool === 1) {
+                weaponGroup.visible = true;
+                rifleMesh.visible = true;
+                axeMesh.visible = false;
+            } else if (activeTool === 2) {
+                weaponGroup.visible = true;
+                rifleMesh.visible = false;
+                axeMesh.visible = true;
+            }
+
+            if (isMobile) {
+                document.getElementById('shoot-btn').style.display = (activeTool === 1) ? "flex" : "none";
+                document.getElementById('reload-btn').style.display = (activeTool === 1) ? "flex" : "none";
+                document.getElementById('aim-btn').style.display = (activeTool === 1) ? "flex" : "none";
+                document.getElementById('plant-btn').style.display = (activeTool === 0) ? "flex" : "none";
+            }
+            updateHUD();
         }
 
         function toggleFly() {
@@ -344,21 +444,8 @@
             updateHUD();
         }
 
-        function toggleRifle() {
-            rifleActive = !rifleActive;
-            rifleGroup.visible = rifleActive;
-            document.getElementById('rifle-btn').style.background = rifleActive ? "#e65100" : "#795548";
-            if (isMobile) {
-                document.getElementById('shoot-btn').style.display = rifleActive ? "flex" : "none";
-                document.getElementById('reload-btn').style.display = rifleActive ? "flex" : "none";
-                document.getElementById('aim-btn').style.display = rifleActive ? "flex" : "none";
-                document.getElementById('plant-btn').style.display = rifleActive ? "none" : "flex";
-            }
-            updateHUD();
-        }
-
         function reloadRifle() {
-            if (!rifleActive) return;
+            if (activeTool !== 1) return;
             const needed = magazineCapacity - loadedAmmo;
             if (needed > 0 && reserveDarts > 0) {
                 const toReload = Math.min(needed, reserveDarts);
@@ -368,6 +455,15 @@
             }
         }
 
+        function craftDart() {
+            if (woodCount > 0) {
+                woodCount--;
+                reserveDarts++;
+                updateHUD();
+            }
+        }
+        document.getElementById('craft-btn').addEventListener('click', craftDart);
+
         function jump() {
             if (!isFlying && isGrounded) {
                 verticalVelocity = jumpStrength;
@@ -375,7 +471,8 @@
             }
         }
 
-        // Controls Logic
+        // Controls Logic & Robust Touch / Mouse Handling
+        const instructions = document.getElementById('instructions');
         instructions.addEventListener('click', () => {
             isPlaying = true;
             instructions.style.display = 'none';
@@ -397,10 +494,9 @@
             }
         });
 
-        // Desktop Mouse Look & Aiming
         document.addEventListener('mousemove', (event) => {
             if (!isLocked || isMobile) return;
-            const sens = isAiming ? 0.001 : 0.002;
+            const sens = isAiming ? 0.0008 : 0.002;
             yaw -= (event.movementX || 0) * sens;
             pitch -= (event.movementY || 0) * sens;
             pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
@@ -408,26 +504,27 @@
         });
 
         document.addEventListener('mousedown', (e) => {
-            if (e.button === 2 && rifleActive) { // Right Click to Aim
+            if (e.button === 2 && activeTool === 1) {
                 isAiming = true;
-                camera.fov = 40;
+                camera.fov = 30;
                 camera.updateProjectionMatrix();
+                document.getElementById('scope-overlay').style.display = 'block';
                 updateHUD();
             }
         });
 
         document.addEventListener('mouseup', (e) => {
-            if (e.button === 2 && rifleActive) {
+            if (e.button === 2 && activeTool === 1) {
                 isAiming = false;
                 camera.fov = 75;
                 camera.updateProjectionMatrix();
+                document.getElementById('scope-overlay').style.display = 'none';
                 updateHUD();
             }
         });
-
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Mobile Touch Look & Joystick
+        // Multi-touch Robust Joystick & Look
         let touchLookId = null;
         let touchLookLastX = 0, touchLookLastY = 0;
         let joystickTouchId = null;
@@ -437,7 +534,6 @@
 
         window.addEventListener('touchstart', (e) => {
             if (!isPlaying) return;
-
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
                 if (isMobile && touch.clientX < window.innerWidth / 2 && joystickTouchId === null) {
@@ -446,7 +542,7 @@
                     joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                     handleJoystickMove(touch);
                 } else if (isMobile && touch.clientX >= window.innerWidth / 2 && touchLookId === null) {
-                    if (!e.target.classList.contains('mobile-action-btn')) {
+                    if (!e.target.classList.contains('mobile-action-btn') && e.target.id !== 'crafting-panel') {
                         touchLookId = touch.identifier;
                         touchLookLastX = touch.clientX;
                         touchLookLastY = touch.clientY;
@@ -457,7 +553,6 @@
 
         window.addEventListener('touchmove', (e) => {
             if (!isPlaying) return;
-
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
                 if (touch.identifier === joystickTouchId) {
@@ -465,13 +560,11 @@
                 } else if (touch.identifier === touchLookId) {
                     const deltaX = touch.clientX - touchLookLastX;
                     const deltaY = touch.clientY - touchLookLastY;
-
-                    const sens = isAiming ? 0.002 : 0.004;
+                    const sens = isAiming ? 0.0015 : 0.004;
                     yaw -= deltaX * sens;
                     pitch -= deltaY * sens;
                     pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
                     updateCameraRotation();
-
                     touchLookLastX = touch.clientX;
                     touchLookLastY = touch.clientY;
                 }
@@ -491,19 +584,24 @@
             }
         });
 
+        window.addEventListener('touchcancel', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === joystickTouchId) { joystickTouchId = null; resetJoystick(); }
+                if (touch.identifier === touchLookId) { touchLookId = null; }
+            }
+        });
+
         function handleJoystickMove(touch) {
             const maxRadius = 40;
             let dx = touch.clientX - joystickCenter.x;
             let dy = touch.clientY - joystickCenter.y;
             const dist = Math.hypot(dx, dy);
-
             if (dist > maxRadius) {
                 dx = (dx / dist) * maxRadius;
                 dy = (dy / dist) * maxRadius;
             }
-
             joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-
             const threshold = 10;
             moveForward = dy < -threshold;
             moveBackward = dy > threshold;
@@ -517,7 +615,6 @@
             camera.rotation.x = pitch;
         }
 
-        // Desktop Key Events
         const onKeyDown = (event) => {
             switch (event.code) {
                 case 'KeyW': case 'ArrowUp': moveForward = true; break;
@@ -529,11 +626,14 @@
                     if (isFlying) moveUp = true;
                     else jump();
                     break;
+                case 'Digit1': setTool(0); break;
+                case 'Digit2': setTool(1); break;
+                case 'Digit3': setTool(2); break;
                 case 'KeyF': toggleFly(); break;
                 case 'KeyR': 
-                    if (rifleActive && loadedAmmo < magazineCapacity && reserveDarts > 0) reloadRifle();
-                    else toggleRifle();
+                    if (activeTool === 1 && loadedAmmo < magazineCapacity && reserveDarts > 0) reloadRifle();
                     break;
+                case 'KeyE': craftDart(); break;
             }
         };
 
@@ -551,62 +651,53 @@
         document.addEventListener('keydown', onKeyDown);
         document.addEventListener('keyup', onKeyUp);
 
-        // 3D Tranquilizer Dart Creator
         function create3DDartMesh() {
             const dartGroup = new THREE.Group();
-            const body = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.015, 0.015, 0.25, 8),
-                new THREE.MeshStandardMaterial({ color: 0xcccccc })
-            );
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.25, 8), new THREE.MeshStandardMaterial({ color: 0xcccccc }));
             body.rotation.x = Math.PI / 2;
             dartGroup.add(body);
-
-            const vial = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.025, 0.025, 0.1, 8),
-                new THREE.MeshStandardMaterial({ color: 0xffff00 })
-            );
+            const vial = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.1, 8), new THREE.MeshStandardMaterial({ color: 0xffff00 }));
             vial.rotation.x = Math.PI / 2;
             vial.position.z = -0.02;
             dartGroup.add(vial);
-
-            const tail = new THREE.Mesh(
-                new THREE.ConeGeometry(0.035, 0.08, 4),
-                new THREE.MeshStandardMaterial({ color: 0x00bcd4 })
-            );
+            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.08, 4), new THREE.MeshStandardMaterial({ color: 0x00bcd4 }));
             tail.rotation.x = -Math.PI / 2;
             tail.position.z = 0.12;
             dartGroup.add(tail);
-
             return dartGroup;
         }
 
-        // Action Logic (Plant / Shoot)
         const raycaster = new THREE.Raycaster();
         
         function addFlowerMesh(x, y, z, colorHex) {
             const flower = new THREE.Group();
-            const stemGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5);
-            const stemMat = new THREE.MeshStandardMaterial({ color: 0x228b22 });
-            const stem = new THREE.Mesh(stemGeo, stemMat);
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5), new THREE.MeshStandardMaterial({ color: 0x228b22 }));
             stem.position.y = 0.25;
-            stem.castShadow = true;
             flower.add(stem);
-
-            const petalGeo = new THREE.DodecahedronGeometry(0.2);
-            const petalMat = new THREE.MeshStandardMaterial({ color: colorHex });
-            const blossom = new THREE.Mesh(petalGeo, petalMat);
+            const blossom = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2), new THREE.MeshStandardMaterial({ color: colorHex }));
             blossom.position.y = 0.5;
-            blossom.castShadow = true;
             flower.add(blossom);
-
             flower.position.set(x, y, z);
             scene.add(flower);
+            flowers.push({ mesh: flower, x, z });
         }
 
         function performAction() {
             if (!isPlaying) return;
 
-            if (rifleActive) {
+            if (activeTool === 0) { // Planting
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const intersects = raycaster.intersectObject(ground);
+                if (intersects.length > 0 && intersects[0].distance < 15) {
+                    const point = intersects[0].point;
+                    const colors = [0xff69b4, 0xff4500, 0x9370db, 0xffff00, 0xffffff];
+                    const selectedColor = colors[Math.floor(Math.random() * colors.length)];
+                    addFlowerMesh(point.x, point.y, point.z, selectedColor);
+                    savedFlowers.push({ x: point.x, y: point.y, z: point.z, color: selectedColor });
+                    localStorage.setItem('garden_flowers', JSON.stringify(savedFlowers));
+                    document.getElementById('flower-count').innerText = savedFlowers.length;
+                }
+            } else if (activeTool === 1) { // Rifle Shooting with Bullet Drop
                 if (loadedAmmo <= 0) return;
                 loadedAmmo--;
                 updateHUD();
@@ -614,30 +705,30 @@
                 const dartMesh = create3DDartMesh();
                 const dir = new THREE.Vector3();
                 camera.getWorldDirection(dir);
-                
                 dartMesh.position.copy(camera.position).addScaledVector(dir, 0.5);
                 dartMesh.quaternion.copy(camera.quaternion);
                 scene.add(dartMesh);
 
                 activeDarts.push({
                     mesh: dartMesh,
-                    velocity: dir.clone().multiplyScalar(45),
+                    velocity: dir.clone().multiplyScalar(50),
                     stuck: false
                 });
-            } else {
+            } else if (activeTool === 2) { // Axe Chopping Trees
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                const intersects = raycaster.intersectObject(ground);
-
-                if (intersects.length > 0 && intersects[0].distance < 15) {
-                    const point = intersects[0].point;
-                    const colors = [0xff69b4, 0xff4500, 0x9370db, 0xffff00, 0xffffff];
-                    const selectedColor = colors[Math.floor(Math.random() * colors.length)];
-
-                    addFlowerMesh(point.x, point.y, point.z, selectedColor);
-
-                    savedFlowers.push({ x: point.x, y: point.y, z: point.z, color: selectedColor });
-                    localStorage.setItem('garden_flowers', JSON.stringify(savedFlowers));
-                    document.getElementById('flower-count').innerText = savedFlowers.length;
+                const treeMeshes = trees.map(t => t.group);
+                const intersects = raycaster.intersectObjects(treeMeshes, true);
+                if (intersects.length > 0 && intersects[0].distance < 6) {
+                    const hitTree = trees.find(t => t.group === intersects[0].object.parent || t.group === intersects[0].object);
+                    if (hitTree) {
+                        hitTree.health--;
+                        if (hitTree.health <= 0) {
+                            scene.remove(hitTree.group);
+                            trees = trees.filter(t => t !== hitTree);
+                            woodCount += 3;
+                            updateHUD();
+                        }
+                    }
                 }
             }
         }
@@ -662,60 +753,53 @@
             if (!isMobile && isLocked && e.button === 0) performAction();
         });
 
-        // Touch Action Listeners
+        // Mobile UI Listeners
+        let toolCycle = 0;
+        document.getElementById('tool-btn').addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            toolCycle = (toolCycle + 1) % 3;
+            setTool(toolCycle);
+        });
         document.getElementById('plant-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('shoot-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('reload-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); reloadRifle(); });
         document.getElementById('jump-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); jump(); });
         document.getElementById('fly-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleFly(); });
-        document.getElementById('rifle-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleRifle(); });
         document.getElementById('aim-btn').addEventListener('touchstart', (e) => { 
             e.stopPropagation(); 
             isAiming = !isAiming;
-            camera.fov = isAiming ? 40 : 75;
+            camera.fov = isAiming ? 30 : 75;
             camera.updateProjectionMatrix();
+            document.getElementById('scope-overlay').style.display = isAiming ? 'block' : 'none';
             updateHUD();
         });
-
         document.getElementById('fly-up-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveUp = true; });
         document.getElementById('fly-up-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveUp = false; });
         document.getElementById('fly-down-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveDown = true; });
         document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
 
-        // Moving Dinosaur Spawns
+        // Dinosaurs AI & Trampling
         function spawnDinosaur() {
             if (dinosaurs.length >= 3) {
                 const oldest = dinosaurs.shift();
                 scene.remove(oldest.mesh);
             }
-
             const group = new THREE.Group();
             const skinMat = new THREE.MeshStandardMaterial({ color: 0x3b5323, roughness: 0.6 });
             const bellyMat = new THREE.MeshStandardMaterial({ color: 0x688b42, roughness: 0.7 });
 
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.8, 3.2), skinMat);
             body.position.set(0, 2.2, 0);
-            body.castShadow = true;
             group.add(body);
-
             const neck = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 1.0), skinMat);
             neck.position.set(0, 3.1, 1.2);
             neck.rotation.x = -Math.PI / 6;
-            neck.castShadow = true;
             group.add(neck);
-
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 1.6), skinMat);
             head.position.set(0, 3.7, 1.7);
-            head.castShadow = true;
             group.add(head);
-
-            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 1.4), bellyMat);
-            jaw.position.set(0, 3.4, 1.7);
-            group.add(jaw);
-
             const tail = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 2.0), skinMat);
             tail.position.set(0, 2.1, -2.0);
-            tail.rotation.x = -0.1;
             group.add(tail);
 
             const legGeo = new THREE.BoxGeometry(0.5, 2.2, 0.7);
@@ -725,41 +809,29 @@
             legR.position.set(0.8, 1.1, 0.2);
             group.add(legL, legR);
 
-            const spawnX = (Math.random() - 0.5) * 100;
-            const spawnZ = (Math.random() - 0.5) * 100;
-            group.position.set(spawnX, 0, spawnZ);
-            group.rotation.y = Math.random() * Math.PI * 2;
+            group.position.set((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300);
             scene.add(group);
 
             dinosaurs.push({
-                mesh: group,
-                legL: legL,
-                legR: legR,
-                fallen: false,
-                targetAngle: group.rotation.y,
-                changeDirTimer: 0
+                mesh: group, legL, legR, fallen: false,
+                targetPos: new THREE.Vector3((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300),
+                isStopping: false, actionTimer: 0
             });
         }
 
-        setInterval(() => {
-            if (isPlaying) spawnDinosaur();
-        }, 12000);
+        setInterval(() => { if (isPlaying) spawnDinosaur(); }, 12000);
 
-        // Animation & Physics Loop
         let prevTime = performance.now();
 
         function animate() {
             requestAnimationFrame(animate);
-
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
             if (isPlaying) {
-                // Smooth Gun Aim Interpolation
                 const targetGunPos = isAiming ? aimPosition : hipPosition;
-                rifleGroup.position.lerp(targetGunPos, delta * 15);
+                weaponGroup.position.lerp(targetGunPos, delta * 15);
 
-                // Movement & Speed
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
 
@@ -779,31 +851,25 @@
                 camera.position.addScaledVector(side, -velocity.x * delta);
                 camera.position.addScaledVector(forward, -velocity.z * delta);
 
-                // Flying vs Gravity Physics
                 if (isFlying) {
-                    if (moveUp) camera.position.y += 15 * delta;
-                    if (moveDown) camera.position.y -= 15 * delta;
+                    if (moveUp) camera.position.y += 6 * delta;
+                    if (moveDown) camera.position.y -= 6 * delta;
                     if (camera.position.y < eyeHeight) camera.position.y = eyeHeight;
                 } else {
-                    // Apply Gravity & Jumping
                     verticalVelocity += gravity * delta;
                     camera.position.y += verticalVelocity * delta;
-
                     if (camera.position.y <= eyeHeight) {
                         camera.position.y = eyeHeight;
                         verticalVelocity = 0;
                         isGrounded = true;
                     }
                 }
-
-                // Auto-save Position
                 savePlayerPosition();
 
-                // Check Dart Pickups
+                // Pick up missed darts
                 activeDarts.forEach((dart, idx) => {
                     if (dart.stuck) {
-                        const dist = camera.position.distanceTo(dart.mesh.position);
-                        if (dist < 2.0) {
+                        if (camera.position.distanceTo(dart.mesh.position) < 2.0) {
                             scene.remove(dart.mesh);
                             activeDarts.splice(idx, 1);
                             reserveDarts++;
@@ -813,9 +879,10 @@
                 });
             }
 
-            // Projectile Physics (Darts)
+            // Dart Bullet Drop Simulation
             activeDarts.forEach((dart) => {
                 if (!dart.stuck) {
+                    dart.velocity.y += gravity * 0.5 * delta; // Bullet drop gravity
                     dart.mesh.position.addScaledVector(dart.velocity, delta);
 
                     if (dart.mesh.position.y <= 0.1) {
@@ -825,8 +892,7 @@
 
                     dinosaurs.forEach((dino) => {
                         if (!dino.fallen) {
-                            const dist = dart.mesh.position.distanceTo(dino.mesh.position);
-                            if (dist < 2.5) {
+                            if (dart.mesh.position.distanceTo(dino.mesh.position) < 2.5) {
                                 dino.fallen = true;
                                 dino.mesh.rotation.z = Math.PI / 2;
                                 dino.mesh.position.y = 0.8;
@@ -838,24 +904,53 @@
                 }
             });
 
-            // Dinosaur Movement Logic & Leg Animations
+            // Dinosaur AI & Trampling
             dinosaurs.forEach((dino) => {
                 if (!dino.fallen) {
-                    dino.changeDirTimer -= delta;
-                    if (dino.changeDirTimer <= 0) {
-                        dino.targetAngle += (Math.random() - 0.5) * 2;
-                        dino.changeDirTimer = 3 + Math.random() * 4;
+                    dino.actionTimer -= delta;
+                    if (dino.actionTimer <= 0) {
+                        dino.isStopping = Math.random() < 0.35;
+                        dino.actionTimer = 3 + Math.random() * 5;
+                        if (!dino.isStopping) {
+                            dino.targetPos.set((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300);
+                        }
                     }
-                    dino.mesh.rotation.y += (dino.targetAngle - dino.mesh.rotation.y) * delta * 2;
 
-                    // Move forward in local orientation
-                    const moveDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), dino.mesh.rotation.y);
-                    dino.mesh.position.addScaledVector(moveDir, delta * 3.5);
+                    if (!dino.isStopping) {
+                        const currentPos = new THREE.Vector3(dino.mesh.position.x, 0, dino.mesh.position.z);
+                        const dirToTarget = new THREE.Vector3().subVectors(dino.targetPos, currentPos);
+                        const dist = dirToTarget.length();
 
-                    // Leg animation while walking
-                    const walkCycle = Math.sin(time * 0.008);
-                    dino.legL.rotation.x = walkCycle * 0.5;
-                    dino.legR.rotation.x = -walkCycle * 0.5;
+                        if (dist < 2) {
+                            dino.targetPos.set((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300);
+                        } else {
+                            dirToTarget.normalize();
+                            const targetAngle = Math.atan2(dirToTarget.x, dirToTarget.z);
+                            let angleDiff = targetAngle - dino.mesh.rotation.y;
+                            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                            dino.mesh.rotation.y += angleDiff * delta * 2;
+
+                            dino.mesh.position.addScaledVector(dirToTarget, delta * 3.5);
+
+                            const walkCycle = Math.sin(time * 0.008);
+                            dino.legL.rotation.x = walkCycle * 0.5;
+                            dino.legR.rotation.x = -walkCycle * 0.5;
+                        }
+                    } else {
+                        dino.legL.rotation.x = 0;
+                        dino.legR.rotation.x = 0;
+                    }
+
+                    flowers.forEach((flower, fIdx) => {
+                        if (Math.hypot(dino.mesh.position.x - flower.x, dino.mesh.position.z - flower.z) < 1.8) {
+                            scene.remove(flower.mesh);
+                            flowers.splice(fIdx, 1);
+                            savedFlowers.splice(fIdx, 1);
+                            localStorage.setItem('garden_flowers', JSON.stringify(savedFlowers));
+                            document.getElementById('flower-count').innerText = savedFlowers.length;
+                        }
+                    });
                 }
             });
 
