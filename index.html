@@ -334,7 +334,7 @@
 
         // Procedural Rolling Hills Terrain Height Generator
         function getTerrainHeight(x, z) {
-            return Math.sin(x * 0.03) * Math.cos(z * 0.03) * 3.5 + Math.sin(x * 0.08 + z * 0.05) * 1.5;
+            return Math.sin(x * 0.03) * Math.cos(z * 0.03) * 4.0 + Math.sin(x * 0.09 + z * 0.07) * 2.0;
         }
 
         // Terrain Mesh Setup
@@ -356,16 +356,19 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Procedural Grass Instances
-        const grassMat = new THREE.MeshStandardMaterial({ color: 0x4a7a29, roughness: 0.8, side: THREE.DoubleSide });
-        const grassGeo = new THREE.PlaneGeometry(0.3, 0.8);
-        grassGeo.translate(0, 0.4, 0);
+        // Procedural Grass Instances with Bending Support
+        const grassCount = 6000;
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x558b2f, roughness: 0.8, side: THREE.DoubleSide });
+        const grassGeo = new THREE.PlaneGeometry(0.35, 0.9);
+        grassGeo.translate(0, 0.45, 0);
 
-        const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, 4000);
+        const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
         const dummy = new THREE.Object3D();
-        for (let i = 0; i < 4000; i++) {
-            const gx = (Math.random() - 0.5) * 440;
-            const gz = (Math.random() - 0.5) * 440;
+        const grassData = [];
+
+        for (let i = 0; i < grassCount; i++) {
+            const gx = (Math.random() - 0.5) * 460;
+            const gz = (Math.random() - 0.5) * 460;
             const gy = getTerrainHeight(gx, gz);
             dummy.position.set(gx, gy, gz);
             dummy.rotation.y = Math.random() * Math.PI;
@@ -373,51 +376,57 @@
             dummy.scale.setScalar(0.7 + Math.random() * 0.6);
             dummy.updateMatrix();
             instancedGrass.setMatrixAt(i, dummy.matrix);
+            grassData.push({ x: gx, z: gz, baseY: gy, baseRotX: dummy.rotation.x });
         }
         scene.add(instancedGrass);
 
-        // Branching Realistic Trees
+        // Highly Detailed Realistic Trees
         let trees = [];
         function createRealisticTree(x, z) {
             const group = new THREE.Group();
             const y = getTerrainHeight(x, z);
 
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.95 });
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x1b4d1b, roughness: 0.7, flatShading: true });
+            const barkMat = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.9 });
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x1e4620, roughness: 0.65, flatShading: true });
 
-            // Main Trunk
-            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.7, 5, 8);
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 2.5;
+            // Main Trunk with Roots tapering
+            const trunkGeo = new THREE.CylinderGeometry(0.5, 0.9, 5.5, 10);
+            const trunk = new THREE.Mesh(trunkGeo, barkMat);
+            trunk.position.y = 2.75;
             trunk.castShadow = true;
             trunk.receiveShadow = true;
             group.add(trunk);
 
-            // Branches
-            const branchGeo = new THREE.CylinderGeometry(0.2, 0.35, 2.5, 6);
-            const branch1 = new THREE.Mesh(branchGeo, trunkMat);
-            branch1.position.set(0.4, 3.8, 0);
-            branch1.rotation.z = -Math.PI / 4;
-            branch1.castShadow = true;
-            group.add(branch1);
+            // Detailed Primary Branches
+            const branchGeo = new THREE.CylinderGeometry(0.2, 0.35, 3.0, 8);
+            const b1 = new THREE.Mesh(branchGeo, barkMat);
+            b1.position.set(0.6, 4.2, 0);
+            b1.rotation.z = -Math.PI / 3;
+            b1.castShadow = true;
+            group.add(b1);
 
-            const branch2 = new THREE.Mesh(branchGeo, trunkMat);
-            branch2.position.set(-0.4, 4.2, 0.2);
-            branch2.rotation.z = Math.PI / 4;
-            branch2.rotation.x = Math.PI / 6;
-            branch2.castShadow = true;
-            group.add(branch2);
+            const b2 = new THREE.Mesh(branchGeo, barkMat);
+            b2.position.set(-0.5, 4.6, 0.3);
+            b2.rotation.z = Math.PI / 3;
+            b2.rotation.x = Math.PI / 5;
+            b2.castShadow = true;
+            group.add(b2);
 
-            // Foliage Clusters
+            const b3 = new THREE.Mesh(branchGeo, barkMat);
+            b3.position.set(0, 5.0, -0.4);
+            b3.rotation.x = -Math.PI / 4;
+            b3.castShadow = true;
+            group.add(b3);
+
+            // Multi-layered Leaf Clusters
             const foliageGroup = new THREE.Group();
-            const leafGeo = new THREE.DodecahedronGeometry(1.6, 1);
-
-            const clusterOffsets = [
-                [0, 5.5, 0], [-1.2, 5.0, 0.5], [1.2, 4.8, -0.4],
-                [0, 6.5, 0.6], [0.8, 6.2, 0.8], [-0.7, 6.0, -0.8]
+            const leafGeo = new THREE.DodecahedronGeometry(1.8, 1);
+            const offsets = [
+                [0, 5.8, 0], [-1.5, 5.2, 0.6], [1.5, 5.0, -0.5],
+                [0, 6.8, 0.8], [1.0, 6.4, 1.0], [-1.0, 6.2, -1.0], [0, 7.2, -0.3]
             ];
 
-            clusterOffsets.forEach(pos => {
+            offsets.forEach(pos => {
                 const cluster = new THREE.Mesh(leafGeo, leafMat);
                 cluster.position.set(pos[0], pos[1], pos[2]);
                 cluster.castShadow = true;
@@ -428,13 +437,13 @@
             group.position.set(x, y, z);
             scene.add(group);
 
-            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 0.9 });
+            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.0 });
         }
 
         for (let i = 0; i < 90; i++) {
-            const x = (Math.random() - 0.5) * 420;
-            const z = (Math.random() - 0.5) * 420;
-            if (Math.abs(x) > 10 || Math.abs(z) > 10) {
+            const x = (Math.random() - 0.5) * 440;
+            const z = (Math.random() - 0.5) * 440;
+            if (Math.abs(x) > 12 || Math.abs(z) > 12) {
                 createRealisticTree(x, z);
             }
         }
@@ -443,14 +452,7 @@
         const weaponGroup = new THREE.Group();
         const stockMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.7 });
         const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, metalness: 0.85, roughness: 0.2 });
-
-        // High-Shiny Metallic Reflective Axe Material
-        const chromeAxeMat = new THREE.MeshStandardMaterial({
-            color: 0xdddddd,
-            metalness: 0.95,
-            roughness: 0.1,
-            envMapIntensity: 1.5
-        });
+        const chromeAxeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.95, roughness: 0.1, envMapIntensity: 1.5 });
 
         // Rifle Model with Scope
         const rifleMesh = new THREE.Group();
@@ -468,9 +470,7 @@
         scopeOuter.position.set(0, 0.07, -0.1);
         rifleMesh.add(scopeOuter);
 
-        const glassMat = new THREE.MeshPhysicalMaterial({
-            color: 0xaaccff, transparent: true, opacity: 0.25, roughness: 0.1, transmission: 0.9
-        });
+        const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xaaccff, transparent: true, opacity: 0.25, roughness: 0.1, transmission: 0.9 });
         const scopeLensFront = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), glassMat);
         scopeLensFront.position.set(0, 0.07, -0.22);
         const scopeLensBack = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), glassMat);
@@ -490,7 +490,6 @@
         axeHeadConnector.position.set(0, 0.32, -0.02);
         axeMesh.add(axeHeadConnector);
 
-        // Reflective Blade
         const axeBladeShape = new THREE.Shape();
         axeBladeShape.moveTo(0, -0.15);
         axeBladeShape.lineTo(0.2, -0.22);
@@ -522,11 +521,11 @@
         let activeTool = 0; // 0: Plant, 1: Rifle, 2: Axe
         
         let loadedAmmo = 5, magazineCapacity = 5, reserveDarts = 20, woodCount = 0;
-        let gameTime = 12.0; // 12:00 PM Start
+        let gameTime = 12.0;
 
         let verticalVelocity = 0;
-        const gravity = -20;
-        const jumpStrength = 7;
+        const gravity = -22;
+        const jumpStrength = 8.5;
         const eyeHeight = 1.7;
         let isGrounded = true;
 
@@ -617,7 +616,7 @@
 
         function toggleFlashlight() {
             flashlightOn = !flashlightOn;
-            flashlight.intensity = flashlightOn ? 2.5 : 0;
+            flashlight.intensity = flashlightOn ? 3.0 : 0;
             document.getElementById('flashlight-btn').style.background = flashlightOn ? "#ff9800" : "#ffb300";
         }
 
@@ -654,7 +653,7 @@
             }
         }
 
-        // Pointer Lock & Mouse Look
+        // Pointer Lock & Mouse Look Setup
         const instructions = document.getElementById('instructions');
         instructions.addEventListener('click', () => {
             isPlaying = true;
@@ -679,7 +678,7 @@
 
         document.addEventListener('mousemove', (event) => {
             if (!isLocked || isMobile) return;
-            const sens = isAiming ? 0.0008 : 0.002;
+            const sens = isAiming ? 0.0007 : 0.0022;
             yaw -= (event.movementX || 0) * sens;
             pitch -= (event.movementY || 0) * sens;
             pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
@@ -707,7 +706,7 @@
         });
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Touch Control Implementation
+        // Multi-touch Robust Controls Handling (Prevents stuck touch bugs)
         let touchLookId = null;
         let touchLookLastX = 0, touchLookLastY = 0;
         let joystickTouchId = null;
@@ -743,7 +742,7 @@
                 } else if (touch.identifier === touchLookId) {
                     const deltaX = touch.clientX - touchLookLastX;
                     const deltaY = touch.clientY - touchLookLastY;
-                    const sens = isAiming ? 0.0015 : 0.004;
+                    const sens = isAiming ? 0.0012 : 0.0035;
                     yaw -= deltaX * sens;
                     pitch -= deltaY * sens;
                     pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
@@ -767,6 +766,14 @@
             }
         });
 
+        window.addEventListener('touchcancel', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === joystickTouchId) { joystickTouchId = null; resetJoystick(); }
+                if (touch.identifier === touchLookId) { touchLookId = null; }
+            }
+        });
+
         function handleJoystickMove(touch) {
             const maxRadius = 40;
             let dx = touch.clientX - joystickCenter.x;
@@ -777,7 +784,7 @@
                 dy = (dy / dist) * maxRadius;
             }
             joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            const threshold = 10;
+            const threshold = 8;
             moveForward = dy < -threshold;
             moveBackward = dy > threshold;
             moveLeft = dx < -threshold;
@@ -899,14 +906,13 @@
 
                 activeDarts.push({
                     mesh: dartMesh,
-                    velocity: dir.clone().multiplyScalar(50),
+                    velocity: dir.clone().multiplyScalar(55),
                     stuck: false
                 });
             } else if (activeTool === 2) { // Axe Chopping
                 if (isSwingingAxe) return;
                 isSwingingAxe = true;
 
-                // Axe Swing Animation
                 const startRotX = axeMesh.rotation.x;
                 const startRotY = axeMesh.rotation.y;
                 axeMesh.rotation.x = -Math.PI / 3;
@@ -928,7 +934,6 @@
                         if (hitTree.health <= 0) {
                             scene.remove(hitTree.group);
                             trees = trees.filter(t => t !== hitTree);
-                            // Drop 3 wood logs around chopped tree
                             for (let i = 0; i < 3; i++) {
                                 const ox = hitTree.x + (Math.random() - 0.5) * 1.5;
                                 const oz = hitTree.z + (Math.random() - 0.5) * 1.5;
@@ -1029,7 +1034,7 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // 5 Min Day / 5 Min Night Cycle (Total 10 Minutes = 600 Seconds per cycle)
+            // 5 Min Day / 5 Min Night Cycle
             gameTime = (gameTime + (delta / 600) * 24) % 24;
             const timeHours = Math.floor(gameTime);
             const timeMinutes = Math.floor((gameTime - timeHours) * 60);
@@ -1073,8 +1078,9 @@
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                const baseSpeed = isSprinting ? 20.0 : 12.0;
-                const currentSpeed = isFlying ? baseSpeed * 1.5 : baseSpeed;
+                // Fast & Responsive Speeds (Walking vs Sprinting)
+                const baseSpeed = isSprinting ? 28.0 : 16.0;
+                const currentSpeed = isFlying ? baseSpeed * 1.8 : baseSpeed;
 
                 if (moveForward || moveBackward) velocity.z -= direction.z * currentSpeed * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * currentSpeed * delta;
@@ -1103,8 +1109,8 @@
                 const currentTerrainY = getTerrainHeight(camera.position.x, camera.position.z) + eyeHeight;
 
                 if (isFlying) {
-                    if (moveUp) camera.position.y += 6 * delta;
-                    if (moveDown) camera.position.y -= 6 * delta;
+                    if (moveUp) camera.position.y += 14 * delta;   // Balanced fast flight up
+                    if (moveDown) camera.position.y -= 14 * delta; // Balanced fast flight down
                     if (camera.position.y < currentTerrainY) camera.position.y = currentTerrainY;
                 } else {
                     verticalVelocity += gravity * delta;
@@ -1116,6 +1122,21 @@
                     }
                 }
                 savePlayerPosition();
+
+                // Dynamic Grass Bending Around Player Position
+                for (let i = 0; i < grassData.count || grassData.length; i++) {
+                    const g = grassData[i];
+                    const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
+                    if (distToPlayer < 3.0) {
+                        dummy.position.set(g.x, g.baseY, g.z);
+                        dummy.rotation.y = Math.atan2(camera.position.x - g.x, camera.position.z - g.z);
+                        dummy.rotation.x = 0.8; // Bend away from player
+                        dummy.scale.setScalar(0.8);
+                        dummy.updateMatrix();
+                        instancedGrass.setMatrixAt(i, dummy.matrix);
+                        instancedGrass.instanceMatrix.needsUpdate = true;
+                    }
+                }
 
                 // Pick up Wood Logs
                 droppedWood.forEach((wood, idx) => {
@@ -1194,7 +1215,7 @@
                             while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
                             dino.mesh.rotation.y += angleDiff * delta * 2;
 
-                            dino.mesh.position.addScaledVector(dirToTarget, delta * 3.5);
+                            dino.mesh.position.addScaledVector(dirToTarget, delta * 4.0);
 
                             const walkCycle = Math.sin(time * 0.008);
                             dino.legL.rotation.x = walkCycle * 0.5;
