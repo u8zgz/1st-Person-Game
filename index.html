@@ -300,10 +300,10 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.1);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 2048;
         sunLight.shadow.mapSize.height = 2048;
@@ -345,32 +345,47 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Dense Grass Everywhere with Dynamic Bending Support
-        const grassCount = 15000;
+        // Dense Grass Covering Every Pixel with Individual Shadows and Offsets
+        const grassCount = 35000;
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x558b2f, roughness: 0.8, side: THREE.DoubleSide });
-        const grassGeo = new THREE.PlaneGeometry(0.3, 0.6); // Shortened grass matching reference image
-        grassGeo.translate(0, 0.3, 0);
+        const grassGeo = new THREE.PlaneGeometry(0.28, 0.55);
+        grassGeo.translate(0, 0.275, 0);
 
         const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
+        instancedGrass.castShadow = true;
+        instancedGrass.receiveShadow = true;
         const dummy = new THREE.Object3D();
         const grassData = [];
 
         for (let i = 0; i < grassCount; i++) {
-            const gx = (Math.random() - 0.5) * 480;
-            const gz = (Math.random() - 0.5) * 480;
+            const gx = (Math.random() - 0.5) * 490;
+            const gz = (Math.random() - 0.5) * 490;
             const gy = getTerrainHeight(gx, gz);
             dummy.position.set(gx, gy, gz);
-            dummy.rotation.y = Math.random() * Math.PI;
-            dummy.rotation.x = (Math.random() - 0.5) * 0.2;
-            dummy.scale.setScalar(0.7 + Math.random() * 0.6);
+            dummy.rotation.y = Math.random() * Math.PI * 2;
+            const baseRx = (Math.random() - 0.5) * 0.2;
+            const baseRz = (Math.random() - 0.5) * 0.2;
+            dummy.rotation.x = baseRx;
+            dummy.rotation.z = baseRz;
+            dummy.scale.setScalar(0.6 + Math.random() * 0.5);
             dummy.updateMatrix();
             instancedGrass.setMatrixAt(i, dummy.matrix);
-            grassData.push({ x: gx, z: gz, baseY: gy, baseRotX: dummy.rotation.x });
+            
+            grassData.push({
+                x: gx, z: gz, baseY: gy,
+                phaseOffset: Math.random() * Math.PI * 2,
+                freqOffset: 0.8 + Math.random() * 0.6,
+                baseRotX: baseRx,
+                baseRotZ: baseRz,
+                scale: dummy.scale.x
+            });
         }
         scene.add(instancedGrass);
 
-        // True Realistic Trees with Individual Leaf Planes
+        // Realistic Trees matching reference image[cite: 2] with Individual Leaf Geometry
         let trees = [];
+        const leafClustersData = [];
+
         function createRealisticTree(x, z) {
             const group = new THREE.Group();
             const y = getTerrainHeight(x, z);
@@ -386,16 +401,15 @@
             group.add(trunk);
 
             const foliageGroup = new THREE.Group();
-            const leafPlaneGeo = new THREE.PlaneGeometry(0.4, 0.4);
+            const leafPlaneGeo = new THREE.PlaneGeometry(0.35, 0.35);
 
-            // Procedurally cluster individual small leaf planes forming a natural canopy crown
-            for (let i = 0; i < 180; i++) {
+            for (let i = 0; i < 220; i++) {
                 const leafMesh = new THREE.Mesh(leafPlaneGeo, leafMat);
                 const u = Math.random();
                 const v = Math.random();
                 const theta = u * 2.0 * Math.PI;
                 const phi = Math.acos(2.0 * v - 1.0);
-                const r = 2.2 * Math.cbrt(Math.random());
+                const r = 2.4 * Math.cbrt(Math.random());
                 
                 const lx = r * Math.sin(phi) * Math.cos(theta);
                 const ly = r * Math.sin(phi) * Math.sin(theta) + 6.2;
@@ -405,6 +419,13 @@
                 leafMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
                 leafMesh.castShadow = true;
                 foliageGroup.add(leafMesh);
+
+                leafClustersData.push({
+                    mesh: leafMesh,
+                    basePos: new THREE.Vector3(x + lx, y + ly, z + lz),
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 1.0 + Math.random() * 1.5
+                });
             }
 
             group.add(foliageGroup);
@@ -414,7 +435,7 @@
             trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.1 });
         }
 
-        for (let i = 0; i < 85; i++) {
+        for (let i = 0; i < 75; i++) {
             const x = (Math.random() - 0.5) * 460;
             const z = (Math.random() - 0.5) * 460;
             if (Math.abs(x) > 12 || Math.abs(z) > 12) {
@@ -500,6 +521,8 @@
         const direction = new THREE.Vector3();
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let moveUp = false, moveDown = false;
+        let lastPlayerPos = new THREE.Vector3();
+        let playerWalkDir = new THREE.Vector3(0, 0, -1);
 
         let savedFlowers = [];
         let flowers = [];
@@ -519,6 +542,7 @@
             } else {
                 camera.position.set(0, getTerrainHeight(0, 0) + eyeHeight, 0);
             }
+            lastPlayerPos.copy(camera.position);
         }
         loadPlayerPosition();
 
@@ -658,7 +682,7 @@
         document.addEventListener('mousedown', (e) => {
             if (e.button === 2 && activeTool === 1) {
                 isAiming = true;
-                camera.fov = 15; // Deeper zoom to fix under-terrain look clipping
+                camera.fov = 15;
                 camera.updateProjectionMatrix();
                 document.getElementById('scope-overlay').style.display = 'block';
                 updateHUD();
@@ -864,7 +888,7 @@
                     localStorage.setItem('garden_flowers', JSON.stringify(savedFlowers));
                     document.getElementById('flower-count').innerText = savedFlowers.length;
                 }
-            } else if (activeTool === 1) { // Shooting - Extended Rifle Range (increased muzzle velocity)
+            } else if (activeTool === 1) { // Shooting
                 if (loadedAmmo <= 0) return;
                 loadedAmmo--;
                 updateHUD();
@@ -1034,12 +1058,6 @@
             scene.background.copy(skyColor);
             scene.fog.color.copy(skyColor);
 
-            const windSway = Math.sin(time * 0.002) * 0.05;
-            trees.forEach(tree => {
-                tree.foliageGroup.rotation.z = windSway;
-                tree.foliageGroup.rotation.x = Math.cos(time * 0.0015) * 0.03;
-            });
-
             if (isPlaying) {
                 const targetGunPos = isAiming ? aimPosition : hipPosition;
                 weaponGroup.position.lerp(targetGunPos, delta * 15);
@@ -1063,6 +1081,13 @@
                 const nextPos = camera.position.clone();
                 nextPos.addScaledVector(side, -velocity.x * delta);
                 nextPos.addScaledVector(forward, -velocity.z * delta);
+
+                // Calculate walking direction vector for grass bending
+                const moveDeltaVec = new THREE.Vector3().subVectors(nextPos, lastPlayerPos);
+                if (moveDeltaVec.lengthSq() > 0.0001) {
+                    playerWalkDir.copy(moveDeltaVec).normalize();
+                }
+                lastPlayerPos.copy(nextPos);
 
                 trees.forEach(tree => {
                     const dist = Math.hypot(nextPos.x - tree.x, nextPos.z - tree.z);
@@ -1094,21 +1119,6 @@
                 }
                 savePlayerPosition();
 
-                // Dynamic Grass Bending Around Player
-                for (let i = 0; i < grassData.length; i++) {
-                    const g = grassData[i];
-                    const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
-                    if (distToPlayer < 3.5) {
-                        dummy.position.set(g.x, g.baseY, g.z);
-                        dummy.rotation.y = Math.atan2(camera.position.x - g.x, camera.position.z - g.z);
-                        dummy.rotation.x = 0.9; // Bend away from player feet
-                        dummy.scale.setScalar(0.8);
-                        dummy.updateMatrix();
-                        instancedGrass.setMatrixAt(i, dummy.matrix);
-                        instancedGrass.instanceMatrix.needsUpdate = true;
-                    }
-                }
-
                 droppedWood.forEach((wood, idx) => {
                     if (camera.position.distanceTo(wood.mesh.position) < 2.0) {
                         scene.remove(wood.mesh);
@@ -1129,6 +1139,44 @@
                     }
                 });
             }
+
+            // Realistic Wind & Walking Interaction Animation for Every Grass Blade
+            const globalWindX = Math.sin(time * 0.0015) * 0.3 + Math.cos(time * 0.0008) * 0.2;
+            const globalWindZ = Math.cos(time * 0.0012) * 0.3;
+
+            for (let i = 0; i < grassData.length; i++) {
+                const g = grassData[i];
+                const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
+                
+                dummy.position.set(g.x, g.baseY, g.z);
+                dummy.scale.setScalar(g.scale);
+
+                // Individual wind sway with phase and frequency offset
+                const bladeWind = Math.sin(time * 0.002 * g.freqOffset + g.phaseOffset);
+                let targetRotX = g.baseRotX + globalWindX * 0.4 + bladeWind * 0.15;
+                let targetRotZ = g.baseRotZ + globalWindZ * 0.4 + bladeWind * 0.15;
+                let targetRotY = Math.atan2(globalWindX, globalWindZ);
+
+                // Grass bending in walking direction when player approaches
+                if (distToPlayer < 3.2) {
+                    const factor = (1.0 - distToPlayer / 3.2);
+                    targetRotX += playerWalkDir.z * factor * 0.9;
+                    targetRotZ -= playerWalkDir.x * factor * 0.9;
+                    targetRotY = Math.atan2(playerWalkDir.x, playerWalkDir.z);
+                }
+
+                dummy.rotation.set(targetRotX, targetRotY, targetRotZ);
+                dummy.updateMatrix();
+                instancedGrass.setMatrixAt(i, dummy.matrix);
+            }
+            instancedGrass.instanceMatrix.needsUpdate = true;
+
+            // Individual Leaf Wind Movement for Realistic Trees
+            leafClustersData.forEach(leaf => {
+                const windOffset = Math.sin(time * 0.002 * leaf.speed + leaf.phase) * 0.08 + Math.cos(time * 0.0015 * leaf.speed) * 0.05;
+                leaf.mesh.position.x = leaf.basePos.x + windOffset;
+                leaf.mesh.position.z = leaf.basePos.z + windOffset * 0.8;
+            });
 
             activeDarts.forEach((dart) => {
                 if (!dart.stuck) {
