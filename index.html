@@ -31,7 +31,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             color: #ffffff;
             cursor: pointer;
             text-align: center;
@@ -205,7 +205,7 @@
             border: 2px solid white;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             display: none;
             justify-content: center;
             align-items: center;
@@ -214,8 +214,11 @@
         }
         #plant-btn { bottom: 90px; right: 30px; background: #4caf50; }
         #jump-btn { bottom: 155px; right: 30px; background: #9c27b0; }
-        #flashlight-btn { bottom: 220px; right: 30px; background: #ffb300; }
-        #fly-btn { bottom: 285px; right: 30px; background: #2196f3; }
+        #sprint-btn { bottom: 220px; right: 30px; background: #e91e63; }
+        #flashlight-btn { bottom: 285px; right: 30px; background: #ffb300; }
+        #fly-btn { bottom: 350px; right: 30px; background: #2196f3; }
+        #fly-up-btn { bottom: 350px; right: 95px; background: #03a9f4; display: none; }
+        #fly-down-btn { bottom: 285px; right: 95px; background: #0288d1; display: none; }
         #aim-btn { bottom: 155px; right: 95px; background: #607d8b; display: none; }
         #shoot-btn { bottom: 90px; right: 95px; background: #e91e63; display: none; }
         #reload-btn { bottom: 25px; right: 95px; background: #ff9800; display: none; }
@@ -259,8 +262,11 @@
     <div id="joystick-container"><div id="joystick-knob"></div></div>
     <div id="plant-btn" class="mobile-action-btn">ACTION</div>
     <div id="jump-btn" class="mobile-action-btn">JUMP</div>
+    <div id="sprint-btn" class="mobile-action-btn">SPRINT</div>
     <div id="flashlight-btn" class="mobile-action-btn">LIGHT</div>
     <div id="fly-btn" class="mobile-action-btn">FLY</div>
+    <div id="fly-up-btn" class="mobile-action-btn">UP</div>
+    <div id="fly-down-btn" class="mobile-action-btn">DOWN</div>
     <div id="aim-btn" class="mobile-action-btn">AIM</div>
     <div id="shoot-btn" class="mobile-action-btn">SHOOT</div>
     <div id="reload-btn" class="mobile-action-btn">RELOAD</div>
@@ -272,7 +278,7 @@
             <p><strong>WASD</strong>: Move | <strong>Shift</strong>: Sprint | <strong>Space</strong>: Jump</p>
             <p><strong>1, 2, 3</strong>: Switch Tools (Planting, Rifle, Axe)</p>
             <p><strong>Right Click</strong>: Aim Scope | <strong>Left Click</strong>: Action/Chop</p>
-            <p><strong>F</strong>: Toggle Flashlight | <strong>V</strong>: Toggle Fly | <strong>I</strong>: Inventory</p>
+            <p><strong>F</strong>: Flashlight | <strong>V</strong>: Fly | <strong>I</strong>: Inventory</p>
             <p><strong>ESC</strong>: Pause / Release Mouse</p>
         </div>
         <div id="mobile-instructions" style="display:none;">
@@ -293,6 +299,8 @@
             document.getElementById('aim-btn').style.display = 'none';
             document.getElementById('shoot-btn').style.display = 'none';
             document.getElementById('reload-btn').style.display = 'none';
+            document.getElementById('fly-up-btn').style.display = 'none';
+            document.getElementById('fly-down-btn').style.display = 'none';
         }
 
         // Scene Setup
@@ -332,7 +340,7 @@
         camera.add(flashlight.target);
         let flashlightOn = false;
 
-        // Procedural Rolling Hills Terrain Height Generator
+        // Terrain Height Generator
         function getTerrainHeight(x, z) {
             return Math.sin(x * 0.03) * Math.cos(z * 0.03) * 4.0 + Math.sin(x * 0.09 + z * 0.07) * 2.0;
         }
@@ -356,8 +364,8 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Procedural Grass Instances with Bending Support
-        const grassCount = 6000;
+        // Dense Grass Everywhere with Bending Support
+        const grassCount = 12000;
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x558b2f, roughness: 0.8, side: THREE.DoubleSide });
         const grassGeo = new THREE.PlaneGeometry(0.35, 0.9);
         grassGeo.translate(0, 0.45, 0);
@@ -367,8 +375,8 @@
         const grassData = [];
 
         for (let i = 0; i < grassCount; i++) {
-            const gx = (Math.random() - 0.5) * 460;
-            const gz = (Math.random() - 0.5) * 460;
+            const gx = (Math.random() - 0.5) * 480;
+            const gz = (Math.random() - 0.5) * 480;
             const gy = getTerrainHeight(gx, gz);
             dummy.position.set(gx, gy, gz);
             dummy.rotation.y = Math.random() * Math.PI;
@@ -376,11 +384,11 @@
             dummy.scale.setScalar(0.7 + Math.random() * 0.6);
             dummy.updateMatrix();
             instancedGrass.setMatrixAt(i, dummy.matrix);
-            grassData.push({ x: gx, z: gz, baseY: gy, baseRotX: dummy.rotation.x });
+            grassData.push({ x: gx, z: gz, baseY: gy });
         }
         scene.add(instancedGrass);
 
-        // Highly Detailed Realistic Trees
+        // Ultra-Realistic Branching Trees
         let trees = [];
         function createRealisticTree(x, z) {
             const group = new THREE.Group();
@@ -389,7 +397,6 @@
             const barkMat = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.9 });
             const leafMat = new THREE.MeshStandardMaterial({ color: 0x1e4620, roughness: 0.65, flatShading: true });
 
-            // Main Trunk with Roots tapering
             const trunkGeo = new THREE.CylinderGeometry(0.5, 0.9, 5.5, 10);
             const trunk = new THREE.Mesh(trunkGeo, barkMat);
             trunk.position.y = 2.75;
@@ -397,7 +404,6 @@
             trunk.receiveShadow = true;
             group.add(trunk);
 
-            // Detailed Primary Branches
             const branchGeo = new THREE.CylinderGeometry(0.2, 0.35, 3.0, 8);
             const b1 = new THREE.Mesh(branchGeo, barkMat);
             b1.position.set(0.6, 4.2, 0);
@@ -412,13 +418,6 @@
             b2.castShadow = true;
             group.add(b2);
 
-            const b3 = new THREE.Mesh(branchGeo, barkMat);
-            b3.position.set(0, 5.0, -0.4);
-            b3.rotation.x = -Math.PI / 4;
-            b3.castShadow = true;
-            group.add(b3);
-
-            // Multi-layered Leaf Clusters
             const foliageGroup = new THREE.Group();
             const leafGeo = new THREE.DodecahedronGeometry(1.8, 1);
             const offsets = [
@@ -440,21 +439,20 @@
             trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 1.0 });
         }
 
-        for (let i = 0; i < 90; i++) {
-            const x = (Math.random() - 0.5) * 440;
-            const z = (Math.random() - 0.5) * 440;
+        for (let i = 0; i < 110; i++) {
+            const x = (Math.random() - 0.5) * 460;
+            const z = (Math.random() - 0.5) * 460;
             if (Math.abs(x) > 12 || Math.abs(z) > 12) {
                 createRealisticTree(x, z);
             }
         }
 
-        // --- Weapons (Hollow Scope Rifle & High-Reflection Metallic Axe) ---
+        // --- Weapons Setup ---
         const weaponGroup = new THREE.Group();
         const stockMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.7 });
         const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, metalness: 0.85, roughness: 0.2 });
         const chromeAxeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.95, roughness: 0.1, envMapIntensity: 1.5 });
 
-        // Rifle Model with Scope
         const rifleMesh = new THREE.Group();
         const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.4), stockMat);
         stock.position.set(0, -0.05, 0.1);
@@ -480,10 +478,8 @@
 
         weaponGroup.add(rifleMesh);
 
-        // High-Reflection Realistic Axe
         const axeMesh = new THREE.Group();
         const axeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.8, 12), stockMat);
-        axeHandle.position.set(0, 0, 0);
         axeMesh.add(axeHandle);
 
         const axeHeadConnector = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, 0.12), gunMetalMat);
@@ -498,8 +494,7 @@
         axeBladeShape.lineTo(0, 0.15);
         axeBladeShape.closePath();
 
-        const extrudeSettings = { depth: 0.03, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.01, bevelThickness: 0.01 };
-        const axeBladeGeo = new THREE.ExtrudeGeometry(axeBladeShape, extrudeSettings);
+        const axeBladeGeo = new THREE.ExtrudeGeometry(axeBladeShape, { depth: 0.03, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.01, bevelThickness: 0.01 });
         const axeBlade = new THREE.Mesh(axeBladeGeo, chromeAxeMat);
         axeBlade.position.set(0.02, 0.32, -0.015);
         axeBlade.castShadow = true;
@@ -516,10 +511,9 @@
         camera.add(weaponGroup);
         scene.add(camera);
 
-        // State & Inventory Variables
+        // State Variables
         let isPlaying = false, isLocked = false, isFlying = false, isAiming = false, isSprinting = false;
-        let activeTool = 0; // 0: Plant, 1: Rifle, 2: Axe
-        
+        let activeTool = 0;
         let loadedAmmo = 5, magazineCapacity = 5, reserveDarts = 20, woodCount = 0;
         let gameTime = 12.0;
 
@@ -547,9 +541,10 @@
             const savedPos = localStorage.getItem('garden_player_pos');
             if (savedPos) {
                 const pos = JSON.parse(savedPos);
-                camera.position.set(pos.x, pos.y, pos.z);
+                const safeY = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + eyeHeight);
+                camera.position.set(pos.x, safeY, pos.z);
             } else {
-                camera.position.set(0, eyeHeight, 0);
+                camera.position.set(0, getTerrainHeight(0, 0) + eyeHeight, 0);
             }
         }
         loadPlayerPosition();
@@ -610,8 +605,7 @@
 
         const craftingPanel = document.getElementById('crafting-panel');
         document.getElementById('inv-toggle-btn').addEventListener('click', () => {
-            const isVisible = craftingPanel.style.display === 'block';
-            craftingPanel.style.display = isVisible ? 'none' : 'block';
+            craftingPanel.style.display = (craftingPanel.style.display === 'block') ? 'none' : 'block';
         });
 
         function toggleFlashlight() {
@@ -623,6 +617,10 @@
         function toggleFly() {
             isFlying = !isFlying;
             document.getElementById('fly-btn').style.background = isFlying ? "#ff9800" : "#2196f3";
+            if (isMobile) {
+                document.getElementById('fly-up-btn').style.display = isFlying ? "flex" : "none";
+                document.getElementById('fly-down-btn').style.display = isFlying ? "flex" : "none";
+            }
             updateHUD();
         }
 
@@ -653,7 +651,7 @@
             }
         }
 
-        // Pointer Lock & Mouse Look Setup
+        // Pointer Lock & Controls Setup
         const instructions = document.getElementById('instructions');
         instructions.addEventListener('click', () => {
             isPlaying = true;
@@ -706,7 +704,7 @@
         });
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Multi-touch Robust Controls Handling (Prevents stuck touch bugs)
+        // Robust Touch Handling
         let touchLookId = null;
         let touchLookLastX = 0, touchLookLastY = 0;
         let joystickTouchId = null;
@@ -971,6 +969,7 @@
         document.getElementById('shoot-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); performAction(); });
         document.getElementById('reload-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); reloadRifle(); });
         document.getElementById('jump-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); jump(); });
+        document.getElementById('sprint-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); isSprinting = !isSprinting; e.target.style.background = isSprinting ? "#ad1457" : "#e91e63"; });
         document.getElementById('fly-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleFly(); });
         document.getElementById('flashlight-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); toggleFlashlight(); });
         document.getElementById('aim-btn').addEventListener('touchstart', (e) => { 
@@ -981,6 +980,11 @@
             document.getElementById('scope-overlay').style.display = isAiming ? 'block' : 'none';
             updateHUD();
         });
+
+        document.getElementById('fly-up-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveUp = true; });
+        document.getElementById('fly-up-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveUp = false; });
+        document.getElementById('fly-down-btn').addEventListener('touchstart', (e) => { e.stopPropagation(); moveDown = true; });
+        document.getElementById('fly-down-btn').addEventListener('touchend', (e) => { e.stopPropagation(); moveDown = false; });
 
         // Dinosaurs AI
         function spawnDinosaur() {
@@ -1034,7 +1038,7 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // 5 Min Day / 5 Min Night Cycle
+            // 5 Min Day / 5 Min Night Cycle (600 seconds per full rotation)
             gameTime = (gameTime + (delta / 600) * 24) % 24;
             const timeHours = Math.floor(gameTime);
             const timeMinutes = Math.floor((gameTime - timeHours) * 60);
@@ -1078,7 +1082,6 @@
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                // Fast & Responsive Speeds (Walking vs Sprinting)
                 const baseSpeed = isSprinting ? 28.0 : 16.0;
                 const currentSpeed = isFlying ? baseSpeed * 1.8 : baseSpeed;
 
@@ -1109,8 +1112,8 @@
                 const currentTerrainY = getTerrainHeight(camera.position.x, camera.position.z) + eyeHeight;
 
                 if (isFlying) {
-                    if (moveUp) camera.position.y += 14 * delta;   // Balanced fast flight up
-                    if (moveDown) camera.position.y -= 14 * delta; // Balanced fast flight down
+                    if (moveUp) camera.position.y += 14 * delta;
+                    if (moveDown) camera.position.y -= 14 * delta;
                     if (camera.position.y < currentTerrainY) camera.position.y = currentTerrainY;
                 } else {
                     verticalVelocity += gravity * delta;
@@ -1123,14 +1126,14 @@
                 }
                 savePlayerPosition();
 
-                // Dynamic Grass Bending Around Player Position
-                for (let i = 0; i < grassData.count || grassData.length; i++) {
+                // Dynamic Grass Bending Around Player
+                for (let i = 0; i < grassData.length; i++) {
                     const g = grassData[i];
                     const distToPlayer = Math.hypot(camera.position.x - g.x, camera.position.z - g.z);
-                    if (distToPlayer < 3.0) {
+                    if (distToPlayer < 3.5) {
                         dummy.position.set(g.x, g.baseY, g.z);
                         dummy.rotation.y = Math.atan2(camera.position.x - g.x, camera.position.z - g.z);
-                        dummy.rotation.x = 0.8; // Bend away from player
+                        dummy.rotation.x = 0.9; // Bend away from player
                         dummy.scale.setScalar(0.8);
                         dummy.updateMatrix();
                         instancedGrass.setMatrixAt(i, dummy.matrix);
