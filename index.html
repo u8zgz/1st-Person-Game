@@ -257,7 +257,7 @@
 
     <!-- Mobile Controls -->
     <div id="joystick-container"><div id="joystick-knob"></div></div>
-    <div id="plant-btn" class="mobile-action-btn">PLANT</div>
+    <div id="plant-btn" class="mobile-action-btn">ACTION</div>
     <div id="jump-btn" class="mobile-action-btn">JUMP</div>
     <div id="flashlight-btn" class="mobile-action-btn">LIGHT</div>
     <div id="fly-btn" class="mobile-action-btn">FLY</div>
@@ -271,7 +271,7 @@
         <div id="desktop-instructions">
             <p><strong>WASD</strong>: Move | <strong>Shift</strong>: Sprint | <strong>Space</strong>: Jump</p>
             <p><strong>1, 2, 3</strong>: Switch Tools (Planting, Rifle, Axe)</p>
-            <p><strong>Right Click</strong>: Aim Scope | <strong>Left Click</strong>: Action</p>
+            <p><strong>Right Click</strong>: Aim Scope | <strong>Left Click</strong>: Action/Chop</p>
             <p><strong>F</strong>: Toggle Flashlight | <strong>V</strong>: Toggle Fly | <strong>I</strong>: Inventory</p>
             <p><strong>ESC</strong>: Pause / Release Mouse</p>
         </div>
@@ -298,7 +298,7 @@
         // Scene Setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -307,7 +307,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // Dynamic Lighting System (Day/Night Cycle)
+        // Dynamic Lighting System
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambientLight);
 
@@ -325,105 +325,151 @@
         scene.add(sunLight);
 
         // Flashlight Attached to Camera
-        const flashlight = new THREE.SpotLight(0xffffff, 0, 40, Math.PI / 6, 0.3, 1);
+        const flashlight = new THREE.SpotLight(0xffffff, 0, 50, Math.PI / 5, 0.3, 1);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -1);
         camera.add(flashlight);
         camera.add(flashlight.target);
         let flashlightOn = false;
 
-        // Ground Mesh
-        const groundGeometry = new THREE.PlaneGeometry(500, 500);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x4d7425, roughness: 0.8 });
+        // Procedural Rolling Hills Terrain Height Generator
+        function getTerrainHeight(x, z) {
+            return Math.sin(x * 0.03) * Math.cos(z * 0.03) * 3.5 + Math.sin(x * 0.08 + z * 0.05) * 1.5;
+        }
+
+        // Terrain Mesh Setup
+        const mapSize = 500;
+        const segments = 120;
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, segments, segments);
+        groundGeometry.rotateX(-Math.PI / 2);
+
+        const posAttr = groundGeometry.attributes.position;
+        for (let i = 0; i < posAttr.count; i++) {
+            const x = posAttr.getX(i);
+            const z = posAttr.getZ(i);
+            posAttr.setY(i, getTerrainHeight(x, z));
+        }
+        groundGeometry.computeVertexNormals();
+
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x3d6622, roughness: 0.95 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Realistic Trees with Wind Sway & Physics Collisions
+        // Procedural Grass Instances
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x4a7a29, roughness: 0.8, side: THREE.DoubleSide });
+        const grassGeo = new THREE.PlaneGeometry(0.3, 0.8);
+        grassGeo.translate(0, 0.4, 0);
+
+        const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, 4000);
+        const dummy = new THREE.Object3D();
+        for (let i = 0; i < 4000; i++) {
+            const gx = (Math.random() - 0.5) * 440;
+            const gz = (Math.random() - 0.5) * 440;
+            const gy = getTerrainHeight(gx, gz);
+            dummy.position.set(gx, gy, gz);
+            dummy.rotation.y = Math.random() * Math.PI;
+            dummy.rotation.x = (Math.random() - 0.5) * 0.2;
+            dummy.scale.setScalar(0.7 + Math.random() * 0.6);
+            dummy.updateMatrix();
+            instancedGrass.setMatrixAt(i, dummy.matrix);
+        }
+        scene.add(instancedGrass);
+
+        // Branching Realistic Trees
         let trees = [];
         function createRealisticTree(x, z) {
             const group = new THREE.Group();
-            
-            // Detailed Trunk
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.9 });
-            const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 5, 10);
+            const y = getTerrainHeight(x, z);
+
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.95 });
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x1b4d1b, roughness: 0.7, flatShading: true });
+
+            // Main Trunk
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.7, 5, 8);
             const trunk = new THREE.Mesh(trunkGeo, trunkMat);
             trunk.position.y = 2.5;
             trunk.castShadow = true;
             trunk.receiveShadow = true;
             group.add(trunk);
 
-            // Layered Foliage Leaves with Realistic Shading
-            const foliageGroup = new THREE.Group();
-            foliageGroup.position.y = 4.5;
+            // Branches
+            const branchGeo = new THREE.CylinderGeometry(0.2, 0.35, 2.5, 6);
+            const branch1 = new THREE.Mesh(branchGeo, trunkMat);
+            branch1.position.set(0.4, 3.8, 0);
+            branch1.rotation.z = -Math.PI / 4;
+            branch1.castShadow = true;
+            group.add(branch1);
 
-            const leafMat = new THREE.MeshStandardMaterial({
-                color: 0x2d5e1e,
-                roughness: 0.6,
-                flatShading: true
+            const branch2 = new THREE.Mesh(branchGeo, trunkMat);
+            branch2.position.set(-0.4, 4.2, 0.2);
+            branch2.rotation.z = Math.PI / 4;
+            branch2.rotation.x = Math.PI / 6;
+            branch2.castShadow = true;
+            group.add(branch2);
+
+            // Foliage Clusters
+            const foliageGroup = new THREE.Group();
+            const leafGeo = new THREE.DodecahedronGeometry(1.6, 1);
+
+            const clusterOffsets = [
+                [0, 5.5, 0], [-1.2, 5.0, 0.5], [1.2, 4.8, -0.4],
+                [0, 6.5, 0.6], [0.8, 6.2, 0.8], [-0.7, 6.0, -0.8]
+            ];
+
+            clusterOffsets.forEach(pos => {
+                const cluster = new THREE.Mesh(leafGeo, leafMat);
+                cluster.position.set(pos[0], pos[1], pos[2]);
+                cluster.castShadow = true;
+                foliageGroup.add(cluster);
             });
 
-            const layer1 = new THREE.Mesh(new THREE.ConeGeometry(3.5, 4, 8), leafMat);
-            layer1.position.y = 1;
-            layer1.castShadow = true;
-            foliageGroup.add(layer1);
-
-            const layer2 = new THREE.Mesh(new THREE.ConeGeometry(2.8, 3.5, 8), leafMat);
-            layer2.position.y = 2.5;
-            layer2.castShadow = true;
-            foliageGroup.add(layer2);
-
-            const layer3 = new THREE.Mesh(new THREE.ConeGeometry(2.0, 3.0, 8), leafMat);
-            layer3.position.y = 4.0;
-            layer3.castShadow = true;
-            foliageGroup.add(layer3);
-
             group.add(foliageGroup);
-            group.position.set(x, 0, z);
+            group.position.set(x, y, z);
             scene.add(group);
 
-            trees.push({ group, foliageGroup, x, z, health: 3, radius: 0.85 });
+            trees.push({ group, foliageGroup, x, z, y, health: 3, radius: 0.9 });
         }
 
-        // Spawn Detailed Trees Across Map
-        for (let i = 0; i < 110; i++) {
-            const x = (Math.random() - 0.5) * 440;
-            const z = (Math.random() - 0.5) * 440;
-            if (Math.abs(x) > 8 || Math.abs(z) > 8) {
+        for (let i = 0; i < 90; i++) {
+            const x = (Math.random() - 0.5) * 420;
+            const z = (Math.random() - 0.5) * 420;
+            if (Math.abs(x) > 10 || Math.abs(z) > 10) {
                 createRealisticTree(x, z);
             }
         }
 
-        // --- Build 3D Weapons (Hollow Scope Rifle & Realistic Axe) ---
+        // --- Weapons (Hollow Scope Rifle & High-Reflection Metallic Axe) ---
         const weaponGroup = new THREE.Group();
         const stockMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.7 });
-        const metalMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, metalness: 0.85, roughness: 0.2 });
+        const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, metalness: 0.85, roughness: 0.2 });
 
-        // Rifle Model with Hollow Clear Scope
+        // High-Shiny Metallic Reflective Axe Material
+        const chromeAxeMat = new THREE.MeshStandardMaterial({
+            color: 0xdddddd,
+            metalness: 0.95,
+            roughness: 0.1,
+            envMapIntensity: 1.5
+        });
+
+        // Rifle Model with Scope
         const rifleMesh = new THREE.Group();
         const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.4), stockMat);
         stock.position.set(0, -0.05, 0.1);
         rifleMesh.add(stock);
 
-        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.75, 16), metalMat);
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.75, 16), gunMetalMat);
         barrel.rotation.x = Math.PI / 2;
         barrel.position.set(0, 0.02, -0.32);
         rifleMesh.add(barrel);
 
-        // Scope Ring Outer Body
-        const scopeOuter = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 16, 1, true), metalMat);
+        const scopeOuter = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 16, 1, true), gunMetalMat);
         scopeOuter.rotation.x = Math.PI / 2;
         scopeOuter.position.set(0, 0.07, -0.1);
         rifleMesh.add(scopeOuter);
 
-        // Transparent Scope Lens Glass (Clear view through lens)
         const glassMat = new THREE.MeshPhysicalMaterial({
-            color: 0xaaccff,
-            transparent: true,
-            opacity: 0.25,
-            roughness: 0.1,
-            transmission: 0.9
+            color: 0xaaccff, transparent: true, opacity: 0.25, roughness: 0.1, transmission: 0.9
         });
         const scopeLensFront = new THREE.Mesh(new THREE.CircleGeometry(0.032, 16), glassMat);
         scopeLensFront.position.set(0, 0.07, -0.22);
@@ -434,23 +480,33 @@
 
         weaponGroup.add(rifleMesh);
 
-        // Realistic Axe Model
+        // High-Reflection Realistic Axe
         const axeMesh = new THREE.Group();
-        const axeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.75, 12), stockMat);
+        const axeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.8, 12), stockMat);
         axeHandle.position.set(0, 0, 0);
-        axeHandle.rotation.z = -Math.PI / 8;
         axeMesh.add(axeHandle);
 
-        const axeHead = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.12), metalMat);
-        axeHead.position.set(0.1, 0.3, 0);
-        axeMesh.add(axeHead);
+        const axeHeadConnector = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, 0.12), gunMetalMat);
+        axeHeadConnector.position.set(0, 0.32, -0.02);
+        axeMesh.add(axeHeadConnector);
 
-        const axeBladeGeo = new THREE.ConeGeometry(0.18, 0.28, 4);
-        const axeBlade = new THREE.Mesh(axeBladeGeo, metalMat);
-        axeBlade.rotation.z = Math.PI / 2;
-        axeBlade.position.set(0.18, 0.3, 0);
+        // Reflective Blade
+        const axeBladeShape = new THREE.Shape();
+        axeBladeShape.moveTo(0, -0.15);
+        axeBladeShape.lineTo(0.2, -0.22);
+        axeBladeShape.lineTo(0.25, 0);
+        axeBladeShape.lineTo(0.2, 0.22);
+        axeBladeShape.lineTo(0, 0.15);
+        axeBladeShape.closePath();
+
+        const extrudeSettings = { depth: 0.03, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.01, bevelThickness: 0.01 };
+        const axeBladeGeo = new THREE.ExtrudeGeometry(axeBladeShape, extrudeSettings);
+        const axeBlade = new THREE.Mesh(axeBladeGeo, chromeAxeMat);
+        axeBlade.position.set(0.02, 0.32, -0.015);
+        axeBlade.castShadow = true;
         axeMesh.add(axeBlade);
 
+        axeMesh.position.set(0, -0.1, 0);
         axeMesh.visible = false;
         weaponGroup.add(axeMesh);
 
@@ -466,7 +522,7 @@
         let activeTool = 0; // 0: Plant, 1: Rifle, 2: Axe
         
         let loadedAmmo = 5, magazineCapacity = 5, reserveDarts = 20, woodCount = 0;
-        let gameTime = 12.0; // 12:00 PM start
+        let gameTime = 12.0; // 12:00 PM Start
 
         let verticalVelocity = 0;
         const gravity = -20;
@@ -478,10 +534,13 @@
         const direction = new THREE.Vector3();
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let moveUp = false, moveDown = false;
+
         let savedFlowers = [];
         let flowers = [];
         let dinosaurs = [];
         let activeDarts = [];
+        let droppedWood = [];
+        let isSwingingAxe = false;
 
         let pitch = 0, yaw = 0;
 
@@ -542,7 +601,6 @@
                 document.getElementById('shoot-btn').style.display = (activeTool === 1) ? "flex" : "none";
                 document.getElementById('reload-btn').style.display = (activeTool === 1) ? "flex" : "none";
                 document.getElementById('aim-btn').style.display = (activeTool === 1) ? "flex" : "none";
-                document.getElementById('plant-btn').style.display = (activeTool === 0) ? "flex" : "none";
             }
             updateHUD();
         }
@@ -551,7 +609,6 @@
         document.getElementById('slot-1').addEventListener('click', () => setTool(1));
         document.getElementById('slot-2').addEventListener('click', () => setTool(2));
 
-        // Inventory Toggle
         const craftingPanel = document.getElementById('crafting-panel');
         document.getElementById('inv-toggle-btn').addEventListener('click', () => {
             const isVisible = craftingPanel.style.display === 'block';
@@ -785,6 +842,19 @@
             return dartGroup;
         }
 
+        function createWoodPickupMesh(x, y, z) {
+            const woodGroup = new THREE.Group();
+            const logGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.6, 8);
+            const logMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
+            const log = new THREE.Mesh(logGeo, logMat);
+            log.rotation.z = Math.PI / 2;
+            log.castShadow = true;
+            woodGroup.add(log);
+            woodGroup.position.set(x, y + 0.3, z);
+            scene.add(woodGroup);
+            droppedWood.push({ mesh: woodGroup, x, z });
+        }
+
         const raycaster = new THREE.Raycaster();
         
         function addFlowerMesh(x, y, z, colorHex) {
@@ -833,9 +903,20 @@
                     stuck: false
                 });
             } else if (activeTool === 2) { // Axe Chopping
-                // Swing Animation
-                axeMesh.rotation.x = -Math.PI / 4;
-                setTimeout(() => { axeMesh.rotation.x = 0; }, 150);
+                if (isSwingingAxe) return;
+                isSwingingAxe = true;
+
+                // Axe Swing Animation
+                const startRotX = axeMesh.rotation.x;
+                const startRotY = axeMesh.rotation.y;
+                axeMesh.rotation.x = -Math.PI / 3;
+                axeMesh.rotation.y = -Math.PI / 4;
+
+                setTimeout(() => {
+                    axeMesh.rotation.x = startRotX;
+                    axeMesh.rotation.y = startRotY;
+                    isSwingingAxe = false;
+                }, 200);
 
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
                 const treeMeshes = trees.map(t => t.group);
@@ -847,8 +928,13 @@
                         if (hitTree.health <= 0) {
                             scene.remove(hitTree.group);
                             trees = trees.filter(t => t !== hitTree);
-                            woodCount += 3;
-                            updateHUD();
+                            // Drop 3 wood logs around chopped tree
+                            for (let i = 0; i < 3; i++) {
+                                const ox = hitTree.x + (Math.random() - 0.5) * 1.5;
+                                const oz = hitTree.z + (Math.random() - 0.5) * 1.5;
+                                const oy = getTerrainHeight(ox, oz);
+                                createWoodPickupMesh(ox, oy, oz);
+                            }
                         }
                     }
                 }
@@ -922,7 +1008,9 @@
             legR.position.set(0.8, 1.1, 0.2);
             group.add(legL, legR);
 
-            group.position.set((Math.random() - 0.5) * 300, 0, (Math.random() - 0.5) * 300);
+            const dx = (Math.random() - 0.5) * 300;
+            const dz = (Math.random() - 0.5) * 300;
+            group.position.set(dx, getTerrainHeight(dx, dz), dz);
             scene.add(group);
 
             dinosaurs.push({
@@ -941,8 +1029,8 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // Day/Night Cycle & Sky Color Calculations
-            gameTime = (gameTime + delta * 0.15) % 24; // 24hr cycle
+            // 5 Min Day / 5 Min Night Cycle (Total 10 Minutes = 600 Seconds per cycle)
+            gameTime = (gameTime + (delta / 600) * 24) % 24;
             const timeHours = Math.floor(gameTime);
             const timeMinutes = Math.floor((gameTime - timeHours) * 60);
             document.getElementById('time-display').innerText = `${timeHours.toString().padStart(2, '0')}:${timeMinutes.toString().padStart(2, '0')}`;
@@ -955,12 +1043,12 @@
             const isNight = sunLight.position.y < 0;
             const skyColor = new THREE.Color();
             if (isNight) {
-                skyColor.setHSL(0.6, 0.5, 0.05); // Dark blue night
+                skyColor.setHSL(0.6, 0.5, 0.05);
                 sunLight.intensity = 0.05;
                 ambientLight.intensity = 0.1;
             } else {
                 const dayProgress = sunLight.position.y / 200;
-                skyColor.setHSL(0.6, 0.6, 0.3 + dayProgress * 0.4); // Bright daytime sky
+                skyColor.setHSL(0.6, 0.6, 0.3 + dayProgress * 0.4);
                 sunLight.intensity = Math.max(0.2, dayProgress * 1.2);
                 ambientLight.intensity = 0.3 + dayProgress * 0.2;
             }
@@ -994,12 +1082,11 @@
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
                 const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
 
-                // Proposed next position
                 const nextPos = camera.position.clone();
                 nextPos.addScaledVector(side, -velocity.x * delta);
                 nextPos.addScaledVector(forward, -velocity.z * delta);
 
-                // Tree Physics Collision Resolution (Solid Trees)
+                // Tree Collisions
                 trees.forEach(tree => {
                     const dist = Math.hypot(nextPos.x - tree.x, nextPos.z - tree.z);
                     const minDist = tree.radius + 0.4;
@@ -1013,22 +1100,34 @@
                 camera.position.x = nextPos.x;
                 camera.position.z = nextPos.z;
 
+                const currentTerrainY = getTerrainHeight(camera.position.x, camera.position.z) + eyeHeight;
+
                 if (isFlying) {
                     if (moveUp) camera.position.y += 6 * delta;
                     if (moveDown) camera.position.y -= 6 * delta;
-                    if (camera.position.y < eyeHeight) camera.position.y = eyeHeight;
+                    if (camera.position.y < currentTerrainY) camera.position.y = currentTerrainY;
                 } else {
                     verticalVelocity += gravity * delta;
                     camera.position.y += verticalVelocity * delta;
-                    if (camera.position.y <= eyeHeight) {
-                        camera.position.y = eyeHeight;
+                    if (camera.position.y <= currentTerrainY) {
+                        camera.position.y = currentTerrainY;
                         verticalVelocity = 0;
                         isGrounded = true;
                     }
                 }
                 savePlayerPosition();
 
-                // Pick up Darts
+                // Pick up Wood Logs
+                droppedWood.forEach((wood, idx) => {
+                    if (camera.position.distanceTo(wood.mesh.position) < 2.0) {
+                        scene.remove(wood.mesh);
+                        droppedWood.splice(idx, 1);
+                        woodCount++;
+                        updateHUD();
+                    }
+                });
+
+                // Pick up Missed Darts
                 activeDarts.forEach((dart, idx) => {
                     if (dart.stuck) {
                         if (camera.position.distanceTo(dart.mesh.position) < 2.0) {
@@ -1041,14 +1140,15 @@
                 });
             }
 
-            // Bullet Drop Projectile Simulation
+            // Bullet Drop Simulation
             activeDarts.forEach((dart) => {
                 if (!dart.stuck) {
                     dart.velocity.y += gravity * 0.4 * delta;
                     dart.mesh.position.addScaledVector(dart.velocity, delta);
 
-                    if (dart.mesh.position.y <= 0.1) {
-                        dart.mesh.position.y = 0.05;
+                    const currentGroundY = getTerrainHeight(dart.mesh.position.x, dart.mesh.position.z);
+                    if (dart.mesh.position.y <= currentGroundY + 0.1) {
+                        dart.mesh.position.y = currentGroundY + 0.05;
                         dart.stuck = true;
                     }
 
@@ -1057,7 +1157,6 @@
                             if (dart.mesh.position.distanceTo(dino.mesh.position) < 2.5) {
                                 dino.fallen = true;
                                 dino.mesh.rotation.z = Math.PI / 2;
-                                dino.mesh.position.y = 0.8;
                                 dart.stuck = true;
                                 dino.mesh.add(dart.mesh);
                             }
@@ -1066,10 +1165,12 @@
                 }
             });
 
-            // Dinosaur Movement AI & Trampling
+            // Dinosaur AI Movement & Trampling
             dinosaurs.forEach((dino) => {
                 if (!dino.fallen) {
+                    dino.mesh.position.y = getTerrainHeight(dino.mesh.position.x, dino.mesh.position.z);
                     dino.actionTimer -= delta;
+
                     if (dino.actionTimer <= 0) {
                         dino.isStopping = Math.random() < 0.35;
                         dino.actionTimer = 3 + Math.random() * 5;
