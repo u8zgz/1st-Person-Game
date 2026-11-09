@@ -1,0 +1,10 @@
+{
+  "name": "threejs-mobile-forest",
+  "version": "1.0.0",
+  "description": "Mobile web game with PBR assets and forest HDRI",
+  "main": "main.js",
+  "dependencies": {
+    "three": "^0.160.0",
+    "jszip": "^3.10.1"
+  }
+}
