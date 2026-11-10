@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Garden Explorer - Complete PBR</title>
+    <title>3D Garden Explorer - Complete Gameplay & Graphics</title>
     <style>
         * { box-sizing: border-box; touch-action: none; }
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; -webkit-user-select: none; background: #000; }
@@ -176,24 +176,31 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Load EXR Environment Map Sky Background
+        // Instant fallback materials so the game renders immediately without hanging
+        const pbrMaterials = {
+            ground: new THREE.MeshStandardMaterial({ color: 0x3d6622, roughness: 0.95 }),
+            bark1: new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 }),
+            bark2: new THREE.MeshStandardMaterial({ color: 0x4a2e1b, roughness: 0.95 }),
+            grass: new THREE.MeshStandardMaterial({ color: 0x4d7c1e, roughness: 0.85, side: THREE.DoubleSide }),
+            leaf1: new THREE.MeshStandardMaterial({ color: 0x2e6f40, roughness: 0.8, side: THREE.DoubleSide }),
+            leaf2: new THREE.MeshStandardMaterial({ color: 0x388e3c, roughness: 0.8, side: THREE.DoubleSide })
+        };
+
+        // Attempt background loading of EXR and ZIP files non-blockingly
         const exrLoader = new THREE.EXRLoader();
         exrLoader.load('https://filebin.net/cs85jyze29af9ebj/je_gray_02_4k.exr', (texture) => {
             texture.mapping = THREE.EquirectangularReflectionMapping;
             scene.background = texture;
             scene.environment = texture;
-        }, undefined, (err) => {
-            console.warn("EXR background fallback active:", err);
-        });
+        }, undefined, () => {});
 
-        // Robust Zip Texture Extractor for PBR Filebin Assets
-        const pbrMaterials = {};
-        async function loadMaterialFromZip(zipUrl, options = {}) {
-            const mat = new THREE.MeshStandardMaterial(options);
+        async function loadMaterialFromZip(zipUrl, matKey, options = {}) {
             try {
                 const res = await fetch(zipUrl);
                 const blob = await res.blob();
                 const zip = await JSZip.loadAsync(blob);
+                const mat = new THREE.MeshStandardMaterial(options);
+                let hasMaps = false;
                 for (const [filename, file] of Object.entries(zip.files)) {
                     if (!file.dir && /\.(jpg|jpeg|png)$/i.test(filename)) {
                         const fileBlob = await file.async('blob');
@@ -204,28 +211,33 @@
                         if (/color|diffuse|albedo|basecolor/i.test(filename)) {
                             texture.encoding = THREE.sRGBEncoding;
                             mat.map = texture;
+                            hasMaps = true;
                         } else if (/normal|nrm/i.test(filename)) {
                             mat.normalMap = texture;
+                            hasMaps = true;
                         } else if (/rough|rgh/i.test(filename)) {
                             mat.roughnessMap = texture;
+                            hasMaps = true;
                         } else if (/alpha|trans|opacity|mask/i.test(filename)) {
                             mat.alphaMap = texture;
                             mat.transparent = true;
+                            hasMaps = true;
                         }
                     }
                 }
-                mat.needsUpdate = true;
-            } catch (e) { console.error("Zip asset load error:", e); }
-            return mat;
+                if (hasMaps) {
+                    mat.needsUpdate = true;
+                    pbrMaterials[matKey] = mat;
+                }
+            } catch (e) {}
         }
 
-        // Load 6 Zip files from Filebin
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Ground1.zip', { roughness: 0.9 }).then(m => pbrMaterials.ground = m);
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark1.zip', { roughness: 0.8 }).then(m => pbrMaterials.bark1 = m);
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark2.zip', { roughness: 0.8 }).then(m => pbrMaterials.bark2 = m);
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Grass1.zip', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 }).then(m => pbrMaterials.grass = m);
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Leaf1.zip', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 }).then(m => pbrMaterials.leaf1 = m);
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Leaf2.zip', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 }).then(m => pbrMaterials.leaf2 = m);
+        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Ground1.zip', 'ground', { roughness: 0.9 });
+        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark1.zip', 'bark1', { roughness: 0.8 });
+        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark2.zip', 'bark2', { roughness: 0.8 });
+        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Grass1.zip', 'grass', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
+        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Leaf1.zip', 'leaf1', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
+        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Leaf2.zip', 'leaf2', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
 
         const flashlight = new THREE.SpotLight(0xfffaed, 0, 50, Math.PI / 5, 0.3, 1);
         flashlight.position.set(0, 0, 0);
@@ -241,8 +253,6 @@
         const chunkSize = 120;
         const renderDistance = 3;
         const terrainChunks = new Map();
-
-        const fallbackGrassMat = new THREE.MeshStandardMaterial({ color: 0x4d7c1e, roughness: 0.85, side: THREE.DoubleSide });
         const grassGeo = new THREE.PlaneGeometry(0.16, 0.3);
         grassGeo.translate(0, 0.15, 0);
 
@@ -266,15 +276,13 @@
             }
             planeGeo.computeVertexNormals();
 
-            const groundMat = pbrMaterials.ground || new THREE.MeshStandardMaterial({ color: 0x3d6622, roughness: 0.95 });
-            const groundMesh = new THREE.Mesh(planeGeo, groundMat);
+            const groundMesh = new THREE.Mesh(planeGeo, pbrMaterials.ground);
             groundMesh.position.set(startX, 0, startZ);
             groundMesh.receiveShadow = true;
             group.add(groundMesh);
 
-            const grassMatToUse = pbrMaterials.grass || fallbackGrassMat;
             const grassCount = 2500;
-            const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMatToUse, grassCount);
+            const instancedGrass = new THREE.InstancedMesh(grassGeo, pbrMaterials.grass, grassCount);
             instancedGrass.castShadow = true;
             instancedGrass.receiveShadow = true;
             const dummy = new THREE.Object3D();
@@ -304,11 +312,7 @@
             }
             group.add(instancedGrass);
 
-            // Trees with Leaves & Bark
             const chunkTrees = [];
-            const defaultBark = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 });
-            const defaultLeaf = new THREE.MeshStandardMaterial({ color: 0x2e6f40, roughness: 0.8, side: THREE.DoubleSide });
-
             for (let t = 0; t < 3; t++) {
                 const tx = startX + ((Math.sin(t * 45.19 + cx) * 10000) % 1) * (chunkSize - 20) + 10;
                 const tz = startZ + ((Math.cos(t * 31.47 + cz) * 10000) % 1) * (chunkSize - 20) + 10;
@@ -316,8 +320,8 @@
                     const ty = getTerrainHeight(tx, tz);
                     const treeGroup = new THREE.Group();
 
-                    const barkMatToUse = (Math.random() > 0.5 ? pbrMaterials.bark1 : pbrMaterials.bark2) || defaultBark;
-                    const leafMatToUse = (Math.random() > 0.5 ? pbrMaterials.leaf1 : pbrMaterials.leaf2) || defaultLeaf;
+                    const barkMatToUse = Math.random() > 0.5 ? pbrMaterials.bark1 : pbrMaterials.bark2;
+                    const leafMatToUse = Math.random() > 0.5 ? pbrMaterials.leaf1 : pbrMaterials.leaf2;
 
                     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.95, 5.8, 10), barkMatToUse);
                     trunk.position.y = 2.9;
