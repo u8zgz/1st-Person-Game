@@ -3,207 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Garden Explorer - PBR Mobile</title>
+    <title>3D Garden Explorer - PBR Filebin Pipeline</title>
     <style>
-        * {
-            box-sizing: border-box;
-            touch-action: none;
-        }
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            background: #000;
-        }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-        }
+        * { box-sizing: border-box; touch-action: none; }
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; -webkit-user-select: none; background: #000; }
+        #canvas-container { width: 100vw; height: 100vh; }
         #instructions {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.85);
-            color: #ffffff;
-            cursor: pointer;
-            text-align: center;
-            z-index: 30;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.85); color: #ffffff; cursor: pointer; text-align: center; z-index: 30;
         }
-        #instructions h1 {
-            margin-bottom: 10px;
-            font-size: 2.2rem;
-        }
-        #instructions p {
-            font-size: 1.1rem;
-            margin: 6px 0;
-        }
+        #instructions h1 { margin-bottom: 10px; font-size: 2.2rem; }
+        #instructions p { font-size: 1.1rem; margin: 6px 0; }
         #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 6px;
-            height: 6px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 5;
+            position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
+            background-color: rgba(255, 255, 255, 0.8); border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none; z-index: 5;
         }
         #scope-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background: radial-gradient(circle, transparent 28%, rgba(0,0,0,0.95) 55%);
-            display: none;
-            pointer-events: none;
-            z-index: 20;
+            display: none; pointer-events: none; z-index: 20;
         }
         #scope-crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 120px;
-            height: 120px;
+            position: absolute; top: 50%; left: 50%; width: 120px; height: 120px;
             transform: translate(-50%, -50%);
             background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><line x1="0" y1="60" x2="120" y2="60" stroke="%23111" stroke-width="1.5"/><line x1="60" y1="0" x2="60" y2="120" stroke="%23111" stroke-width="1.5"/><circle cx="60" cy="60" r="55" stroke="%23111" stroke-width="2" fill="none"/></svg>') no-repeat center;
         }
         #hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            font-size: 0.95rem;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px 15px;
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 5;
+            position: absolute; top: 20px; left: 20px; color: white; font-size: 0.95rem;
+            background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 8px; pointer-events: none; z-index: 5;
         }
-        #clear-btn {
-            pointer-events: auto;
-            margin-top: 8px;
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        #clear-btn { pointer-events: auto; margin-top: 8px; background: #ff4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         #hotbar {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 8px 12px;
-            border-radius: 10px;
-            z-index: 10;
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; background: rgba(0, 0, 0, 0.6); padding: 8px 12px; border-radius: 10px; z-index: 10;
         }
         .hotbar-slot {
-            width: 50px;
-            height: 50px;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 6px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.75rem;
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.1);
+            width: 50px; height: 50px; border: 2px solid rgba(255, 255, 255, 0.4); border-radius: 6px;
+            display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 0.75rem; cursor: pointer; background: rgba(255, 255, 255, 0.1);
         }
-        .hotbar-slot.active {
-            border-color: #ffca28;
-            background: rgba(255, 202, 40, 0.25);
-        }
-        #inv-toggle-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #2196f3;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            z-index: 25;
-        }
+        .hotbar-slot.active { border-color: #ffca28; background: rgba(255, 202, 40, 0.25); }
+        #inv-toggle-btn { position: absolute; top: 20px; right: 20px; background: #2196f3; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; z-index: 25; }
         #crafting-panel {
-            position: absolute;
-            top: 70px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            z-index: 25;
-            display: none;
-            width: 220px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: absolute; top: 70px; right: 20px; background: rgba(0, 0, 0, 0.85); color: white;
+            padding: 15px; border-radius: 8px; z-index: 25; display: none; width: 220px; border: 1px solid rgba(255, 255, 255, 0.2);
         }
         #crafting-panel h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
-        .craft-btn {
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            width: 100%;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-            font-weight: bold;
-        }
+        .craft-btn { background: #4caf50; color: white; border: none; padding: 8px 12px; width: 100%; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
         #joystick-container {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            width: 130px;
-            height: 130px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            display: none;
-            z-index: 25;
+            position: absolute; bottom: 30px; left: 30px; width: 130px; height: 130px;
+            background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.4); border-radius: 50%; display: none; z-index: 25;
         }
         #joystick-knob {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
+            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.6); border-radius: 50%; transform: translate(-50%, -50%);
         }
         .mobile-action-btn {
-            position: absolute;
-            width: 55px;
-            height: 55px;
-            color: white;
-            border: 2px solid white;
-            border-radius: 50%;
-            font-weight: bold;
-            font-size: 0.5rem;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 25;
+            position: absolute; width: 55px; height: 55px; color: white; border: 2px solid white; border-radius: 50%;
+            font-weight: bold; font-size: 0.5rem; display: none; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 25;
         }
         #plant-btn { bottom: 90px; right: 30px; background: #4caf50; }
         #jump-btn { bottom: 155px; right: 30px; background: #9c27b0; }
@@ -265,7 +123,7 @@
 
     <div id="instructions">
         <h1>3D Garden Explorer</h1>
-        <p id="start-msg">Tap anywhere to Start</p>
+        <p id="start-msg">Tap anywhere to Start Game</p>
         <div id="desktop-instructions">
             <p><strong>WASD</strong>: Move | <strong>Shift</strong>: Sprint | <strong>Space</strong>: Jump</p>
             <p><strong>1, 2, 3</strong>: Switch Tools (Planting, Rifle, Axe)</p>
@@ -318,17 +176,18 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // 1. Load EXR Environment Map Sky Background
+        // ==========================================
+        // FILEBIN EXR SKY & PBR ZIP LOADER PIPELINE
+        // ==========================================
         const exrLoader = new THREE.EXRLoader();
         exrLoader.load('https://filebin.net/cs85jyze29af9ebj/je_gray_02_4k.exr', (texture) => {
             texture.mapping = THREE.EquirectangularReflectionMapping;
             scene.background = texture;
             scene.environment = texture;
         }, undefined, (err) => {
-            console.log("EXR sky fallback active");
+            console.warn("EXR background fallback active:", err);
         });
 
-        // 2. Robust Zip Texture Extractor for PBR Filebin Assets
         const pbrMaterials = {};
         async function loadMaterialFromZip(zipUrl, options = {}) {
             const mat = new THREE.MeshStandardMaterial(options);
@@ -357,11 +216,11 @@
                     }
                 }
                 mat.needsUpdate = true;
-            } catch (e) { console.error("Error loading zip asset:", e); }
+            } catch (e) { console.error("Zip asset load error:", e); }
             return mat;
         }
 
-        // Initialize PBR Textures from Filebin links
+        // Load your 6 Zip files from Filebin
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Ground1.zip', { roughness: 0.9 }).then(m => pbrMaterials.ground = m);
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark1.zip', { roughness: 0.8 }).then(m => pbrMaterials.bark1 = m);
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark2.zip', { roughness: 0.8 }).then(m => pbrMaterials.bark2 = m);
@@ -446,7 +305,7 @@
             }
             group.add(instancedGrass);
 
-            // Procedural Trees with Filebin Bark and Leaf Textures
+            // Procedural Trees with Extracted Zip Bark & Leaf Textures
             const chunkTrees = [];
             const defaultBark = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 });
             const defaultLeaf = new THREE.MeshStandardMaterial({ color: 0x2e6f40, roughness: 0.8, side: THREE.DoubleSide });
@@ -713,7 +572,6 @@
             }
         }
 
-        // Fixed Start Event Handling for Mobile Touch & Desktop Clicks
         const instructions = document.getElementById('instructions');
         const startGameHandler = (e) => {
             e.preventDefault();
@@ -1139,7 +997,7 @@
                 sunLight.intensity = Math.max(0.2, dayProgress * 1.2);
                 ambientLight.intensity = 0.3 + dayProgress * 0.2;
             }
-            if (!pbrMaterials.ground) {
+            if (!scene.environment) {
                 scene.background.copy(skyColor);
             }
 
