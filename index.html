@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Garden Explorer - PBR Filebin Pipeline</title>
+    <title>3D Garden Explorer - Complete PBR</title>
     <style>
         * { box-sizing: border-box; touch-action: none; }
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; -webkit-user-select: none; background: #000; }
@@ -176,9 +176,7 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // ==========================================
-        // FILEBIN EXR SKY & PBR ZIP LOADER PIPELINE
-        // ==========================================
+        // Load EXR Environment Map Sky Background
         const exrLoader = new THREE.EXRLoader();
         exrLoader.load('https://filebin.net/cs85jyze29af9ebj/je_gray_02_4k.exr', (texture) => {
             texture.mapping = THREE.EquirectangularReflectionMapping;
@@ -188,6 +186,7 @@
             console.warn("EXR background fallback active:", err);
         });
 
+        // Robust Zip Texture Extractor for PBR Filebin Assets
         const pbrMaterials = {};
         async function loadMaterialFromZip(zipUrl, options = {}) {
             const mat = new THREE.MeshStandardMaterial(options);
@@ -220,7 +219,7 @@
             return mat;
         }
 
-        // Load your 6 Zip files from Filebin
+        // Load 6 Zip files from Filebin
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Ground1.zip', { roughness: 0.9 }).then(m => pbrMaterials.ground = m);
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark1.zip', { roughness: 0.8 }).then(m => pbrMaterials.bark1 = m);
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark2.zip', { roughness: 0.8 }).then(m => pbrMaterials.bark2 = m);
@@ -305,7 +304,7 @@
             }
             group.add(instancedGrass);
 
-            // Procedural Trees with Extracted Zip Bark & Leaf Textures
+            // Trees with Leaves & Bark
             const chunkTrees = [];
             const defaultBark = new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 });
             const defaultLeaf = new THREE.MeshStandardMaterial({ color: 0x2e6f40, roughness: 0.8, side: THREE.DoubleSide });
