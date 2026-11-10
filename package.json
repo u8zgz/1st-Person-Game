@@ -1,10 +1,10 @@
 {
-  "name": "threejs-mobile-forest",
+  "name": "3d-garden-explorer",
   "version": "1.0.0",
-  "description": "Mobile web game with PBR assets and forest HDRI",
-  "main": "main.js",
+  "scripts": {
+    "start": "npx serve -s . -l $PORT"
+  },
   "dependencies": {
-    "three": "^0.160.0",
-    "jszip": "^3.10.1"
+    "serve": "^14.2.1"
   }
 }
