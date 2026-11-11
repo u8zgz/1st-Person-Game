@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Garden Explorer - Robust Loader</title>
+    <title>3D Garden Explorer - GitHub Release Assets</title>
     <style>
         * { box-sizing: border-box; touch-action: none; }
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; -webkit-user-select: none; background: #000; }
@@ -139,7 +139,7 @@
 
     <div id="instructions">
         <h1>3D Garden Explorer</h1>
-        <p id="loading-status">Initializing Asset Pipeline...</p>
+        <p id="loading-status">Downloading GitHub Release Assets: 0% (0/7)</p>
         <div id="loading-container">
             <div id="loading-bar"></div>
         </div>
@@ -157,7 +157,7 @@
         }
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
+        scene.background = new THREE.Color(0x111111);
         scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -185,83 +185,44 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Helper to generate a procedural fallback texture if network fetching fails due to CORS
-        function createProceduralCanvasTexture(colorHex, patternType) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = colorHex;
-            ctx.fillRect(0, 0, 256, 256);
-            
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
-            if (patternType === 'noise') {
-                for (let i = 0; i < 4000; i++) {
-                    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
-                }
-            } else if (patternType === 'bark') {
-                for (let i = 0; i < 30; i++) {
-                    ctx.fillRect(Math.random() * 256, 0, 4, 256);
-                }
-            }
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = THREE.RepeatWrapping;
-            tex.wrapT = THREE.RepeatWrapping;
-            return tex;
-        }
-
-        const pbrMaterials = {
-            ground: new THREE.MeshStandardMaterial({ map: createProceduralCanvasTexture('#3d6622', 'noise'), roughness: 0.95 }),
-            bark1: new THREE.MeshStandardMaterial({ map: createProceduralCanvasTexture('#3b2219', 'bark'), roughness: 0.95 }),
-            bark2: new THREE.MeshStandardMaterial({ map: createProceduralCanvasTexture('#4a2e1b', 'bark'), roughness: 0.95 }),
-            grass: new THREE.MeshStandardMaterial({ map: createProceduralCanvasTexture('#4d7c1e', 'noise'), roughness: 0.85, side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 }),
-            leaf1: new THREE.MeshStandardMaterial({ map: createProceduralCanvasTexture('#2e6f40', 'noise'), roughness: 0.8, side: THREE.DoubleSide }),
-            leaf2: new THREE.MeshStandardMaterial({ map: createProceduralCanvasTexture('#388e3c', 'noise'), roughness: 0.8, side: THREE.DoubleSide })
-        };
-
-        // Robust Progress Tracking
-        const totalItems = 7; // 6 zips + 1 exr
-        let completedItems = 0;
+        const releaseBaseUrl = "https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/";
+        const totalAssets = 7;
+        let loadedCount = 0;
         const loadingBar = document.getElementById('loading-bar');
         const loadingStatus = document.getElementById('loading-status');
         const startBtn = document.getElementById('start-btn');
-        let assetsReady = false;
 
-        function reportProgress() {
-            completedItems++;
-            const percent = Math.min(100, Math.round((completedItems / totalItems) * 100));
+        function updateProgress() {
+            loadedCount++;
+            const percent = Math.floor((loadedCount / totalAssets) * 100);
             loadingBar.style.width = percent + '%';
-            loadingStatus.innerText = `Loading Assets: ${percent}% (${completedItems}/${totalItems})`;
+            loadingStatus.innerText = `Loading Assets: ${percent}% (${loadedCount}/${totalAssets})`;
 
-            if (completedItems >= totalItems) {
-                assetsReady = true;
-                loadingStatus.innerText = 'Assets Ready!';
+            if (loadedCount >= totalAssets) {
+                loadingStatus.innerText = 'All Assets Loaded Successfully!';
                 startBtn.style.display = 'block';
             }
         }
 
-        // Load EXR Sky Map with fallback
+        const pbrMaterials = {};
+
         const exrLoader = new THREE.EXRLoader();
-        exrLoader.load('https://filebin.net/cs85jyze29af9ebj/je_gray_02_4k.exr', (texture) => {
+        exrLoader.load(releaseBaseUrl + 'je_gray_02_4k.exr', (texture) => {
             texture.mapping = THREE.EquirectangularReflectionMapping;
             scene.background = texture;
             scene.environment = texture;
-            reportProgress();
+            updateProgress();
         }, undefined, () => {
-            console.warn("EXR load blocked by CORS/network, using procedural sky.");
-            reportProgress();
+            console.warn("EXR fallback active");
+            updateProgress();
         });
 
-        // Load Zip Files with built-in fallback on CORS error
-        async function loadMaterialFromZip(zipUrl, matKey, fallbackColor, pattern, options = {}) {
+        async function loadMaterialFromGitHubZip(fileName, matKey, options = {}) {
+            const mat = new THREE.MeshStandardMaterial(options);
             try {
-                const res = await fetch(zipUrl);
-                if (!res.ok) throw new Error('Network response failed');
+                const res = await fetch(releaseBaseUrl + fileName);
                 const blob = await res.blob();
                 const zip = await JSZip.loadAsync(blob);
-                const mat = new THREE.MeshStandardMaterial(options);
-                let foundTex = false;
-
                 for (const [filename, file] of Object.entries(zip.files)) {
                     if (!file.dir && /\.(jpg|jpeg|png)$/i.test(filename)) {
                         const fileBlob = await file.async('blob');
@@ -272,35 +233,31 @@
                         if (/color|diffuse|albedo|basecolor/i.test(filename)) {
                             texture.encoding = THREE.sRGBEncoding;
                             mat.map = texture;
-                            foundTex = true;
+                        } else if (/normal|nrm/i.test(filename)) {
+                            mat.normalMap = texture;
                         } else if (/rough|rgh/i.test(filename)) {
                             mat.roughnessMap = texture;
+                        } else if (/alpha|trans|opacity|mask/i.test(filename)) {
+                            mat.alphaMap = texture;
+                            mat.transparent = true;
                         }
                     }
                 }
-                if (foundTex) {
-                    mat.needsUpdate = true;
-                    pbrMaterials[matKey] = mat;
-                }
+                mat.needsUpdate = true;
+                pbrMaterials[matKey] = mat;
             } catch (e) {
-                console.warn(`CORS or fetch block on ${matKey}. Using procedural fallback.`);
-                pbrMaterials[matKey] = new THREE.MeshStandardMaterial({
-                    map: createProceduralCanvasTexture(fallbackColor, pattern),
-                    roughness: options.roughness || 0.8,
-                    side: options.side || THREE.FrontSide,
-                    transparent: options.transparent || false,
-                    alphaTest: options.alphaTest || 0
-                });
+                console.error("Zip load error for", matKey, e);
+                pbrMaterials[matKey] = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
             }
-            reportProgress();
+            updateProgress();
         }
 
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Ground1.zip', 'ground', '#3d6622', 'noise', { roughness: 0.95 });
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark1.zip', 'bark1', '#3b2219', 'bark', { roughness: 0.95 });
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark2.zip', 'bark2', '#4a2e1b', 'bark', { roughness: 0.95 });
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Grass1.zip', 'grass', '#4d7c1e', 'noise', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Leaf1.zip', 'leaf1', '#2e6f40', 'noise', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
-        loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Leaf2.zip', 'leaf2', '#388e3c', 'noise', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
+        loadMaterialFromGitHubZip('Ground1.zip', 'ground', { roughness: 0.9 });
+        loadMaterialFromGitHubZip('Bark1.zip', 'bark1', { roughness: 0.8 });
+        loadMaterialFromGitHubZip('Bark2.zip', 'bark2', { roughness: 0.8 });
+        loadMaterialFromGitHubZip('Grass1.zip', 'grass', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
+        loadMaterialFromGitHubZip('Leaf1.zip', 'leaf1', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
+        loadMaterialFromGitHubZip('Leaf2.zip', 'leaf2', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
 
         const flashlight = new THREE.SpotLight(0xfffaed, 0, 50, Math.PI / 5, 0.3, 1);
         flashlight.position.set(0, 0, 0);
@@ -642,7 +599,7 @@
         const startBtn = document.getElementById('start-btn');
 
         const startGameHandler = (e) => {
-            if (!assetsReady) return;
+            if (loadedCount < totalAssets) return;
             e.preventDefault();
             isPlaying = true;
             instructions.style.display = 'none';
@@ -655,7 +612,7 @@
         startBtn.addEventListener('touchend', startGameHandler);
 
         document.addEventListener('pointerlockchange', () => {
-            if (!isMobile && assetsReady) {
+            if (!isMobile && loadedCount >= totalAssets) {
                 if (document.pointerLockElement === document.body) {
                     isLocked = true;
                     instructions.style.display = 'none';
