@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Garden Explorer - Loading Screen</title>
+    <title>3D Garden Explorer - PBR Loading Manager</title>
     <style>
         * { box-sizing: border-box; touch-action: none; }
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; -webkit-user-select: none; background: #000; }
@@ -11,7 +11,7 @@
         #instructions {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: rgba(0, 0, 0, 0.92); color: #ffffff; text-align: center; z-index: 30;
+            background: rgba(0, 0, 0, 0.95); color: #ffffff; text-align: center; z-index: 30;
             pointer-events: auto;
         }
         #instructions h1 { margin-bottom: 5px; font-size: 2.2rem; }
@@ -22,7 +22,7 @@
             border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; overflow: hidden; margin: 15px 0;
         }
         #loading-bar {
-            width: 0%; height: 100%; background: #4caf50; transition: width 0.2s ease;
+            width: 0%; height: 100%; background: #4caf50; transition: width 0.1s ease;
         }
         #start-btn {
             display: none; background: #4caf50; color: white; border: none; padding: 12px 30px;
@@ -139,7 +139,7 @@
 
     <div id="instructions">
         <h1>3D Garden Explorer</h1>
-        <p id="loading-status">Loading PBR Assets & Sky Map...</p>
+        <p id="loading-status">Connecting to Asset Pipeline...</p>
         <div id="loading-container">
             <div id="loading-bar"></div>
         </div>
@@ -185,75 +185,91 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Strict Loading Tracking
-        const totalAssets = 7; // 6 zips + 1 exr
-        let loadedCount = 0;
+        // Loading Manager Setup
         const loadingBar = document.getElementById('loading-bar');
         const loadingStatus = document.getElementById('loading-status');
         const startBtn = document.getElementById('start-btn');
+        let assetsReady = false;
 
-        function updateProgress() {
-            loadedCount++;
-            const percent = Math.floor((loadedCount / totalAssets) * 100);
+        const loadingManager = new THREE.LoadingManager();
+        loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            const percent = Math.round((itemsLoaded / itemsTotal) * 100);
             loadingBar.style.width = percent + '%';
-            loadingStatus.innerText = `Loading Assets: ${percent}% (${loadedCount}/${totalAssets})`;
+            loadingStatus.innerText = `Loading Assets: ${percent}% (${itemsLoaded}/${itemsTotal})`;
+        };
+        loadingManager.onLoad = function () {
+            assetsReady = true;
+            loadingStatus.innerText = 'Assets Loaded Successfully!';
+            startBtn.style.display = 'block';
+        };
+        loadingManager.onError = function (url) {
+            console.warn('Error loading asset:', url);
+            loadingStatus.innerText = 'Asset load warning. Click Start to play.';
+            assetsReady = true;
+            startBtn.style.display = 'block';
+        };
 
-            if (loadedCount >= totalAssets) {
-                loadingStatus.innerText = 'All Textures Loaded Successfully!';
-                startBtn.style.display = 'block';
-            }
-        }
+        const pbrMaterials = {
+            ground: new THREE.MeshStandardMaterial({ color: 0x3d6622, roughness: 0.95 }),
+            bark1: new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 }),
+            bark2: new THREE.MeshStandardMaterial({ color: 0x4a2e1b, roughness: 0.95 }),
+            grass: new THREE.MeshStandardMaterial({ color: 0x4d7c1e, roughness: 0.85, side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 }),
+            leaf1: new THREE.MeshStandardMaterial({ color: 0x2e6f40, roughness: 0.8, side: THREE.DoubleSide }),
+            leaf2: new THREE.MeshStandardMaterial({ color: 0x388e3c, roughness: 0.8, side: THREE.DoubleSide })
+        };
 
-        const pbrMaterials = {};
-
-        // Load EXR Sky Map
-        const exrLoader = new THREE.EXRLoader();
+        // Load EXR Sky Map via Manager
+        const exrLoader = new THREE.EXRLoader(loadingManager);
         exrLoader.load('https://filebin.net/cs85jyze29af9ebj/je_gray_02_4k.exr', (texture) => {
             texture.mapping = THREE.EquirectangularReflectionMapping;
             scene.background = texture;
             scene.environment = texture;
-            updateProgress();
         }, undefined, () => {
-            console.warn("EXR fallback");
-            updateProgress();
+            console.warn("EXR load failed via manager, fallback active.");
         });
 
+        // Unpack Zips and track textures through loadingManager
         async function loadMaterialFromZip(zipUrl, matKey, options = {}) {
-            const mat = new THREE.MeshStandardMaterial(options);
             try {
+                loadingManager.itemStart(zipUrl);
                 const res = await fetch(zipUrl);
                 const blob = await res.blob();
                 const zip = await JSZip.loadAsync(blob);
+                const mat = new THREE.MeshStandardMaterial(options);
+                
                 for (const [filename, file] of Object.entries(zip.files)) {
                     if (!file.dir && /\.(jpg|jpeg|png)$/i.test(filename)) {
                         const fileBlob = await file.async('blob');
                         const url = URL.createObjectURL(fileBlob);
-                        const texture = new THREE.TextureLoader().load(url);
-                        texture.wrapS = THREE.RepeatWrapping;
-                        texture.wrapT = THREE.RepeatWrapping;
-                        if (/color|diffuse|albedo|basecolor/i.test(filename)) {
-                            texture.encoding = THREE.sRGBEncoding;
-                            mat.map = texture;
-                        } else if (/normal|nrm/i.test(filename)) {
-                            mat.normalMap = texture;
-                        } else if (/rough|rgh/i.test(filename)) {
-                            mat.roughnessMap = texture;
-                        } else if (/alpha|trans|opacity|mask/i.test(filename)) {
-                            mat.alphaMap = texture;
-                            mat.transparent = true;
-                        }
+                        
+                        new THREE.TextureLoader(loadingManager).load(url, (texture) => {
+                            texture.wrapS = THREE.RepeatWrapping;
+                            texture.wrapT = THREE.RepeatWrapping;
+                            if (/color|diffuse|albedo|basecolor/i.test(filename)) {
+                                texture.encoding = THREE.sRGBEncoding;
+                                mat.map = texture;
+                            } else if (/normal|nrm/i.test(filename)) {
+                                mat.normalMap = texture;
+                            } else if (/rough|rgh/i.test(filename)) {
+                                mat.roughnessMap = texture;
+                            } else if (/alpha|trans|opacity|mask/i.test(filename)) {
+                                mat.alphaMap = texture;
+                                mat.transparent = true;
+                            }
+                            mat.needsUpdate = true;
+                        });
                     }
                 }
-                mat.needsUpdate = true;
                 pbrMaterials[matKey] = mat;
+                loadingManager.itemEnd(zipUrl);
             } catch (e) {
                 console.error("Zip load error for", matKey, e);
-                pbrMaterials[matKey] = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
+                loadingManager.itemError(zipUrl);
+                loadingManager.itemEnd(zipUrl);
             }
-            updateProgress();
         }
 
-        // Load all 6 ZIP archives
+        // Trigger zip fetches
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Ground1.zip', 'ground', { roughness: 0.9 });
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark1.zip', 'bark1', { roughness: 0.8 });
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark2.zip', 'bark2', { roughness: 0.8 });
@@ -601,7 +617,7 @@
         const startBtn = document.getElementById('start-btn');
 
         const startGameHandler = (e) => {
-            if (loadedCount < totalAssets) return; // Prevent starting if not fully loaded
+            if (!assetsReady) return;
             e.preventDefault();
             isPlaying = true;
             instructions.style.display = 'none';
@@ -614,7 +630,7 @@
         startBtn.addEventListener('touchend', startGameHandler);
 
         document.addEventListener('pointerlockchange', () => {
-            if (!isMobile && loadedCount >= totalAssets) {
+            if (!isMobile && assetsReady) {
                 if (document.pointerLockElement === document.body) {
                     isLocked = true;
                     instructions.style.display = 'none';
