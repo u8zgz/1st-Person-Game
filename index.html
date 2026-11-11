@@ -91,7 +91,7 @@
         #reload-btn { bottom: 25px; right: 95px; background: #ff9800; display: none; }
         .mobile-action-btn:active { transform: scale(0.95); }
     </style>
-    <!-- Three.js r128 and Addons -->
+    <!-- Three.js r128 and Addons required for parsing and rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/EXRLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -185,8 +185,18 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        const releaseBaseUrl = "https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/";
-        const totalAssets = 7;
+        // Exact direct download links for all 7 release assets
+        const assetFiles = [
+            { type: 'exr', url: 'https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/je_gray_02_4k.exr' },
+            { type: 'zip', key: 'ground', url: 'https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/Ground1.zip', opts: { roughness: 0.9 } },
+            { type: 'zip', key: 'bark1', url: 'https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/Bark1.zip', opts: { roughness: 0.8 } },
+            { type: 'zip', key: 'bark2', url: 'https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/Bark2.zip', opts: { roughness: 0.8 } },
+            { type: 'zip', key: 'grass', url: 'https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/Grass1.zip', opts: { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 } },
+            { type: 'zip', key: 'leaf1', url: 'https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/Leaf1.zip', opts: { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 } },
+            { type: 'zip', key: 'leaf2', url: 'https://github.com/u8zgz/1st-Person-Game/releases/download/textures-v1/Leaf2.zip', opts: { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 } }
+        ];
+
+        const totalAssets = assetFiles.length;
         let loadedCount = 0;
         const loadingBar = document.getElementById('loading-bar');
         const loadingStatus = document.getElementById('loading-status');
@@ -206,58 +216,65 @@
 
         const pbrMaterials = {};
 
-        const exrLoader = new THREE.EXRLoader();
-        exrLoader.load(releaseBaseUrl + 'je_gray_02_4k.exr', (texture) => {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            scene.background = texture;
-            scene.environment = texture;
-            updateProgress();
-        }, undefined, () => {
-            console.warn("EXR fallback active");
-            updateProgress();
-        });
-
-        async function loadMaterialFromGitHubZip(fileName, matKey, options = {}) {
-            const mat = new THREE.MeshStandardMaterial(options);
-            try {
-                const res = await fetch(releaseBaseUrl + fileName);
-                const blob = await res.blob();
-                const zip = await JSZip.loadAsync(blob);
-                for (const [filename, file] of Object.entries(zip.files)) {
-                    if (!file.dir && /\.(jpg|jpeg|png)$/i.test(filename)) {
-                        const fileBlob = await file.async('blob');
-                        const url = URL.createObjectURL(fileBlob);
-                        const texture = new THREE.TextureLoader().load(url);
-                        texture.wrapS = THREE.RepeatWrapping;
-                        texture.wrapT = THREE.RepeatWrapping;
-                        if (/color|diffuse|albedo|basecolor/i.test(filename)) {
-                            texture.encoding = THREE.sRGBEncoding;
-                            mat.map = texture;
-                        } else if (/normal|nrm/i.test(filename)) {
-                            mat.normalMap = texture;
-                        } else if (/rough|rgh/i.test(filename)) {
-                            mat.roughnessMap = texture;
-                        } else if (/alpha|trans|opacity|mask/i.test(filename)) {
-                            mat.alphaMap = texture;
-                            mat.transparent = true;
+        async function loadAllAssets() {
+            for (const asset of assetFiles) {
+                if (asset.type === 'exr') {
+                    const exrLoader = new THREE.EXRLoader();
+                    exrLoader.load(
+                        asset.url,
+                        (texture) => {
+                            texture.mapping = THREE.EquirectangularReflectionMapping;
+                            scene.background = texture;
+                            scene.environment = texture;
+                            updateProgress();
+                        },
+                        undefined,
+                        (err) => {
+                            console.warn("EXR Sky load failed, fallback active:", err);
+                            updateProgress();
                         }
+                    );
+                } else if (asset.type === 'zip') {
+                    const mat = new THREE.MeshStandardMaterial(asset.opts);
+                    try {
+                        const res = await fetch(asset.url);
+                        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                        const blob = await res.blob();
+                        const zip = await JSZip.loadAsync(blob);
+
+                        for (const [filename, file] of Object.entries(zip.files)) {
+                            if (!file.dir && /\.(jpg|jpeg|png)$/i.test(filename)) {
+                                const fileBlob = await file.async('blob');
+                                const url = URL.createObjectURL(fileBlob);
+                                const texture = new THREE.TextureLoader().load(url);
+                                texture.wrapS = THREE.RepeatWrapping;
+                                texture.wrapT = THREE.RepeatWrapping;
+
+                                if (/color|diffuse|albedo|basecolor/i.test(filename)) {
+                                    texture.encoding = THREE.sRGBEncoding;
+                                    mat.map = texture;
+                                } else if (/normal|nrm/i.test(filename)) {
+                                    mat.normalMap = texture;
+                                } else if (/rough|rgh/i.test(filename)) {
+                                    mat.roughnessMap = texture;
+                                } else if (/alpha|trans|opacity|mask/i.test(filename)) {
+                                    mat.alphaMap = texture;
+                                    mat.transparent = true;
+                                }
+                            }
+                        }
+                        mat.needsUpdate = true;
+                        pbrMaterials[asset.key] = mat;
+                    } catch (e) {
+                        console.error("Zip load error for " + asset.key, e);
+                        pbrMaterials[asset.key] = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
                     }
+                    updateProgress();
                 }
-                mat.needsUpdate = true;
-                pbrMaterials[matKey] = mat;
-            } catch (e) {
-                console.error("Zip load error for", matKey, e);
-                pbrMaterials[matKey] = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
             }
-            updateProgress();
         }
 
-        loadMaterialFromGitHubZip('Ground1.zip', 'ground', { roughness: 0.9 });
-        loadMaterialFromGitHubZip('Bark1.zip', 'bark1', { roughness: 0.8 });
-        loadMaterialFromGitHubZip('Bark2.zip', 'bark2', { roughness: 0.8 });
-        loadMaterialFromGitHubZip('Grass1.zip', 'grass', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
-        loadMaterialFromGitHubZip('Leaf1.zip', 'leaf1', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
-        loadMaterialFromGitHubZip('Leaf2.zip', 'leaf2', { side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
+        loadAllAssets();
 
         const flashlight = new THREE.SpotLight(0xfffaed, 0, 50, Math.PI / 5, 0.3, 1);
         flashlight.position.set(0, 0, 0);
@@ -296,13 +313,15 @@
             }
             planeGeo.computeVertexNormals();
 
-            const groundMesh = new THREE.Mesh(planeGeo, pbrMaterials.ground);
+            const groundMat = pbrMaterials.ground || new THREE.MeshStandardMaterial({ color: 0x335533, roughness: 0.9 });
+            const groundMesh = new THREE.Mesh(planeGeo, groundMat);
             groundMesh.position.set(startX, 0, startZ);
             groundMesh.receiveShadow = true;
             group.add(groundMesh);
 
+            const grassMat = pbrMaterials.grass || new THREE.MeshStandardMaterial({ color: 0x44aa44, side: THREE.DoubleSide, transparent: true, alphaTest: 0.4 });
             const grassCount = 2500;
-            const instancedGrass = new THREE.InstancedMesh(grassGeo, pbrMaterials.grass, grassCount);
+            const instancedGrass = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
             instancedGrass.castShadow = true;
             instancedGrass.receiveShadow = true;
             const dummy = new THREE.Object3D();
@@ -340,8 +359,8 @@
                     const ty = getTerrainHeight(tx, tz);
                     const treeGroup = new THREE.Group();
 
-                    const barkMatToUse = Math.random() > 0.5 ? pbrMaterials.bark1 : pbrMaterials.bark2;
-                    const leafMatToUse = Math.random() > 0.5 ? pbrMaterials.leaf1 : pbrMaterials.leaf2;
+                    const barkMatToUse = pbrMaterials.bark1 || new THREE.MeshStandardMaterial({ color: 0x5c4033 });
+                    const leafMatToUse = pbrMaterials.leaf1 || new THREE.MeshStandardMaterial({ color: 0x228b22 });
 
                     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.95, 5.8, 10), barkMatToUse);
                     trunk.position.y = 2.9;
