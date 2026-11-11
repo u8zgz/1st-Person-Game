@@ -3,18 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Garden Explorer - Complete Gameplay & Graphics</title>
+    <title>3D Garden Explorer - Loading Screen</title>
     <style>
         * { box-sizing: border-box; touch-action: none; }
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; -webkit-user-select: none; background: #000; }
         #canvas-container { width: 100vw; height: 100vh; }
         #instructions {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: rgba(0, 0, 0, 0.85); color: #ffffff; cursor: pointer; text-align: center; z-index: 30;
+            background: rgba(0, 0, 0, 0.92); color: #ffffff; text-align: center; z-index: 30;
+            pointer-events: auto;
         }
-        #instructions h1 { margin-bottom: 10px; font-size: 2.2rem; }
-        #instructions p { font-size: 1.1rem; margin: 6px 0; }
+        #instructions h1 { margin-bottom: 5px; font-size: 2.2rem; }
+        #instructions p { font-size: 1.1rem; margin: 10px 0; color: #aaa; }
+        
+        #loading-container {
+            width: 300px; height: 20px; background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; overflow: hidden; margin: 15px 0;
+        }
+        #loading-bar {
+            width: 0%; height: 100%; background: #4caf50; transition: width 0.2s ease;
+        }
+        #start-btn {
+            display: none; background: #4caf50; color: white; border: none; padding: 12px 30px;
+            font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+        #start-btn:active { transform: scale(0.95); }
+
         #crosshair {
             position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
             background-color: rgba(255, 255, 255, 0.8); border-radius: 50%;
@@ -123,24 +139,17 @@
 
     <div id="instructions">
         <h1>3D Garden Explorer</h1>
-        <p id="start-msg">Tap anywhere to Start Game</p>
-        <div id="desktop-instructions">
-            <p><strong>WASD</strong>: Move | <strong>Shift</strong>: Sprint | <strong>Space</strong>: Jump</p>
-            <p><strong>1, 2, 3</strong>: Switch Tools (Planting, Rifle, Axe)</p>
-            <p><strong>Right Click</strong>: Aim Scope | <strong>Left Click</strong>: Action/Chop</p>
+        <p id="loading-status">Loading PBR Assets & Sky Map...</p>
+        <div id="loading-container">
+            <div id="loading-bar"></div>
         </div>
-        <div id="mobile-instructions" style="display:none;">
-            <p><strong>Left Joystick</strong>: Move | <strong>Right Drag</strong>: Look</p>
-        </div>
+        <button id="start-btn">Start Game</button>
     </div>
 
     <script>
         const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 
         if (isMobile) {
-            document.getElementById('desktop-instructions').style.display = 'none';
-            document.getElementById('mobile-instructions').style.display = 'block';
-            document.getElementById('start-msg').innerText = 'Tap anywhere to Start Game';
             document.getElementById('joystick-container').style.display = 'block';
             document.querySelectorAll('.mobile-action-btn').forEach(btn => btn.style.display = 'flex');
             document.getElementById('fly-up-btn').style.display = 'none';
@@ -148,7 +157,7 @@
         }
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
+        scene.background = new THREE.Color(0x111111);
         scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -176,31 +185,45 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Instant fallback materials so the game renders immediately without hanging
-        const pbrMaterials = {
-            ground: new THREE.MeshStandardMaterial({ color: 0x3d6622, roughness: 0.95 }),
-            bark1: new THREE.MeshStandardMaterial({ color: 0x3b2219, roughness: 0.95 }),
-            bark2: new THREE.MeshStandardMaterial({ color: 0x4a2e1b, roughness: 0.95 }),
-            grass: new THREE.MeshStandardMaterial({ color: 0x4d7c1e, roughness: 0.85, side: THREE.DoubleSide }),
-            leaf1: new THREE.MeshStandardMaterial({ color: 0x2e6f40, roughness: 0.8, side: THREE.DoubleSide }),
-            leaf2: new THREE.MeshStandardMaterial({ color: 0x388e3c, roughness: 0.8, side: THREE.DoubleSide })
-        };
+        // Strict Loading Tracking
+        const totalAssets = 7; // 6 zips + 1 exr
+        let loadedCount = 0;
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingStatus = document.getElementById('loading-status');
+        const startBtn = document.getElementById('start-btn');
 
-        // Attempt background loading of EXR and ZIP files non-blockingly
+        function updateProgress() {
+            loadedCount++;
+            const percent = Math.floor((loadedCount / totalAssets) * 100);
+            loadingBar.style.width = percent + '%';
+            loadingStatus.innerText = `Loading Assets: ${percent}% (${loadedCount}/${totalAssets})`;
+
+            if (loadedCount >= totalAssets) {
+                loadingStatus.innerText = 'All Textures Loaded Successfully!';
+                startBtn.style.display = 'block';
+            }
+        }
+
+        const pbrMaterials = {};
+
+        // Load EXR Sky Map
         const exrLoader = new THREE.EXRLoader();
         exrLoader.load('https://filebin.net/cs85jyze29af9ebj/je_gray_02_4k.exr', (texture) => {
             texture.mapping = THREE.EquirectangularReflectionMapping;
             scene.background = texture;
             scene.environment = texture;
-        }, undefined, () => {});
+            updateProgress();
+        }, undefined, () => {
+            console.warn("EXR fallback");
+            updateProgress();
+        });
 
         async function loadMaterialFromZip(zipUrl, matKey, options = {}) {
+            const mat = new THREE.MeshStandardMaterial(options);
             try {
                 const res = await fetch(zipUrl);
                 const blob = await res.blob();
                 const zip = await JSZip.loadAsync(blob);
-                const mat = new THREE.MeshStandardMaterial(options);
-                let hasMaps = false;
                 for (const [filename, file] of Object.entries(zip.files)) {
                     if (!file.dir && /\.(jpg|jpeg|png)$/i.test(filename)) {
                         const fileBlob = await file.async('blob');
@@ -211,27 +234,26 @@
                         if (/color|diffuse|albedo|basecolor/i.test(filename)) {
                             texture.encoding = THREE.sRGBEncoding;
                             mat.map = texture;
-                            hasMaps = true;
                         } else if (/normal|nrm/i.test(filename)) {
                             mat.normalMap = texture;
-                            hasMaps = true;
                         } else if (/rough|rgh/i.test(filename)) {
                             mat.roughnessMap = texture;
-                            hasMaps = true;
                         } else if (/alpha|trans|opacity|mask/i.test(filename)) {
                             mat.alphaMap = texture;
                             mat.transparent = true;
-                            hasMaps = true;
                         }
                     }
                 }
-                if (hasMaps) {
-                    mat.needsUpdate = true;
-                    pbrMaterials[matKey] = mat;
-                }
-            } catch (e) {}
+                mat.needsUpdate = true;
+                pbrMaterials[matKey] = mat;
+            } catch (e) {
+                console.error("Zip load error for", matKey, e);
+                pbrMaterials[matKey] = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
+            }
+            updateProgress();
         }
 
+        // Load all 6 ZIP archives
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Ground1.zip', 'ground', { roughness: 0.9 });
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark1.zip', 'bark1', { roughness: 0.8 });
         loadMaterialFromZip('https://filebin.net/cs85jyze29af9ebj/Bark2.zip', 'bark2', { roughness: 0.8 });
@@ -576,7 +598,10 @@
         }
 
         const instructions = document.getElementById('instructions');
+        const startBtn = document.getElementById('start-btn');
+
         const startGameHandler = (e) => {
+            if (loadedCount < totalAssets) return; // Prevent starting if not fully loaded
             e.preventDefault();
             isPlaying = true;
             instructions.style.display = 'none';
@@ -584,11 +609,12 @@
                 document.body.requestPointerLock();
             }
         };
-        instructions.addEventListener('click', startGameHandler);
-        instructions.addEventListener('touchend', startGameHandler);
+
+        startBtn.addEventListener('click', startGameHandler);
+        startBtn.addEventListener('touchend', startGameHandler);
 
         document.addEventListener('pointerlockchange', () => {
-            if (!isMobile) {
+            if (!isMobile && loadedCount >= totalAssets) {
                 if (document.pointerLockElement === document.body) {
                     isLocked = true;
                     instructions.style.display = 'none';
