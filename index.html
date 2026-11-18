@@ -22,7 +22,7 @@
         <div class="max-w-lg w-full flex flex-col items-center text-center">
             <h1 class="text-4xl md:text-6xl font-black tracking-wider text-emerald-400 mb-2 drop-shadow-md">DINO SURVIVAL 3D</h1>
             <p class="text-slate-300 mb-6 text-sm md:text-base leading-relaxed">
-                Survive in a prehistoric island landscape. Chop trees for wood, craft ammo, plant flowers, and defend yourself against apex dinosaurs.
+                Explore a persistent infinite prehistoric wilderness. Your progress, inventory, and planted flowers automatically save when you close or reload the tab.
             </p>
             
             <div class="hud-panel p-4 rounded-xl w-full text-left text-xs md:text-sm text-slate-300 mb-6 grid grid-cols-2 gap-3 border border-white/10">
@@ -118,13 +118,31 @@
     </div>
 
     <script>
+        const SAVE_KEY = 'dino_survival_3d_save_v1';
+        const TREE_CELL_SIZE = 18;
+        const TREE_REGROW_MS = 18000;
+        const MAX_DINOS = 5;
+        const RENDER_RADIUS = 125;
+
         let scene, camera, renderer, clock;
-        let terrainMesh, raycaster;
-        let trees = [];
+        let terrainMesh, terrainGeo, terrainMat;
+        let grassInst, raycaster;
+        let lastTerrainSnapX = Infinity, lastTerrainSnapZ = Infinity;
+
+        // Map of active tree meshes keyed by deterministic cell ID "gx,gz"
+        const activeTrees = new Map();
+        // Map of chopped tree cells keyed by "gx,gz" -> respawnTimestamp (ms)
+        const choppedTreeCells = new Map();
+
         let dinosaurs = [];
         let flowers = [];
+        let savedFlowersData = [];
         let bullets = [];
         let isGameStarted = false;
+        let autoSaveTimer = 0;
+
+        // Shared materials & geometries for high FPS and low GPU memory
+        let sharedResources = null;
 
         let axeModel = null;
         let gunModel = null;
@@ -154,20 +172,162 @@
         let lookTouchId = null;
         let lookTouchStart = { x: 0, y: 0 };
 
+        // Deterministic PRNG per grid cell so every tree keeps its exact species, scale, and coordinates
+        function cellHash(gx, gz, seed) {
+            let h = Math.imul(gx ^ seed, 374761393) + Math.imul(gz ^ (seed * 17), 668265263);
+            h = Math.imul(h ^ (h >>> 13), 1274126177);
+            return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+        }
+
+        function getTreeSpecForCell(gx, gz) {
+            // Keep immediate spawn origin clear
+            if (gx === 0 && gz === 0) return null;
+            // ~42% of grid cells contain a tree
+            if (cellHash(gx, gz, 101) > 0.42) return null;
+
+            const offsetX = (cellHash(gx, gz, 202) - 0.5) * (TREE_CELL_SIZE * 0.72);
+            const offsetZ = (cellHash(gx, gz, 303) - 0.5) * (TREE_CELL_SIZE * 0.72);
+            const x = gx * TREE_CELL_SIZE + offsetX;
+            const z = gz * TREE_CELL_SIZE + offsetZ;
+            const scale = 0.85 + cellHash(gx, gz, 404) * 0.55;
+            const isPine = cellHash(gx, gz, 505) > 0.35;
+
+            return { key: `${gx},${gz}`, gx, gz, x, z, scale, isPine };
+        }
+
+        // Save current state to localStorage
+        function saveGameState() {
+            if (!isGameStarted) return;
+            try {
+                const now = Date.now();
+                const choppedList = [];
+                choppedTreeCells.forEach((respawnAt, key) => {
+                    if (respawnAt > now) {
+                        choppedList.push([key, respawnAt]);
+                    }
+                });
+
+                const payload = {
+                    player: {
+                        x: player.x,
+                        y: player.y,
+                        z: player.z,
+                        yaw: player.yaw,
+                        pitch: player.pitch,
+                        health: player.health,
+                        wood: player.wood,
+                        ammo: player.ammo,
+                        totalAmmo: player.totalAmmo,
+                        selectedTool: player.selectedTool,
+                        isFlying: player.isFlying
+                    },
+                    choppedTrees: choppedList,
+                    flowers: savedFlowersData.slice(-250)
+                };
+                localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+            } catch (e) {
+                // Ignore storage quota errors
+            }
+        }
+
+        // Load saved state from localStorage
+        function loadGameState() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                if (data && data.player) {
+                    player.x = Number.isFinite(data.player.x) ? data.player.x : 0;
+                    player.z = Number.isFinite(data.player.z) ? data.player.z : 0;
+                    const minGroundY = getTerrainHeight(player.x, player.z) + 2.0;
+                    player.y = Number.isFinite(data.player.y) ? Math.max(minGroundY, data.player.y) : minGroundY;
+                    player.yaw = Number.isFinite(data.player.yaw) ? data.player.yaw : 0;
+                    player.pitch = Number.isFinite(data.player.pitch) ? data.player.pitch : 0;
+                    player.health = Number.isFinite(data.player.health) ? data.player.health : 100;
+                    player.wood = Number.isFinite(data.player.wood) ? data.player.wood : 0;
+                    player.ammo = Number.isFinite(data.player.ammo) ? data.player.ammo : 5;
+                    player.totalAmmo = Number.isFinite(data.player.totalAmmo) ? data.player.totalAmmo : 20;
+                    player.selectedTool = data.player.selectedTool === 'gun' ? 'gun' : 'axe';
+                    player.isFlying = Boolean(data.player.isFlying);
+                }
+
+                choppedTreeCells.clear();
+                const now = Date.now();
+                if (Array.isArray(data.choppedTrees)) {
+                    for (const [key, respawnAt] of data.choppedTrees) {
+                        if (typeof key === 'string' && respawnAt > now) {
+                            choppedTreeCells.set(key, respawnAt);
+                        }
+                    }
+                }
+
+                savedFlowersData = Array.isArray(data.flowers) ? data.flowers : [];
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
         // Deterministic terrain elevation function shared across player, trees, grass, and dinosaurs
         function getTerrainHeight(x, z) {
             return Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.2 + Math.sin(x * 0.11 + z * 0.08) * 0.75;
         }
 
-        // Procedural bump texture for micro-surface detail
+        // Guaranteed seamless procedural grass texture
+        function createProceduralGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#3d6b28';
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let i = 0; i < 420; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const r = 10 + Math.random() * 26;
+                ctx.fillStyle = Math.random() > 0.45 ? 'rgba(52, 95, 34, 0.25)' : 'rgba(84, 122, 46, 0.22)';
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const bladeColors = ['#2e561d', '#497d30', '#5b943b', '#6ba644', '#396624'];
+            for (let i = 0; i < 9500; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const len = 4 + Math.random() * 9;
+                const lean = (Math.random() - 0.5) * 4;
+                ctx.strokeStyle = bladeColors[i % bladeColors.length];
+                ctx.lineWidth = 1 + Math.random() * 1.1;
+
+                for (const ox of [-512, 0, 512]) {
+                    for (const oy of [-512, 0, 512]) {
+                        if (x + ox < -15 || x + ox > 527 || y + oy < -15 || y + oy > 527) continue;
+                        ctx.beginPath();
+                        ctx.moveTo(x + ox, y + oy);
+                        ctx.lineTo(x + ox + lean, y + oy - len);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(55, 55);
+            return tex;
+        }
+
         function createBumpTexture(repeatX, repeatY) {
             const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
+            canvas.width = 128;
+            canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            const imgData = ctx.createImageData(256, 256);
+            const imgData = ctx.createImageData(128, 128);
             for (let i = 0; i < imgData.data.length; i += 4) {
-                const v = 110 + Math.floor(Math.random() * 60);
+                const v = 105 + Math.floor(Math.random() * 75);
                 imgData.data[i] = v;
                 imgData.data[i + 1] = v;
                 imgData.data[i + 2] = v;
@@ -181,23 +341,77 @@
             return tex;
         }
 
+        function initSharedResources() {
+            if (sharedResources) return;
+            const barkBump = createBumpTexture(2, 6);
+            const leafBump = createBumpTexture(3, 3);
+            const skinBump = createBumpTexture(3, 3);
+
+            sharedResources = {
+                barkMat: new THREE.MeshStandardMaterial({
+                    color: 0x4b3621,
+                    bumpMap: barkBump,
+                    bumpScale: 0.08,
+                    roughness: 0.92
+                }),
+                pineMat: new THREE.MeshStandardMaterial({
+                    color: 0x1e4620,
+                    bumpMap: leafBump,
+                    bumpScale: 0.05,
+                    roughness: 0.85
+                }),
+                oakMat: new THREE.MeshStandardMaterial({
+                    color: 0x2d5a27,
+                    bumpMap: leafBump,
+                    bumpScale: 0.06,
+                    roughness: 0.82
+                }),
+                trunkGeo: new THREE.CylinderGeometry(0.24, 0.45, 1, 7),
+                pineCones: [
+                    new THREE.ConeGeometry(2.4, 2.8, 7),
+                    new THREE.ConeGeometry(1.95, 2.5, 7),
+                    new THREE.ConeGeometry(1.5, 2.2, 7),
+                    new THREE.ConeGeometry(1.05, 1.9, 7)
+                ],
+                oakCrownGeo: new THREE.DodecahedronGeometry(1, 1),
+                dinoMats: [
+                    new THREE.MeshStandardMaterial({ color: 0x4a5d23, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 }),
+                    new THREE.MeshStandardMaterial({ color: 0x5c4033, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 }),
+                    new THREE.MeshStandardMaterial({ color: 0x3b4d3b, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 })
+                ],
+                dinoTorsoGeo: new THREE.BoxGeometry(1.15, 1.15, 2.3),
+                dinoNeckGeo: new THREE.BoxGeometry(0.65, 1.1, 0.75),
+                dinoHeadGeo: new THREE.BoxGeometry(0.75, 0.65, 1.25),
+                dinoTailGeo: new THREE.ConeGeometry(0.48, 2.6, 6),
+                dinoLegGeo: new THREE.BoxGeometry(0.38, 1.35, 0.45),
+                bulletGeo: new THREE.SphereGeometry(0.08, 6, 6),
+                bulletMat: new THREE.MeshBasicMaterial({ color: 0xffe066 }),
+                stemGeo: new THREE.CylinderGeometry(0.03, 0.04, 0.45, 5),
+                stemMat: new THREE.MeshStandardMaterial({ color: 0x2e7d32 }),
+                bloomGeo: new THREE.DodecahedronGeometry(0.16, 0)
+            };
+        }
+
         function initEngine() {
             const container = document.getElementById('canvas-container');
             if (!container) return;
 
+            initSharedResources();
+            loadGameState();
+
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87b8d8);
-            scene.fog = new THREE.FogExp2(0x87b8d8, 0.0095);
+            scene.fog = new THREE.FogExp2(0x87b8d8, 0.0105);
 
-            camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 450);
+            camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 320);
             camera.rotation.order = 'YXZ';
             scene.add(camera);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.type = THREE.BasicShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.08;
             container.innerHTML = '';
@@ -206,27 +420,26 @@
             clock = new THREE.Clock();
             raycaster = new THREE.Raycaster();
 
-            // Lighting setup
-            const hemiLight = new THREE.HemisphereLight(0xdff2ff, 0x3b4d2b, 0.72);
+            const hemiLight = new THREE.HemisphereLight(0xdff2ff, 0x3b4d2b, 0.8);
             scene.add(hemiLight);
 
             const dirLight = new THREE.DirectionalLight(0xfff4d6, 1.35);
             dirLight.position.set(70, 110, 50);
             dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 2048;
-            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
             dirLight.shadow.camera.near = 10;
-            dirLight.shadow.camera.far = 260;
-            const d = 95;
+            dirLight.shadow.camera.far = 220;
+            const d = 75;
             dirLight.shadow.camera.left = -d;
             dirLight.shadow.camera.right = d;
             dirLight.shadow.camera.top = d;
             dirLight.shadow.camera.bottom = -d;
             scene.add(dirLight);
 
-            buildTerrain();
+            buildInfiniteTerrain();
             buildFirstPersonWeapons();
-            spawnEnvironment();
+            spawnInitialEnvironment();
 
             window.addEventListener('resize', () => {
                 if (!camera || !renderer) return;
@@ -236,83 +449,61 @@
             });
         }
 
-        function buildTerrain() {
-            const size = 320;
-            const segments = 128;
-            const geo = new THREE.PlaneGeometry(size, size, segments, segments);
-            geo.rotateX(-Math.PI / 2);
+        function buildInfiniteTerrain() {
+            const size = 280;
+            const segments = 72;
+            terrainGeo = new THREE.PlaneGeometry(size, size, segments, segments);
+            terrainGeo.rotateX(-Math.PI / 2);
 
-            const pos = geo.attributes.position;
-            const colors = new Float32Array(pos.count * 3);
+            const grassTex = createProceduralGrassTexture();
+            const grassBump = createBumpTexture(45, 45);
 
-            for (let i = 0; i < pos.count; i++) {
-                const vx = pos.getX(i);
-                const vz = pos.getZ(i);
-                const vy = getTerrainHeight(vx, vz);
-                pos.setY(i, vy);
-
-                // Subtle vertex elevation shading
-                const shade = 0.85 + Math.max(-0.2, Math.min(0.25, vy * 0.06));
-                colors[i * 3] = shade * 0.88;
-                colors[i * 3 + 1] = shade;
-                colors[i * 3 + 2] = shade * 0.82;
-            }
-            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            geo.computeVertexNormals();
-
-            const texLoader = new THREE.TextureLoader();
-            texLoader.setCrossOrigin('anonymous');
-
-            const maxAniso = renderer.capabilities.getMaxAnisotropy();
-            const grassTex = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/grasslight-big.jpg');
-            grassTex.wrapS = THREE.RepeatWrapping;
-            grassTex.wrapT = THREE.RepeatWrapping;
-            grassTex.repeat.set(48, 48);
-            grassTex.anisotropy = maxAniso;
-
-            const grassNorm = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/grasslight-big-nm.jpg');
-            grassNorm.wrapS = THREE.RepeatWrapping;
-            grassNorm.wrapT = THREE.RepeatWrapping;
-            grassNorm.repeat.set(48, 48);
-            grassNorm.anisotropy = maxAniso;
-
-            const mat = new THREE.MeshStandardMaterial({
+            terrainMat = new THREE.MeshStandardMaterial({
                 map: grassTex,
-                normalMap: grassNorm,
-                normalScale: new THREE.Vector2(0.85, 0.85),
+                bumpMap: grassBump,
+                bumpScale: 0.14,
                 vertexColors: true,
-                roughness: 0.9,
+                roughness: 0.88,
                 metalness: 0.02
             });
 
-            terrainMesh = new THREE.Mesh(geo, mat);
+            terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
             terrainMesh.receiveShadow = true;
             scene.add(terrainMesh);
 
-            // Instanced 3D Forest Grass Tufts
-            const tuftCount = 8500;
+            updateInfiniteTerrain(player.x, player.z, true);
+
+            const tuftCount = 3500;
             const bladeGeo = new THREE.ConeGeometry(0.08, 0.55, 3);
             bladeGeo.translate(0, 0.27, 0);
             const bladeMat = new THREE.MeshStandardMaterial({
-                color: 0x4b7d32,
+                color: 0x528a36,
                 roughness: 0.85
             });
-            const grassInst = new THREE.InstancedMesh(bladeGeo, bladeMat, tuftCount);
+            grassInst = new THREE.InstancedMesh(bladeGeo, bladeMat, tuftCount);
             const dummy = new THREE.Object3D();
             const c = new THREE.Color();
 
+            grassInst.userData.offsets = [];
             for (let i = 0; i < tuftCount; i++) {
-                const gx = (Math.random() - 0.5) * 240;
-                const gz = (Math.random() - 0.5) * 240;
-                const gy = getTerrainHeight(gx, gz);
-                dummy.position.set(gx, gy - 0.03, gz);
-                dummy.rotation.set((Math.random() - 0.5) * 0.25, Math.random() * Math.PI * 2, (Math.random() - 0.5) * 0.25);
+                const ox = (Math.random() - 0.5) * 160;
+                const oz = (Math.random() - 0.5) * 160;
+                const rotY = Math.random() * Math.PI * 2;
+                const tiltX = (Math.random() - 0.5) * 0.25;
+                const tiltZ = (Math.random() - 0.5) * 0.25;
                 const s = 0.75 + Math.random() * 0.9;
-                dummy.scale.set(s, s * (0.8 + Math.random() * 0.6), s);
+                const sy = s * (0.8 + Math.random() * 0.6);
+
+                grassInst.userData.offsets.push({ ox, oz, rotY, tiltX, tiltZ, s, sy });
+
+                const gy = getTerrainHeight(ox, oz);
+                dummy.position.set(ox, gy - 0.03, oz);
+                dummy.rotation.set(tiltX, rotY, tiltZ);
+                dummy.scale.set(s, sy, s);
                 dummy.updateMatrix();
                 grassInst.setMatrixAt(i, dummy.matrix);
 
-                c.setHSL(0.25 + (Math.random() - 0.5) * 0.04, 0.45, 0.28 + Math.random() * 0.14);
+                c.setHSL(0.25 + (Math.random() - 0.5) * 0.04, 0.48, 0.30 + Math.random() * 0.14);
                 grassInst.setColorAt(i, c);
             }
             grassInst.instanceMatrix.needsUpdate = true;
@@ -320,8 +511,72 @@
             scene.add(grassInst);
         }
 
+        function updateInfiniteTerrain(px, pz, force = false) {
+            const snapStep = 16;
+            const snapX = Math.round(px / snapStep) * snapStep;
+            const snapZ = Math.round(pz / snapStep) * snapStep;
+
+            if (!force && snapX === lastTerrainSnapX && snapZ === lastTerrainSnapZ) return;
+            lastTerrainSnapX = snapX;
+            lastTerrainSnapZ = snapZ;
+
+            terrainMesh.position.set(snapX, 0, snapZ);
+            if (terrainMat && terrainMat.map) {
+                const tileSpan = 280 / 55;
+                terrainMat.map.offset.set(snapX / tileSpan, -snapZ / tileSpan);
+                if (terrainMat.bumpMap) {
+                    terrainMat.bumpMap.offset.set(snapX / tileSpan, -snapZ / tileSpan);
+                }
+            }
+
+            const pos = terrainGeo.attributes.position;
+            let colorAttr = terrainGeo.attributes.color;
+            if (!colorAttr) {
+                colorAttr = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
+                terrainGeo.setAttribute('color', colorAttr);
+            }
+            const colors = colorAttr.array;
+
+            for (let i = 0; i < pos.count; i++) {
+                const lx = pos.getX(i);
+                const lz = pos.getZ(i);
+                const wx = lx + snapX;
+                const wz = lz + snapZ;
+                const wy = getTerrainHeight(wx, wz);
+                pos.setY(i, wy);
+
+                const shade = 0.88 + Math.max(-0.18, Math.min(0.24, wy * 0.055));
+                colors[i * 3] = shade * 0.92;
+                colors[i * 3 + 1] = shade;
+                colors[i * 3 + 2] = shade * 0.86;
+            }
+            pos.needsUpdate = true;
+            colorAttr.needsUpdate = true;
+            terrainGeo.computeVertexNormals();
+
+            if (grassInst && grassInst.userData.offsets) {
+                const dummy = new THREE.Object3D();
+                const span = 160;
+                const half = span / 2;
+                const offsets = grassInst.userData.offsets;
+
+                for (let i = 0; i < offsets.length; i++) {
+                    const o = offsets[i];
+                    const wx = snapX + ((((o.ox - snapX) % span) + span + half) % span) - half;
+                    const wz = snapZ + ((((o.oz - snapZ) % span) + span + half) % span) - half;
+                    const wy = getTerrainHeight(wx, wz);
+
+                    dummy.position.set(wx, wy - 0.03, wz);
+                    dummy.rotation.set(o.tiltX, o.rotY, o.tiltZ);
+                    dummy.scale.set(o.s, o.sy, o.s);
+                    dummy.updateMatrix();
+                    grassInst.setMatrixAt(i, dummy.matrix);
+                }
+                grassInst.instanceMatrix.needsUpdate = true;
+            }
+        }
+
         function buildFirstPersonWeapons() {
-            // 1. First-Person Wood Axe
             axeModel = new THREE.Group();
             const handleGeo = new THREE.CylinderGeometry(0.024, 0.03, 0.75, 10);
             const handleMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.85 });
@@ -338,7 +593,6 @@
             axeModel.rotation.set(0.2, -0.25, 0.12);
             camera.add(axeModel);
 
-            // 2. First-Person Tactical Rifle
             gunModel = new THREE.Group();
             const bodyGeo = new THREE.BoxGeometry(0.075, 0.11, 0.65);
             const gunMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.75, roughness: 0.3 });
@@ -375,53 +629,31 @@
             camera.add(gunModel);
         }
 
-        function createTree(x, z) {
+        // Builds a deterministic tree from its cell spec (exact same species, scale, and position)
+        function createDeterministicTree(spec) {
+            if (activeTrees.has(spec.key)) return;
+
             const group = new THREE.Group();
-            const y = getTerrainHeight(x, z);
-            group.position.set(x, y, z);
+            const y = getTerrainHeight(spec.x, spec.z);
+            group.position.set(spec.x, y, spec.z);
 
-            const scale = 0.85 + Math.random() * 0.55;
-            const isPine = Math.random() > 0.35;
-
-            const barkBump = createBumpTexture(2, 6);
-            const trunkMat = new THREE.MeshStandardMaterial({
-                color: 0x4b3621,
-                bumpMap: barkBump,
-                bumpScale: 0.08,
-                roughness: 0.92
-            });
-
-            const trunkH = (isPine ? 4.8 : 3.8) * scale;
-            const trunkGeo = new THREE.CylinderGeometry(0.24 * scale, 0.45 * scale, trunkH, 9);
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            const scale = spec.scale;
+            const trunkH = (spec.isPine ? 4.8 : 3.8) * scale;
+            const trunk = new THREE.Mesh(sharedResources.trunkGeo, sharedResources.barkMat);
+            trunk.scale.set(scale, trunkH, scale);
             trunk.position.y = trunkH / 2;
             trunk.castShadow = true;
-            trunk.receiveShadow = true;
             group.add(trunk);
 
-            const leafBump = createBumpTexture(3, 3);
-            if (isPine) {
-                const pineMat = new THREE.MeshStandardMaterial({
-                    color: 0x1e4620,
-                    bumpMap: leafBump,
-                    bumpScale: 0.05,
-                    roughness: 0.85
-                });
+            if (spec.isPine) {
                 for (let i = 0; i < 4; i++) {
-                    const r = (2.4 - i * 0.45) * scale;
-                    const h = (2.8 - i * 0.3) * scale;
-                    const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8), pineMat);
+                    const cone = new THREE.Mesh(sharedResources.pineCones[i], sharedResources.pineMat);
+                    cone.scale.set(scale, scale, scale);
                     cone.position.y = (3.2 + i * 1.45) * scale;
                     cone.castShadow = true;
                     group.add(cone);
                 }
             } else {
-                const oakMat = new THREE.MeshStandardMaterial({
-                    color: 0x2d5a27,
-                    bumpMap: leafBump,
-                    bumpScale: 0.06,
-                    roughness: 0.82
-                });
                 const offsets = [
                     [0, 4.6, 0, 2.3],
                     [1.1, 4.0, 0.7, 1.6],
@@ -429,70 +661,68 @@
                     [0.4, 4.2, -1.1, 1.5]
                 ];
                 offsets.forEach(([ox, oy, oz, rad]) => {
-                    const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(rad * scale, 1), oakMat);
+                    const crown = new THREE.Mesh(sharedResources.oakCrownGeo, sharedResources.oakMat);
+                    crown.scale.setScalar(rad * scale);
                     crown.position.set(ox * scale, oy * scale, oz * scale);
                     crown.castShadow = true;
                     group.add(crown);
                 });
             }
 
-            group.userData = { hp: 3, radius: 0.75 * scale };
+            group.userData = {
+                key: spec.key,
+                hp: 3,
+                radius: 1.4 * scale
+            };
+
             scene.add(group);
-            trees.push(group);
+            activeTrees.set(spec.key, group);
         }
 
         function createDino(x, z) {
+            if (dinosaurs.length >= MAX_DINOS) return;
+
             const group = new THREE.Group();
             const y = getTerrainHeight(x, z);
             group.position.set(x, y, z);
 
-            const skinBump = createBumpTexture(4, 4);
-            const hue = 0.06 + Math.random() * 0.14;
-            const skinMat = new THREE.MeshStandardMaterial({
-                color: new THREE.Color().setHSL(hue, 0.48, 0.28),
-                bumpMap: skinBump,
-                bumpScale: 0.06,
-                roughness: 0.72
-            });
+            const skinMat = sharedResources.dinoMats[Math.floor(Math.random() * sharedResources.dinoMats.length)];
 
-            // Torso
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.15, 2.3), skinMat);
+            const torso = new THREE.Mesh(sharedResources.dinoTorsoGeo, skinMat);
             torso.position.set(0, 1.65, 0);
             torso.castShadow = true;
             group.add(torso);
 
-            // Neck & Head
-            const neck = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.1, 0.75), skinMat);
+            const neck = new THREE.Mesh(sharedResources.dinoNeckGeo, skinMat);
             neck.position.set(0, 2.35, 1.15);
             neck.rotation.x = 0.35;
             group.add(neck);
 
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.65, 1.25), skinMat);
+            const head = new THREE.Mesh(sharedResources.dinoHeadGeo, skinMat);
             head.position.set(0, 2.85, 1.65);
             head.castShadow = true;
             group.add(head);
 
-            // Tail
-            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.48, 2.6, 7), skinMat);
+            const tail = new THREE.Mesh(sharedResources.dinoTailGeo, skinMat);
             tail.rotation.x = -Math.PI / 2.15;
             tail.position.set(0, 1.6, -2.1);
             group.add(tail);
 
-            // Legs
-            const legGeo = new THREE.BoxGeometry(0.38, 1.35, 0.45);
-            const leftLeg = new THREE.Mesh(legGeo, skinMat);
+            const leftLeg = new THREE.Mesh(sharedResources.dinoLegGeo, skinMat);
             leftLeg.position.set(0.45, 0.7, -0.15);
             group.add(leftLeg);
 
-            const rightLeg = new THREE.Mesh(legGeo, skinMat);
+            const rightLeg = new THREE.Mesh(sharedResources.dinoLegGeo, skinMat);
             rightLeg.position.set(-0.45, 0.7, -0.15);
             group.add(rightLeg);
 
             group.userData = {
                 hp: 100,
-                speed: 4.5 + Math.random() * 1.6,
+                speed: 4.5 + Math.random() * 1.5,
                 attackCooldown: 0,
                 walkPhase: Math.random() * Math.PI * 2,
+                wanderAngle: Math.random() * Math.PI * 2,
+                wanderTimer: 2 + Math.random() * 3,
                 leftLeg,
                 rightLeg,
                 isDead: false,
@@ -503,49 +733,166 @@
             dinosaurs.push(group);
         }
 
-        function spawnEnvironment() {
-            trees.forEach(t => scene.remove(t));
+        function buildFlowerMesh(x, y, z, color) {
+            const flowerGroup = new THREE.Group();
+            flowerGroup.position.set(x, y, z);
+
+            const stem = new THREE.Mesh(sharedResources.stemGeo, sharedResources.stemMat);
+            stem.position.y = 0.22;
+            flowerGroup.add(stem);
+
+            const bloom = new THREE.Mesh(
+                sharedResources.bloomGeo,
+                new THREE.MeshStandardMaterial({ color, roughness: 0.4 })
+            );
+            bloom.position.y = 0.46;
+            flowerGroup.add(bloom);
+
+            scene.add(flowerGroup);
+            flowers.push(flowerGroup);
+        }
+
+        function spawnInitialEnvironment() {
+            activeTrees.forEach(t => scene.remove(t));
+            activeTrees.clear();
             dinosaurs.forEach(d => scene.remove(d));
             flowers.forEach(f => scene.remove(f));
             bullets.forEach(b => scene.remove(b));
-            trees = [];
             dinosaurs = [];
             flowers = [];
             bullets = [];
 
-            for (let i = 0; i < 65; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 10 + Math.random() * 115;
-                createTree(Math.cos(angle) * dist, Math.sin(angle) * dist);
+            // Restore any saved planted flowers
+            for (const f of savedFlowersData) {
+                buildFlowerMesh(f.x, f.y, f.z, f.color);
             }
 
-            for (let i = 0; i < 10; i++) {
+            // Populate deterministic trees around current player position
+            updateInfiniteWorldEntities(0);
+
+            // Spawn up to 5 dinosaurs within render distance
+            for (let i = 0; i < MAX_DINOS; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const dist = 24 + Math.random() * 85;
-                createDino(Math.cos(angle) * dist, Math.sin(angle) * dist);
+                const dist = 36 + Math.random() * 65;
+                createDino(player.x + Math.cos(angle) * dist, player.z + Math.sin(angle) * dist);
             }
         }
 
-        function spawnBullet() {
-            const bulletGeo = new THREE.SphereGeometry(0.08, 8, 8);
-            const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffe066 });
-            const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+        // Stream deterministic tree cells & dinosaurs around player
+        function updateInfiniteWorldEntities() {
+            const now = Date.now();
 
-            // Calculate barrel tip world position (centered when scoped)
+            // 1. Clear expired chopped tree timers so they respawn in place as the same species
+            for (const [key, respawnAt] of choppedTreeCells.entries()) {
+                if (now >= respawnAt) {
+                    choppedTreeCells.delete(key);
+                }
+            }
+
+            // 2. Unload active tree meshes beyond RENDER_RADIUS
+            for (const [key, tree] of activeTrees.entries()) {
+                const dist = Math.hypot(tree.position.x - player.x, tree.position.z - player.z);
+                if (dist > RENDER_RADIUS + TREE_CELL_SIZE) {
+                    scene.remove(tree);
+                    activeTrees.delete(key);
+                }
+            }
+
+            // 3. Load deterministic tree cells within RENDER_RADIUS
+            const cellRadius = Math.ceil(RENDER_RADIUS / TREE_CELL_SIZE);
+            const centerGx = Math.round(player.x / TREE_CELL_SIZE);
+            const centerGz = Math.round(player.z / TREE_CELL_SIZE);
+
+            for (let gx = centerGx - cellRadius; gx <= centerGx + cellRadius; gx++) {
+                for (let gz = centerGz - cellRadius; gz <= centerGz + cellRadius; gz++) {
+                    const key = `${gx},${gz}`;
+                    if (activeTrees.has(key) || choppedTreeCells.has(key)) continue;
+
+                    const spec = getTreeSpecForCell(gx, gz);
+                    if (!spec) continue;
+
+                    const dist = Math.hypot(spec.x - player.x, spec.z - player.z);
+                    if (dist <= RENDER_RADIUS) {
+                        createDeterministicTree(spec);
+                    }
+                }
+            }
+
+            // 4. Recycle dinosaurs outside render distance & enforce MAX_DINOS = 5
+            for (let i = dinosaurs.length - 1; i >= 0; i--) {
+                const d = dinosaurs[i];
+                const dist = Math.hypot(d.position.x - player.x, d.position.z - player.z);
+                if (dist > RENDER_RADIUS) {
+                    scene.remove(d);
+                    dinosaurs.splice(i, 1);
+                }
+            }
+
+            while (dinosaurs.length < MAX_DINOS) {
+                const angle = Math.random() * Math.PI * 2;
+                const spawnDist = 55 + Math.random() * 55;
+                createDino(player.x + Math.cos(angle) * spawnDist, player.z + Math.sin(angle) * spawnDist);
+            }
+        }
+
+        // Fast Line-of-Sight check blocked by distance, hills, and tree canopies
+        function canDinoSeePlayer(dino) {
+            const dx = player.x - dino.position.x;
+            const dz = player.z - dino.position.z;
+            const dist = Math.hypot(dx, dz);
+
+            if (dist > 44) return false;
+            if (dist < 6.5) return true;
+
+            const eyeY = dino.position.y + 2.6;
+            const targetY = player.y - 0.3;
+
+            const steps = 8;
+            for (let s = 1; s < steps; s++) {
+                const t = s / steps;
+                const sx = dino.position.x + dx * t;
+                const sz = dino.position.z + dz * t;
+                const rayY = eyeY + (targetY - eyeY) * t;
+                if (getTerrainHeight(sx, sz) > rayY) {
+                    return false;
+                }
+            }
+
+            const invDistSq = 1 / (dist * dist);
+            for (const tree of activeTrees.values()) {
+                const tx = tree.position.x - dino.position.x;
+                const tz = tree.position.z - dino.position.z;
+                const proj = (tx * dx + tz * dz) * invDistSq;
+                if (proj > 0.05 && proj < 0.95) {
+                    const closestX = tx - dx * proj;
+                    const closestZ = tz - dz * proj;
+                    const r = tree.userData.radius || 1.4;
+                    if (closestX * closestX + closestZ * closestZ < r * r) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function spawnBullet() {
+            const bullet = new THREE.Mesh(sharedResources.bulletGeo, sharedResources.bulletMat);
+
             const startPos = player.isScoped
                 ? new THREE.Vector3(0, -0.05, -0.9)
                 : new THREE.Vector3(0.25, -0.18, -0.9);
             startPos.applyMatrix4(camera.matrixWorld);
             bullet.position.copy(startPos);
 
-            // High-velocity long-range trajectory with gentle gravity arc
             const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
             const speed = 165;
             bullet.userData = {
                 vx: dir.x * speed,
                 vy: dir.y * speed + 1.8,
                 vz: dir.z * speed,
-                life: 4.5
+                life: 4.5,
+                hasHit: false
             };
 
             scene.add(bullet);
@@ -558,8 +905,7 @@
             if (player.selectedTool === 'axe') {
                 swingTimer = 0.28;
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                for (let i = trees.length - 1; i >= 0; i--) {
-                    const tree = trees[i];
+                for (const [key, tree] of activeTrees.entries()) {
                     const dist = tree.position.distanceTo(camera.position);
                     if (dist < 5.5) {
                         const hits = raycaster.intersectObjects(tree.children, true);
@@ -567,10 +913,13 @@
                             tree.userData.hp--;
                             player.wood += 2;
                             if (tree.userData.hp <= 0) {
+                                // Record chopped cell with respawn timestamp so it regrows identically in place
+                                choppedTreeCells.set(key, Date.now() + TREE_REGROW_MS);
                                 scene.remove(tree);
-                                trees.splice(i, 1);
+                                activeTrees.delete(key);
                             }
                             updateHUD();
+                            saveGameState();
                             break;
                         }
                     }
@@ -585,6 +934,7 @@
                 }
                 spawnBullet();
                 updateHUD();
+                saveGameState();
             }
         }
 
@@ -596,6 +946,7 @@
                 player.ammo += transfer;
                 player.totalAmmo -= transfer;
                 updateHUD();
+                saveGameState();
             }
         }
 
@@ -632,27 +983,12 @@
                 pt = new THREE.Vector3(fx, getTerrainHeight(fx, fz), fz);
             }
 
-            const flowerGroup = new THREE.Group();
-            flowerGroup.position.copy(pt);
-
-            const stem = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.03, 0.04, 0.45, 6),
-                new THREE.MeshStandardMaterial({ color: 0x2e7d32 })
-            );
-            stem.position.y = 0.22;
-            flowerGroup.add(stem);
-
             const colors = [0xff5252, 0xffd740, 0xe040fb, 0x40c4ff, 0xff6e40];
             const petalColor = colors[Math.floor(Math.random() * colors.length)];
-            const bloom = new THREE.Mesh(
-                new THREE.DodecahedronGeometry(0.16, 0),
-                new THREE.MeshStandardMaterial({ color: petalColor, roughness: 0.4 })
-            );
-            bloom.position.y = 0.46;
-            flowerGroup.add(bloom);
 
-            scene.add(flowerGroup);
-            flowers.push(flowerGroup);
+            buildFlowerMesh(pt.x, pt.y, pt.z, petalColor);
+            savedFlowersData.push({ x: pt.x, y: pt.y, z: pt.z, color: petalColor });
+            saveGameState();
         }
 
         function toggleCraftingMenu() {
@@ -673,6 +1009,7 @@
                 player.wood -= 3;
                 player.totalAmmo += 5;
                 updateHUD();
+                saveGameState();
             }
         }
 
@@ -819,13 +1156,13 @@
             window.addEventListener('touchcancel', resetTouches);
 
             bindBtn('start-btn', startGame);
-            bindBtn('select-axe-btn', () => { player.selectedTool = 'axe'; updateHUD(); });
-            bindBtn('select-gun-btn', () => { player.selectedTool = 'gun'; updateHUD(); });
+            bindBtn('select-axe-btn', () => { player.selectedTool = 'axe'; updateHUD(); saveGameState(); });
+            bindBtn('select-gun-btn', () => { player.selectedTool = 'gun'; updateHUD(); saveGameState(); });
             bindBtn('btn-action', handlePrimaryAction);
             bindBtn('btn-reload', reloadGun);
             bindBtn('btn-scope', () => toggleScope());
             bindBtn('btn-plant', plantFlower);
-            bindBtn('btn-fly', () => { player.isFlying = !player.isFlying; });
+            bindBtn('btn-fly', () => { player.isFlying = !player.isFlying; saveGameState(); });
             bindBtn('btn-sprint', () => { player.isSprinting = !player.isSprinting; });
             bindBtn('btn-craft', toggleCraftingMenu);
             bindBtn('craft-ammo-btn', craftAmmo);
@@ -835,13 +1172,13 @@
                 const k = e.key.toLowerCase();
                 keys[k] = true;
                 if (!isGameStarted) return;
-                if (k === '1') { player.selectedTool = 'axe'; updateHUD(); }
-                if (k === '2') { player.selectedTool = 'gun'; updateHUD(); }
+                if (k === '1') { player.selectedTool = 'axe'; updateHUD(); saveGameState(); }
+                if (k === '2') { player.selectedTool = 'gun'; updateHUD(); saveGameState(); }
                 if (k === 'r') reloadGun();
                 if (k === 'z' || k === 'f') toggleScope();
                 if (k === 'p') plantFlower();
                 if (k === 'c') toggleCraftingMenu();
-                if (k === 'v') player.isFlying = !player.isFlying;
+                if (k === 'v') { player.isFlying = !player.isFlying; saveGameState(); }
                 if (k === ' ' && player.onGround && !player.isFlying) {
                     player.vy = 9.5;
                     player.onGround = false;
@@ -852,7 +1189,6 @@
                 keys[e.key.toLowerCase()] = false;
             });
 
-            // Desktop Mouse Look, Scope (Right-Click), & Action (Left-Click)
             let isMouseDown = false;
             window.addEventListener('contextmenu', (e) => {
                 if (isGameStarted) e.preventDefault();
@@ -882,6 +1218,14 @@
                     player.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, player.pitch - e.movementY * sens));
                 }
             });
+
+            // Save automatically when closing, hiding, or reloading the tab
+            window.addEventListener('beforeunload', saveGameState);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    saveGameState();
+                }
+            });
         }
 
         function startGame() {
@@ -894,7 +1238,6 @@
             if (hud) hud.classList.remove('hidden');
 
             if (!scene) initEngine();
-            player.y = getTerrainHeight(player.x, player.z) + 2.0;
             updateHUD();
             animate();
         }
@@ -906,7 +1249,13 @@
 
             const dt = Math.min(clock.getDelta(), 0.1);
 
-            // Player movement vector
+            // Periodic background auto-save every 3 seconds
+            autoSaveTimer += dt;
+            if (autoSaveTimer >= 3.0) {
+                autoSaveTimer = 0;
+                saveGameState();
+            }
+
             let forwardInput = (keys['w'] || keys['arrowup'] ? 1 : 0) - (keys['s'] || keys['arrowdown'] ? 1 : 0) - joystickVector.y;
             let strafeInput = (keys['d'] || keys['arrowright'] ? 1 : 0) - (keys['a'] || keys['arrowleft'] ? 1 : 0) + joystickVector.x;
 
@@ -927,11 +1276,9 @@
             player.x += (forwardX * forwardInput + rightX * strafeInput) * moveSpeed * dt;
             player.z += (forwardZ * forwardInput + rightZ * strafeInput) * moveSpeed * dt;
 
-            // Keep inside island boundary
-            player.x = Math.max(-145, Math.min(145, player.x));
-            player.z = Math.max(-145, Math.min(145, player.z));
+            updateInfiniteTerrain(player.x, player.z);
+            updateInfiniteWorldEntities();
 
-            // Terrain Collision & Gravity
             const groundY = getTerrainHeight(player.x, player.z) + 2.0;
             if (player.isFlying) {
                 const flyUp = (keys[' '] ? 1 : 0) - (keys['q'] ? 1 : 0);
@@ -951,7 +1298,6 @@
             camera.rotation.y = player.yaw;
             camera.rotation.x = player.pitch;
 
-            // First-person weapon animations
             const bob = mag > 0.05 ? Math.sin(performance.now() * 0.011) * 0.016 : 0;
             if (axeModel && axeModel.visible) {
                 if (swingTimer > 0) {
@@ -972,60 +1318,54 @@
                 gunModel.position.y = -0.26 + bob * 0.6;
             }
 
-            // Physical Bullets with Gravity & Hit Detection
+            // Physical Bullets (Single-Target Hit + One-Shot Down)
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const b = bullets[i];
                 b.userData.life -= dt;
-                b.userData.vy -= 14.0 * dt; // Long-range ballistic gravity pull
+                b.userData.vy -= 14.0 * dt;
 
                 b.position.x += b.userData.vx * dt;
                 b.position.y += b.userData.vy * dt;
                 b.position.z += b.userData.vz * dt;
 
-                let hit = false;
-                for (let j = dinosaurs.length - 1; j >= 0; j--) {
-                    const dino = dinosaurs[j];
-                    if (dino.userData.isDead) continue;
-                    const dinoCenter = new THREE.Vector3(dino.position.x, dino.position.y + 1.8, dino.position.z);
-                    if (b.position.distanceTo(dinoCenter) < 1.9) {
-                        dino.userData.hp -= 50;
-                        hit = true;
-                        if (dino.userData.hp <= 0) {
+                if (!b.userData.hasHit) {
+                    for (let j = dinosaurs.length - 1; j >= 0; j--) {
+                        const dino = dinosaurs[j];
+                        if (dino.userData.isDead) continue;
+                        const dinoCenter = new THREE.Vector3(dino.position.x, dino.position.y + 1.8, dino.position.z);
+                        if (b.position.distanceTo(dinoCenter) < 1.9) {
+                            b.userData.hasHit = true;
+                            dino.userData.hp = 0;
                             dino.userData.isDead = true;
                             dino.userData.deathTimer = 0;
+                            break;
                         }
-                        break;
                     }
                 }
 
                 const terrainAtBullet = getTerrainHeight(b.position.x, b.position.z);
-                if (hit || b.position.y <= terrainAtBullet || b.userData.life <= 0) {
+                if (b.userData.hasHit || b.position.y <= terrainAtBullet || b.userData.life <= 0) {
                     scene.remove(b);
                     bullets.splice(i, 1);
                 }
             }
 
-            // Dinosaur AI, Attack Damage, & Death Collapse
+            // Dinosaur AI with Line-of-Sight Occlusion & Wander Behavior
             for (let i = dinosaurs.length - 1; i >= 0; i--) {
                 const dino = dinosaurs[i];
                 const d = dino.userData;
 
                 if (d.isDead) {
                     d.deathTimer += dt;
-                    // Topple onto side
                     if (dino.rotation.z < Math.PI / 2) {
                         dino.rotation.z = Math.min(Math.PI / 2, dino.rotation.z + dt * 3.8);
                     }
-                    // Sink into the ground after 3.5 seconds and despawn
                     if (d.deathTimer > 3.5) {
                         dino.position.y -= dt * 0.9;
                     }
                     if (d.deathTimer > 5.5) {
                         scene.remove(dino);
                         dinosaurs.splice(i, 1);
-                        // Respawn a fresh dinosaur in the distance so the island stays active
-                        const a = Math.random() * Math.PI * 2;
-                        createDino(player.x + Math.cos(a) * 75, player.z + Math.sin(a) * 75);
                     }
                     continue;
                 }
@@ -1033,35 +1373,57 @@
                 const dx = player.x - dino.position.x;
                 const dz = player.z - dino.position.z;
                 const dist = Math.hypot(dx, dz);
+                const seesPlayer = canDinoSeePlayer(dino);
 
-                if (dist > 2.6) {
-                    dino.position.x += (dx / dist) * d.speed * dt;
-                    dino.position.z += (dz / dist) * d.speed * dt;
-                    dino.rotation.y = Math.atan2(dx, dz);
+                if (seesPlayer) {
+                    if (dist > 2.6) {
+                        dino.position.x += (dx / dist) * d.speed * dt;
+                        dino.position.z += (dz / dist) * d.speed * dt;
+                        dino.rotation.y = Math.atan2(dx, dz);
 
-                    d.walkPhase += dt * 9;
-                    d.leftLeg.rotation.x = Math.sin(d.walkPhase) * 0.55;
-                    d.rightLeg.rotation.x = -Math.sin(d.walkPhase) * 0.55;
-                } else {
-                    d.attackCooldown -= dt;
-                    if (d.attackCooldown <= 0) {
-                        d.attackCooldown = 1.25;
-                        player.health -= 15;
-                        updateHUD();
-                        const flash = document.getElementById('damage-flash');
-                        if (flash) {
-                            flash.style.opacity = '1';
-                            setTimeout(() => { flash.style.opacity = '0'; }, 180);
-                        }
-                        if (player.health <= 0) {
-                            player.health = 100;
-                            player.x = 0;
-                            player.z = 0;
-                            player.y = getTerrainHeight(0, 0) + 2.0;
+                        d.walkPhase += dt * 9;
+                        d.leftLeg.rotation.x = Math.sin(d.walkPhase) * 0.55;
+                        d.rightLeg.rotation.x = -Math.sin(d.walkPhase) * 0.55;
+                    } else {
+                        d.attackCooldown -= dt;
+                        if (d.attackCooldown <= 0) {
+                            d.attackCooldown = 1.25;
+                            player.health -= 15;
                             updateHUD();
+                            saveGameState();
+                            const flash = document.getElementById('damage-flash');
+                            if (flash) {
+                                flash.style.opacity = '1';
+                                setTimeout(() => { flash.style.opacity = '0'; }, 180);
+                            }
+                            if (player.health <= 0) {
+                                player.health = 100;
+                                player.x = 0;
+                                player.z = 0;
+                                player.y = getTerrainHeight(0, 0) + 2.0;
+                                updateHUD();
+                                saveGameState();
+                            }
                         }
                     }
+                } else {
+                    d.wanderTimer -= dt;
+                    if (d.wanderTimer <= 0) {
+                        d.wanderTimer = 2.5 + Math.random() * 4;
+                        d.wanderAngle += (Math.random() - 0.5) * Math.PI * 1.4;
+                    }
+                    const patrolSpeed = d.speed * 0.35;
+                    const wx = Math.sin(d.wanderAngle);
+                    const wz = Math.cos(d.wanderAngle);
+                    dino.position.x += wx * patrolSpeed * dt;
+                    dino.position.z += wz * patrolSpeed * dt;
+                    dino.rotation.y = d.wanderAngle;
+
+                    d.walkPhase += dt * 4.5;
+                    d.leftLeg.rotation.x = Math.sin(d.walkPhase) * 0.35;
+                    d.rightLeg.rotation.x = -Math.sin(d.walkPhase) * 0.35;
                 }
+
                 dino.position.y = getTerrainHeight(dino.position.x, dino.position.z);
             }
 
