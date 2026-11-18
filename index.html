@@ -22,16 +22,16 @@
         <div class="max-w-lg w-full flex flex-col items-center text-center">
             <h1 class="text-4xl md:text-6xl font-black tracking-wider text-emerald-400 mb-2 drop-shadow-md">DINO SURVIVAL 3D</h1>
             <p class="text-slate-300 mb-6 text-sm md:text-base leading-relaxed">
-                Explore an infinite prehistoric wilderness with Forest, Desert, and Ocean biomes. Fell trees for wood and healing apples, craft ammo, and survive Rexes, Raptors, Sharks, and colossal Megalodons.
+                Explore an infinite wilderness of Forests, Deserts, and vast Oceans. Discover rare colossal oceans housing Village Islands with loot crates to unlock the Chainsaw, Pistol, AK-47, Rocket Launcher, and Minigun!
             </p>
             
             <div class="hud-panel p-4 rounded-xl w-full text-left text-xs md:text-sm text-slate-300 mb-6 grid grid-cols-2 gap-3 border border-white/10">
                 <div><span class="text-emerald-400 font-bold">WASD / Joystick:</span> Move</div>
                 <div><span class="text-emerald-400 font-bold">Mouse / Drag:</span> Look around</div>
-                <div><span class="text-emerald-400 font-bold">[1] / [2] Keys:</span> Equip Axe / Gun</div>
-                <div><span class="text-emerald-400 font-bold">Action Button:</span> Chop / Shoot</div>
+                <div><span class="text-emerald-400 font-bold">[1-8] / [B] Key:</span> Weapons & Compass</div>
+                <div><span class="text-emerald-400 font-bold">Action / E Key:</span> Attack / Open Crate</div>
                 <div><span class="text-emerald-400 font-bold">Right-Click / Z:</span> Sniper Scope</div>
-                <div><span class="text-emerald-400 font-bold">R Key / Button:</span> Reload Gun</div>
+                <div><span class="text-emerald-400 font-bold">R Key / Button:</span> Reload Weapon</div>
                 <div><span class="text-emerald-400 font-bold">C Key / Button:</span> Crafting Station</div>
                 <div><span class="text-emerald-400 font-bold">V Key / Fly:</span> Toggle Fly Mode</div>
             </div>
@@ -69,20 +69,24 @@
         </div>
 
         <!-- Top Left Info -->
-        <div class="absolute top-4 left-4 hud-panel p-4 rounded-xl text-white flex flex-col gap-1 w-48 shadow-lg">
+        <div class="absolute top-4 left-4 hud-panel p-4 rounded-xl text-white flex flex-col gap-1 w-52 shadow-lg">
             <div class="flex justify-between items-center"><span class="text-xs text-slate-400">HEALTH</span><span id="health-val" class="font-bold text-emerald-400">100</span></div>
             <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div id="health-bar" class="bg-emerald-500 h-full w-full transition-all"></div></div>
             <div class="flex justify-between items-center mt-2"><span class="text-xs text-slate-400">WOOD</span><span id="wood-val" class="font-bold text-amber-400">0</span></div>
-            <div class="flex justify-between items-center"><span class="text-xs text-slate-400">AMMO</span><span id="ammo-val" class="font-bold text-cyan-400">5 / 20</span></div>
+            <div class="flex justify-between items-center"><span id="ammo-label" class="text-xs text-slate-400">AMMO</span><span id="ammo-val" class="font-bold text-cyan-400">12 / 36</span></div>
             <div class="flex justify-between items-center mt-1 pt-1 border-t border-white/10"><span class="text-[10px] text-slate-400">BIOME</span><span id="biome-val" class="text-[11px] font-bold text-emerald-300">FOREST</span></div>
         </div>
 
         <!-- Top Right Item Selector -->
         <div class="absolute top-4 right-4 hud-panel p-3 rounded-xl text-white flex flex-col gap-2 pointer-events-auto z-20">
             <div class="text-xs text-slate-400 font-bold tracking-wide">EQUIPPED</div>
-            <div class="flex gap-2">
-                <button id="select-axe-btn" type="button" class="px-3 py-1.5 bg-emerald-600 rounded-lg text-sm font-bold border border-emerald-400 cursor-pointer">1: AXE</button>
-                <button id="select-gun-btn" type="button" class="px-3 py-1.5 bg-slate-800 rounded-lg text-sm font-bold border border-slate-600 cursor-pointer">2: GUN</button>
+            <div class="flex items-center gap-2">
+                <span id="equipped-name" class="px-3 py-1.5 bg-emerald-600/80 rounded-lg text-xs md:text-sm font-black border border-emerald-400">AXE</span>
+                <button id="open-weapons-btn" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs md:text-sm font-bold border border-slate-500 cursor-pointer">WEAPONS [B]</button>
+            </div>
+            <div id="compass-hud" class="hidden pt-1.5 mt-0.5 border-t border-white/10 flex items-center justify-between gap-3 text-xs">
+                <span class="text-slate-400 font-bold">VILLAGE:</span>
+                <span id="compass-dist" class="font-black text-amber-300">--- m</span>
             </div>
         </div>
 
@@ -99,6 +103,7 @@
             <!-- Bottom Right Mobile Action Buttons -->
             <div class="absolute bottom-6 right-6 flex flex-col gap-3 items-end pointer-events-auto z-20">
                 <div class="flex gap-2">
+                    <button id="btn-open-crate" type="button" class="touch-btn px-3 h-12 rounded-full text-xs font-black text-amber-300 bg-amber-600/40 border-amber-400 hidden items-center justify-center">OPEN CRATE</button>
                     <button id="btn-fly" type="button" class="touch-btn w-12 h-12 rounded-full text-xs font-bold text-white flex items-center justify-center">FLY</button>
                     <button id="btn-plant" type="button" class="touch-btn w-12 h-12 rounded-full text-xs font-bold text-white flex items-center justify-center">PLANT</button>
                     <button id="btn-craft" type="button" class="touch-btn w-12 h-12 rounded-full text-xs font-bold text-white flex items-center justify-center">CRAFT</button>
@@ -112,27 +117,87 @@
             </div>
         </div>
 
+        <!-- Weapon Selection Menu -->
+        <div id="weapon-menu" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-4">
+            <div class="hud-panel p-6 rounded-2xl max-w-md w-full text-white flex flex-col items-center border border-white/10">
+                <h2 class="text-2xl font-black text-emerald-400 mb-1">ARSENAL & WEAPONS</h2>
+                <p class="text-xs text-slate-400 mb-4 text-center">Select an unlocked weapon or equip the Village Compass. Find Village Islands in Giant Oceans to open crates!</p>
+                <div id="weapon-list" class="w-full grid grid-cols-1 gap-2 max-h-80 overflow-y-auto mb-4 pr-1"></div>
+                <button id="close-weapon-btn" type="button" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl cursor-pointer">CLOSE</button>
+            </div>
+        </div>
+
         <!-- Crafting Menu -->
-        <div id="crafting-menu" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto">
-            <div class="hud-panel p-6 rounded-2xl w-80 text-white flex flex-col items-center border border-white/10">
+        <div id="crafting-menu" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-4">
+            <div class="hud-panel p-6 rounded-2xl max-w-md w-full text-white flex flex-col items-center border border-white/10">
                 <h2 class="text-2xl font-black text-emerald-400 mb-2">CRAFTING STATION</h2>
                 <div class="bg-slate-900/90 px-4 py-2 rounded-lg border border-white/10 mb-3 text-sm font-bold text-amber-400">
                     Available Wood: <span id="craft-wood-val">0</span>
                 </div>
-                <p class="text-sm text-slate-300 mb-5 text-center">Combine 3x Wood to produce 5x Ammo</p>
-                <button id="craft-ammo-btn" type="button" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl mb-3 cursor-pointer">CRAFT AMMO</button>
-                <button id="close-craft-btn" type="button" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl cursor-pointer">CLOSE</button>
+                <div id="craft-list" class="w-full flex flex-col gap-2 max-h-80 overflow-y-auto mb-4 pr-1"></div>
+                <button id="close-craft-btn" type="button" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl cursor-pointer">CLOSE</button>
             </div>
         </div>
     </div>
 
     <script>
-        const SAVE_KEY = 'dino_survival_3d_save_v2';
+        const SAVE_KEY = 'dino_survival_3d_save_v3';
         const TREE_CELL_SIZE = 18;
         const TREE_REGROW_MS = 18000;
         const MAX_DINOS = 5;
         const RENDER_RADIUS = 125;
         const WATER_LEVEL = -1.6;
+        const GIANT_SECTOR_SIZE = 1600;
+
+        // Balanced Weapon & Gear Definitions
+        const WEAPONS = {
+            axe: {
+                id: 'axe', name: 'Wood Axe', type: 'melee', keyNum: '1',
+                damage: 25, treeHits: 1, cooldown: 0.38, range: 5.5,
+                ammoType: null, craftCost: 0, craftGain: 0, desc: 'Sturdy axe for chopping trees (3 hits)'
+            },
+            chainsaw: {
+                id: 'chainsaw', name: 'Chainsaw', type: 'melee', keyNum: '2',
+                damage: 90, treeHits: 3, cooldown: 0.14, range: 6.0,
+                ammoType: 'fuel', magSize: 100, craftCost: 3, craftGain: 50,
+                desc: 'Fells trees in 1 hit & shreds dinos (Uses Fuel)'
+            },
+            pistol: {
+                id: 'pistol', name: 'Pistol', type: 'ranged', keyNum: '3',
+                damage: 50, cooldown: 0.24, speed: 165, spread: 0.008, pellets: 1,
+                ammoType: 'pistol', magSize: 15, craftCost: 2, craftGain: 15,
+                desc: 'Reliable 15-round sidearm (1-shot land dinos)'
+            },
+            rifle: {
+                id: 'rifle', name: 'Hunting Rifle', type: 'ranged', keyNum: '4',
+                damage: 100, cooldown: 0.42, speed: 215, spread: 0.001, pellets: 1,
+                ammoType: 'rifle', magSize: 12, craftCost: 3, craftGain: 12,
+                desc: '12-round high-velocity rifle with sniper scope'
+            },
+            ak47: {
+                id: 'ak47', name: 'AK-47', type: 'ranged', keyNum: '5',
+                damage: 65, cooldown: 0.11, speed: 190, spread: 0.018, pellets: 1,
+                ammoType: 'ak47', magSize: 30, craftCost: 4, craftGain: 30,
+                desc: '30-round automatic assault rifle'
+            },
+            minigun: {
+                id: 'minigun', name: 'Minigun', type: 'ranged', keyNum: '6',
+                damage: 45, cooldown: 0.055, speed: 185, spread: 0.036, pellets: 1,
+                ammoType: 'minigun', magSize: 150, craftCost: 8, craftGain: 150,
+                desc: '150-round rotary cannon with extreme fire rate'
+            },
+            rocket: {
+                id: 'rocket', name: 'Rocket Launcher', type: 'ranged', keyNum: '7',
+                damage: 550, splashRadius: 12, cooldown: 1.15, speed: 95, spread: 0.004, pellets: 1,
+                ammoType: 'rocket', magSize: 4, craftCost: 10, craftGain: 2,
+                desc: '4-tube explosive launcher (1-shots Megalodons)'
+            },
+            compass: {
+                id: 'compass', name: 'Village Compass', type: 'tool', keyNum: '8',
+                damage: 0, treeHits: 0, cooldown: 0.3, range: 0,
+                ammoType: null, craftCost: 0, craftGain: 0, desc: 'Points its needle toward the nearest Village Island'
+            }
+        };
 
         let scene, camera, renderer, clock;
         let terrainMesh, terrainGeo, terrainMat;
@@ -142,22 +207,27 @@
 
         // Map of active flora (trees & cacti) keyed by deterministic cell ID "gx,gz"
         const activeTrees = new Map();
-        // Map of chopped flora cells keyed by "gx,gz" -> respawnTimestamp (ms)
         const choppedTreeCells = new Map();
+
+        // Village Islands & Loot Crates
+        const activeVillages = new Map();
+        const openedCrates = new Set();
 
         let dinosaurs = [];
         let flowers = [];
         let savedFlowersData = [];
         let bullets = [];
+        let explosions = [];
         let isGameStarted = false;
         let autoSaveTimer = 0;
         let toastTimeout = null;
+        let isActionHeld = false;
+        let fireCooldown = 0;
 
-        // Shared materials & geometries for high FPS and low GPU memory
         let sharedResources = null;
 
-        let axeModel = null;
-        let gunModel = null;
+        let weaponMeshes = {};
+        let compassNeedlePivot = null;
         let muzzleFlash = null;
         let swingTimer = 0;
         let recoilTimer = 0;
@@ -169,9 +239,24 @@
             yaw: 0, pitch: 0,
             health: 100,
             wood: 0,
-            ammo: 5,
-            totalAmmo: 20,
             selectedTool: 'axe',
+            unlockedWeapons: ['axe', 'rifle', 'compass'],
+            magAmmo: {
+                chainsaw: 100,
+                pistol: 15,
+                rifle: 12,
+                ak47: 30,
+                minigun: 150,
+                rocket: 4
+            },
+            reserveAmmo: {
+                fuel: 100,
+                pistol: 30,
+                rifle: 24,
+                ak47: 60,
+                minigun: 150,
+                rocket: 4
+            },
             isFlying: false,
             isSprinting: false,
             isScoped: false,
@@ -192,30 +277,94 @@
             if (toastTimeout) clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => {
                 el.style.opacity = '0';
-            }, 1800);
+            }, 2200);
         }
 
-        // Deterministic PRNG per grid cell
         function cellHash(gx, gz, seed) {
             let h = Math.imul(gx ^ seed, 374761393) + Math.imul(gz ^ (seed * 17), 668265263);
             h = Math.imul(h ^ (h >>> 13), 1274126177);
             return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
         }
 
-        // Smooth ocean factor: 0.0 = Land (Forest/Desert), 1.0 = Deep Ocean (keeps spawn 0,0 on dry land)
-        function getOceanFactor(x, z) {
-            const wave = Math.sin(x * 0.007 - 0.85) * Math.cos(z * 0.007 + 0.65) + Math.cos((x + z) * 0.0045) * 0.35;
-            return Math.max(0, Math.min(1, (wave - 0.12) * 2.5));
+        // Rare Giant Ocean Sector (~14% of 1600x1600 world sectors, excluding spawn sector 0,0)
+        // Each Giant Ocean spans ~1,100 units across with a Giant Village Island (radius ~135) in the exact center
+        function getGiantSectorInfo(x, z) {
+            const sx = Math.round(x / GIANT_SECTOR_SIZE);
+            const sz = Math.round(z / GIANT_SECTOR_SIZE);
+            if (sx === 0 && sz === 0) return null;
+            if (cellHash(sx, sz, 909) > 0.14) return null;
+
+            const cx = sx * GIANT_SECTOR_SIZE;
+            const cz = sz * GIANT_SECTOR_SIZE;
+            const dist = Math.hypot(x - cx, z - cz);
+            const oceanRadius = 560;
+            const islandRadius = 135;
+
+            if (dist > oceanRadius + 90) return null;
+            return { key: `${sx},${sz}`, sx, sz, cx, cz, dist, oceanRadius, islandRadius };
         }
 
-        // Smooth biome factor: 0.0 = Forest, 1.0 = Desert (keeps spawn origin 0,0 in Forest)
+        // Find the nearest Giant Village Island coordinates across surrounding sectors
+        function findNearestVillage(px, pz) {
+            const baseSx = Math.round(px / GIANT_SECTOR_SIZE);
+            const baseSz = Math.round(pz / GIANT_SECTOR_SIZE);
+            let best = null;
+            let bestDist = Infinity;
+
+            for (let r = 0; r <= 6; r++) {
+                for (let dx = -r; dx <= r; dx++) {
+                    for (let dz = -r; dz <= r; dz++) {
+                        if (Math.abs(dx) !== r && Math.abs(dz) !== r) continue;
+                        const sx = baseSx + dx;
+                        const sz = baseSz + dz;
+                        if (sx === 0 && sz === 0) continue;
+                        if (cellHash(sx, sz, 909) > 0.14) continue;
+
+                        const cx = sx * GIANT_SECTOR_SIZE;
+                        const cz = sz * GIANT_SECTOR_SIZE;
+                        const dist = Math.hypot(cx - px, cz - pz);
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            best = { cx, cz, dist };
+                        }
+                    }
+                }
+                if (best) break;
+            }
+            return best;
+        }
+
+        // Large Oceans with enforced minimum size (low-frequency macro basin + smooth coastline)
+        function getOceanFactor(x, z) {
+            const giant = getGiantSectorInfo(x, z);
+            if (giant) {
+                const outerShore = Math.max(0, Math.min(1, (giant.oceanRadius + 40 - giant.dist) / 85));
+                const innerShore = Math.max(0, Math.min(1, (giant.dist - (giant.islandRadius - 12)) / 38));
+                return outerShore * innerShore;
+            }
+
+            const spawnDist = Math.hypot(x, z);
+            if (spawnDist < 130) return 0;
+
+            const macro = Math.sin(x * 0.0032 - 0.95) * Math.cos(z * 0.0032 + 0.72)
+                        + Math.cos((x - z) * 0.0021) * 0.35;
+            const spawnFade = Math.min(1, (spawnDist - 130) / 70);
+            return Math.max(0, Math.min(1, (macro - 0.16) * 3.4)) * spawnFade;
+        }
+
         function getDesertFactor(x, z) {
-            const wave = Math.sin(x * 0.0085 + 0.6) * Math.cos(z * 0.0085 - 0.4) + Math.sin((x - z) * 0.005) * 0.35;
-            return Math.max(0, Math.min(1, (wave - 0.05) * 2.4));
+            const giant = getGiantSectorInfo(x, z);
+            if (giant && giant.dist < giant.islandRadius + 20) return 0;
+            const wave = Math.sin(x * 0.0055 + 0.6) * Math.cos(z * 0.0055 - 0.4) + Math.sin((x - z) * 0.0035) * 0.35;
+            return Math.max(0, Math.min(1, (wave - 0.08) * 2.5));
         }
 
         function getBiomeType(x, z) {
-            if (getOceanFactor(x, z) > 0.48 || getTerrainHeight(x, z) < WATER_LEVEL - 0.25) return 'ocean';
+            const giant = getGiantSectorInfo(x, z);
+            if (giant && giant.dist <= giant.islandRadius + 10) return 'village_island';
+            if (getOceanFactor(x, z) > 0.42 || getTerrainHeight(x, z) < WATER_LEVEL - 0.25) {
+                return giant ? 'giant_ocean' : 'ocean';
+            }
             if (getDesertFactor(x, z) > 0.52) return 'desert';
             return 'forest';
         }
@@ -224,16 +373,36 @@
             return getBiomeType(x, z) === 'desert';
         }
 
+        // Deeper overall oceans (-18 to -26 units deep) + elevated Giant Village Island in the center of Giant Oceans
+        function getTerrainHeight(x, z) {
+            const giant = getGiantSectorInfo(x, z);
+            if (giant && giant.dist < giant.islandRadius + 30) {
+                const t = Math.max(0, Math.min(1, (giant.islandRadius + 15 - giant.dist) / 48));
+                const islandPlateau = 3.2 + Math.sin(x * 0.03) * Math.cos(z * 0.03) * 0.65;
+                const deepSea = -24.0;
+                return deepSea * (1 - t) + islandPlateau * t;
+            }
+
+            const ocean = getOceanFactor(x, z);
+            const desert = getDesertFactor(x, z);
+            const forestH = Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.2 + Math.sin(x * 0.11 + z * 0.08) * 0.75;
+            const duneH = Math.sin(x * 0.025 + Math.sin(z * 0.02) * 1.4) * 4.2 + Math.cos(z * 0.03) * 1.6;
+            const landH = forestH * (1 - desert) + duneH * desert;
+            const seabedH = (giant ? -25.0 : -19.5) + Math.sin(x * 0.025) * Math.cos(z * 0.025) * 2.8;
+            return landH * (1 - ocean) + seabedH * ocean;
+        }
+
         function getTreeSpecForCell(gx, gz) {
             if (gx === 0 && gz === 0) return null;
 
             const approxX = gx * TREE_CELL_SIZE;
             const approxZ = gz * TREE_CELL_SIZE;
-            if (getOceanFactor(approxX, approxZ) > 0.35) return null;
+            if (getOceanFactor(approxX, approxZ) > 0.30) return null;
+
+            const giant = getGiantSectorInfo(approxX, approxZ);
+            if (giant && giant.dist < 68) return null;
 
             const desert = isDesertBiome(approxX, approxZ);
-
-            // Cacti are slightly sparser in desert than forest trees
             const density = desert ? 0.28 : 0.42;
             if (cellHash(gx, gz, 101) > density) return null;
 
@@ -242,8 +411,7 @@
             const x = gx * TREE_CELL_SIZE + offsetX;
             const z = gz * TREE_CELL_SIZE + offsetZ;
 
-            // Never spawn trees/cacti underwater or on submerged shorelines
-            if (getTerrainHeight(x, z) < WATER_LEVEL + 0.45) return null;
+            if (getTerrainHeight(x, z) < WATER_LEVEL + 0.55) return null;
 
             const scale = 0.85 + cellHash(gx, gz, 404) * 0.55;
             const isPine = cellHash(gx, gz, 505) > 0.35;
@@ -260,26 +428,13 @@
             };
         }
 
-        // Terrain height blends rolling forest hills, sweeping desert dunes, and deep ocean seabed
-        function getTerrainHeight(x, z) {
-            const ocean = getOceanFactor(x, z);
-            const desert = getDesertFactor(x, z);
-            const forestH = Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.2 + Math.sin(x * 0.11 + z * 0.08) * 0.75;
-            const duneH = Math.sin(x * 0.025 + Math.sin(z * 0.02) * 1.4) * 4.2 + Math.cos(z * 0.03) * 1.6;
-            const landH = forestH * (1 - desert) + duneH * desert;
-            const seabedH = -9.5 + Math.sin(x * 0.03) * Math.cos(z * 0.03) * 2.2;
-            return landH * (1 - ocean) + seabedH * ocean;
-        }
-
         function saveGameState() {
             if (!isGameStarted) return;
             try {
                 const now = Date.now();
                 const choppedList = [];
                 choppedTreeCells.forEach((respawnAt, key) => {
-                    if (respawnAt > now) {
-                        choppedList.push([key, respawnAt]);
-                    }
+                    if (respawnAt > now) choppedList.push([key, respawnAt]);
                 });
 
                 const payload = {
@@ -291,18 +446,18 @@
                         pitch: player.pitch,
                         health: player.health,
                         wood: player.wood,
-                        ammo: player.ammo,
-                        totalAmmo: player.totalAmmo,
                         selectedTool: player.selectedTool,
+                        unlockedWeapons: player.unlockedWeapons,
+                        magAmmo: player.magAmmo,
+                        reserveAmmo: player.reserveAmmo,
                         isFlying: player.isFlying
                     },
                     choppedTrees: choppedList,
+                    openedCrates: Array.from(openedCrates).slice(-400),
                     flowers: savedFlowersData.slice(-250)
                 };
                 localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-            } catch (e) {
-                // Ignore storage quota errors
-            }
+            } catch (e) {}
         }
 
         function loadGameState() {
@@ -319,9 +474,21 @@
                     player.pitch = Number.isFinite(data.player.pitch) ? data.player.pitch : 0;
                     player.health = Number.isFinite(data.player.health) ? data.player.health : 100;
                     player.wood = Number.isFinite(data.player.wood) ? data.player.wood : 0;
-                    player.ammo = Number.isFinite(data.player.ammo) ? data.player.ammo : 5;
-                    player.totalAmmo = Number.isFinite(data.player.totalAmmo) ? data.player.totalAmmo : 20;
-                    player.selectedTool = data.player.selectedTool === 'gun' ? 'gun' : 'axe';
+                    if (Array.isArray(data.player.unlockedWeapons) && data.player.unlockedWeapons.length > 0) {
+                        player.unlockedWeapons = data.player.unlockedWeapons.filter(id => WEAPONS[id]);
+                        if (!player.unlockedWeapons.includes('compass')) {
+                            player.unlockedWeapons.push('compass');
+                        }
+                    }
+                    if (data.player.selectedTool && WEAPONS[data.player.selectedTool]) {
+                        player.selectedTool = data.player.selectedTool;
+                    }
+                    if (data.player.magAmmo) {
+                        Object.assign(player.magAmmo, data.player.magAmmo);
+                    }
+                    if (data.player.reserveAmmo) {
+                        Object.assign(player.reserveAmmo, data.player.reserveAmmo);
+                    }
                     player.isFlying = Boolean(data.player.isFlying);
                 }
 
@@ -335,6 +502,11 @@
                     }
                 }
 
+                openedCrates.clear();
+                if (Array.isArray(data.openedCrates)) {
+                    for (const cid of data.openedCrates) openedCrates.add(cid);
+                }
+
                 savedFlowersData = Array.isArray(data.flowers) ? data.flowers : [];
                 return true;
             } catch (e) {
@@ -342,7 +514,6 @@
             }
         }
 
-        // Neutral grayscale grass/sand grain base so vertex colors smoothly tint between lush green grass and golden desert sand
         function createBiomeSurfaceTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
@@ -417,34 +588,18 @@
             const skinBump = createBumpTexture(3, 3);
 
             sharedResources = {
-                barkMat: new THREE.MeshStandardMaterial({
-                    color: 0x4b3621,
-                    bumpMap: barkBump,
-                    bumpScale: 0.08,
-                    roughness: 0.92
-                }),
-                pineMat: new THREE.MeshStandardMaterial({
-                    color: 0x1e4620,
-                    bumpMap: leafBump,
-                    bumpScale: 0.05,
-                    roughness: 0.85
-                }),
-                oakMat: new THREE.MeshStandardMaterial({
-                    color: 0x2d5a27,
-                    bumpMap: leafBump,
-                    bumpScale: 0.06,
-                    roughness: 0.82
-                }),
-                cactusMat: new THREE.MeshStandardMaterial({
-                    color: 0x2e8b57,
-                    bumpMap: skinBump,
-                    bumpScale: 0.07,
-                    roughness: 0.78
-                }),
-                cactusFlowerMat: new THREE.MeshStandardMaterial({
-                    color: 0xff4d6d,
-                    roughness: 0.4
-                }),
+                barkMat: new THREE.MeshStandardMaterial({ color: 0x4b3621, bumpMap: barkBump, bumpScale: 0.08, roughness: 0.92 }),
+                pineMat: new THREE.MeshStandardMaterial({ color: 0x1e4620, bumpMap: leafBump, bumpScale: 0.05, roughness: 0.85 }),
+                oakMat: new THREE.MeshStandardMaterial({ color: 0x2d5a27, bumpMap: leafBump, bumpScale: 0.06, roughness: 0.82 }),
+                cactusMat: new THREE.MeshStandardMaterial({ color: 0x2e8b57, bumpMap: skinBump, bumpScale: 0.07, roughness: 0.78 }),
+                cactusFlowerMat: new THREE.MeshStandardMaterial({ color: 0xff4d6d, roughness: 0.4 }),
+
+                hutWallMat: new THREE.MeshStandardMaterial({ color: 0x8d6e63, bumpMap: barkBump, bumpScale: 0.06, roughness: 0.88 }),
+                hutRoofMat: new THREE.MeshStandardMaterial({ color: 0xd4a373, bumpMap: leafBump, bumpScale: 0.08, roughness: 0.9 }),
+                crateClosedMat: new THREE.MeshStandardMaterial({ color: 0xb45309, bumpMap: barkBump, bumpScale: 0.08, roughness: 0.7 }),
+                crateTrimMat: new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.65, roughness: 0.3 }),
+                crateOpenMat: new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 }),
+
                 trunkGeo: new THREE.CylinderGeometry(0.24, 0.45, 1, 7),
                 pineCones: [
                     new THREE.ConeGeometry(2.4, 2.8, 7),
@@ -458,7 +613,11 @@
                 cactusArmHorizGeo: new THREE.CylinderGeometry(0.24, 0.24, 1.1, 7),
                 cactusCapGeo: new THREE.SphereGeometry(0.36, 8, 6),
 
-                // Forest Rex Materials & Geometries
+                hutBodyGeo: new THREE.CylinderGeometry(3.4, 3.6, 3.4, 8),
+                hutRoofGeo: new THREE.ConeGeometry(4.4, 2.8, 8),
+                crateBoxGeo: new THREE.BoxGeometry(1.3, 1.0, 1.3),
+                crateLidGeo: new THREE.BoxGeometry(1.38, 0.18, 1.38),
+
                 dinoMats: [
                     new THREE.MeshStandardMaterial({ color: 0x4a5d23, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 }),
                     new THREE.MeshStandardMaterial({ color: 0x5c4033, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 }),
@@ -470,17 +629,8 @@
                 dinoTailGeo: new THREE.ConeGeometry(0.48, 2.6, 6),
                 dinoLegGeo: new THREE.BoxGeometry(0.38, 1.35, 0.45),
 
-                // Desert Raptor Materials & Geometries (Sleek, fast desert hunter with dorsal crest)
-                raptorMat: new THREE.MeshStandardMaterial({
-                    color: 0xc26d2d,
-                    bumpMap: skinBump,
-                    bumpScale: 0.05,
-                    roughness: 0.68
-                }),
-                raptorCrestMat: new THREE.MeshStandardMaterial({
-                    color: 0xe63946,
-                    roughness: 0.5
-                }),
+                raptorMat: new THREE.MeshStandardMaterial({ color: 0xc26d2d, bumpMap: skinBump, bumpScale: 0.05, roughness: 0.68 }),
+                raptorCrestMat: new THREE.MeshStandardMaterial({ color: 0xe63946, roughness: 0.5 }),
                 raptorTorsoGeo: new THREE.BoxGeometry(0.75, 0.78, 1.95),
                 raptorNeckGeo: new THREE.BoxGeometry(0.42, 0.85, 0.52),
                 raptorHeadGeo: new THREE.BoxGeometry(0.48, 0.45, 1.15),
@@ -488,25 +638,9 @@
                 raptorTailGeo: new THREE.ConeGeometry(0.3, 2.8, 6),
                 raptorLegGeo: new THREE.BoxGeometry(0.26, 1.25, 0.34),
 
-                // Ocean Marine Predators: Shark & Colossal Megalodon
-                sharkMat: new THREE.MeshStandardMaterial({
-                    color: 0x4b6378,
-                    bumpMap: skinBump,
-                    bumpScale: 0.04,
-                    roughness: 0.42,
-                    metalness: 0.12
-                }),
-                sharkBellyMat: new THREE.MeshStandardMaterial({
-                    color: 0xd8e2eb,
-                    roughness: 0.5
-                }),
-                megalodonMat: new THREE.MeshStandardMaterial({
-                    color: 0x263545,
-                    bumpMap: skinBump,
-                    bumpScale: 0.07,
-                    roughness: 0.48,
-                    metalness: 0.15
-                }),
+                sharkMat: new THREE.MeshStandardMaterial({ color: 0x4b6378, bumpMap: skinBump, bumpScale: 0.04, roughness: 0.42, metalness: 0.12 }),
+                sharkBellyMat: new THREE.MeshStandardMaterial({ color: 0xd8e2eb, roughness: 0.5 }),
+                megalodonMat: new THREE.MeshStandardMaterial({ color: 0x263545, bumpMap: skinBump, bumpScale: 0.07, roughness: 0.48, metalness: 0.15 }),
                 sharkBodyGeo: new THREE.ConeGeometry(0.55, 2.6, 8),
                 sharkSnoutGeo: new THREE.ConeGeometry(0.55, 1.15, 8),
                 sharkBellyGeo: new THREE.BoxGeometry(0.75, 0.32, 2.1),
@@ -515,7 +649,10 @@
                 sharkTailFinGeo: new THREE.ConeGeometry(0.55, 1.1, 4),
 
                 bulletGeo: new THREE.SphereGeometry(0.08, 6, 6),
+                rocketGeo: new THREE.CylinderGeometry(0.08, 0.1, 0.55, 8),
                 bulletMat: new THREE.MeshBasicMaterial({ color: 0xffe066 }),
+                rocketMat: new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xb91c1c }),
+                explosionGeo: new THREE.SphereGeometry(1, 12, 10),
                 stemGeo: new THREE.CylinderGeometry(0.03, 0.04, 0.45, 5),
                 stemMat: new THREE.MeshStandardMaterial({ color: 0x2e7d32 }),
                 bloomGeo: new THREE.DodecahedronGeometry(0.16, 0)
@@ -601,15 +738,14 @@
             terrainMesh.receiveShadow = true;
             scene.add(terrainMesh);
 
-            // Translucent Ocean Water Plane
             const waterGeo = new THREE.PlaneGeometry(340, 340, 1, 1);
             waterGeo.rotateX(-Math.PI / 2);
             const waterMat = new THREE.MeshStandardMaterial({
-                color: 0x0b7fab,
+                color: 0x06688f,
                 transparent: true,
-                opacity: 0.72,
-                roughness: 0.18,
-                metalness: 0.35
+                opacity: 0.76,
+                roughness: 0.16,
+                metalness: 0.38
             });
             waterMesh = new THREE.Mesh(waterGeo, waterMat);
             waterMesh.position.y = WATER_LEVEL;
@@ -618,10 +754,7 @@
             const tuftCount = 3500;
             const bladeGeo = new THREE.ConeGeometry(0.08, 0.55, 3);
             bladeGeo.translate(0, 0.27, 0);
-            const bladeMat = new THREE.MeshStandardMaterial({
-                color: 0x528a36,
-                roughness: 0.85
-            });
+            const bladeMat = new THREE.MeshStandardMaterial({ color: 0x528a36, roughness: 0.85 });
             grassInst = new THREE.InstancedMesh(bladeGeo, bladeMat, tuftCount);
             const c = new THREE.Color();
 
@@ -675,11 +808,10 @@
             }
             const colors = colorAttr.array;
 
-            // Blend vertex colors between lush forest green, golden desert sand, and ocean beach/seabed
             const forestRGB = [0.26, 0.46, 0.17];
             const desertRGB = [0.85, 0.71, 0.42];
             const beachSandRGB = [0.82, 0.76, 0.54];
-            const seabedRGB = [0.16, 0.34, 0.44];
+            const seabedRGB = [0.12, 0.27, 0.38];
 
             for (let i = 0; i < pos.count; i++) {
                 const lx = pos.getX(i);
@@ -696,12 +828,11 @@
                 let g = forestRGB[1] * (1 - dFactor) + desertRGB[1] * dFactor;
                 let b = forestRGB[2] * (1 - dFactor) + desertRGB[2] * dFactor;
 
-                // Smooth coastal beach & underwater seabed tint near WATER_LEVEL
                 if (wy < WATER_LEVEL + 1.1) {
-                    const sub = Math.max(0, Math.min(1, (WATER_LEVEL + 1.1 - wy) / 3.2));
-                    const targetR = wy < WATER_LEVEL - 0.8 ? seabedRGB[0] : beachSandRGB[0];
-                    const targetG = wy < WATER_LEVEL - 0.8 ? seabedRGB[1] : beachSandRGB[1];
-                    const targetB = wy < WATER_LEVEL - 0.8 ? seabedRGB[2] : beachSandRGB[2];
+                    const sub = Math.max(0, Math.min(1, (WATER_LEVEL + 1.1 - wy) / 4.2));
+                    const targetR = wy < WATER_LEVEL - 1.2 ? seabedRGB[0] : beachSandRGB[0];
+                    const targetG = wy < WATER_LEVEL - 1.2 ? seabedRGB[1] : beachSandRGB[1];
+                    const targetB = wy < WATER_LEVEL - 1.2 ? seabedRGB[2] : beachSandRGB[2];
                     r = r * (1 - sub) + targetR * sub;
                     g = g * (1 - sub) + targetG * sub;
                     b = b * (1 - sub) + targetB * sub;
@@ -728,7 +859,6 @@
                     const wy = getTerrainHeight(wx, wz);
                     const dFactor = getDesertFactor(wx, wz);
 
-                    // Scale grass blades down smoothly to 0 in desert sand or underwater
                     const underwaterFade = wy < WATER_LEVEL + 0.5 ? 0 : 1;
                     const grassScale = Math.max(0, (1 - dFactor * 1.45) * underwaterFade);
                     dummy.position.set(wx, wy - 0.03, wz);
@@ -742,59 +872,177 @@
         }
 
         function buildFirstPersonWeapons() {
-            axeModel = new THREE.Group();
-            const handleGeo = new THREE.CylinderGeometry(0.024, 0.03, 0.75, 10);
-            const handleMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.85 });
-            const handle = new THREE.Mesh(handleGeo, handleMat);
-            axeModel.add(handle);
+            const darkMetal = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.78, roughness: 0.28 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.85 });
 
-            const headGeo = new THREE.BoxGeometry(0.22, 0.14, 0.045);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0x9aa5b1, metalness: 0.8, roughness: 0.25 });
-            const head = new THREE.Mesh(headGeo, headMat);
+            // 1. Wood Axe
+            const axe = new THREE.Group();
+            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, 0.75, 10), woodMat);
+            axe.add(handle);
+            const head = new THREE.Mesh(
+                new THREE.BoxGeometry(0.22, 0.14, 0.045),
+                new THREE.MeshStandardMaterial({ color: 0x9aa5b1, metalness: 0.8, roughness: 0.25 })
+            );
             head.position.set(0.08, 0.28, 0);
-            axeModel.add(head);
+            axe.add(head);
+            axe.position.set(0.36, -0.32, -0.52);
+            axe.rotation.set(0.2, -0.25, 0.12);
+            camera.add(axe);
+            weaponMeshes.axe = axe;
 
-            axeModel.position.set(0.36, -0.32, -0.52);
-            axeModel.rotation.set(0.2, -0.25, 0.12);
-            camera.add(axeModel);
+            // 2. Chainsaw
+            const chainsaw = new THREE.Group();
+            const motor = new THREE.Mesh(
+                new THREE.BoxGeometry(0.22, 0.22, 0.36),
+                new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.45, metalness: 0.2 })
+            );
+            chainsaw.add(motor);
+            const bar = new THREE.Mesh(
+                new THREE.BoxGeometry(0.035, 0.11, 0.56),
+                new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.25 })
+            );
+            bar.position.set(0, -0.02, -0.42);
+            chainsaw.add(bar);
+            const grip = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.03, 0.03), darkMetal);
+            grip.position.set(0, 0.14, -0.06);
+            chainsaw.add(grip);
+            chainsaw.position.set(0.34, -0.32, -0.45);
+            camera.add(chainsaw);
+            weaponMeshes.chainsaw = chainsaw;
 
-            gunModel = new THREE.Group();
-            const bodyGeo = new THREE.BoxGeometry(0.075, 0.11, 0.65);
-            const gunMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.75, roughness: 0.3 });
-            const body = new THREE.Mesh(bodyGeo, gunMat);
-            gunModel.add(body);
+            // 3. Pistol
+            const pistol = new THREE.Group();
+            const slide = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.075, 0.28), darkMetal);
+            pistol.add(slide);
+            const pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.07), darkMetal);
+            pGrip.position.set(0, -0.09, 0.09);
+            pGrip.rotation.x = 0.22;
+            pistol.add(pGrip);
+            pistol.position.set(0.28, -0.25, -0.45);
+            camera.add(pistol);
+            weaponMeshes.pistol = pistol;
 
-            const stockGeo = new THREE.BoxGeometry(0.068, 0.13, 0.28);
-            const stockMat = new THREE.MeshStandardMaterial({ color: 0x4a321f, roughness: 0.8 });
-            const stock = new THREE.Mesh(stockGeo, stockMat);
-            stock.position.set(0, -0.02, 0.38);
-            gunModel.add(stock);
-
-            const barrelGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.55, 10);
-            barrelGeo.rotateX(Math.PI / 2);
-            const barrel = new THREE.Mesh(barrelGeo, gunMat);
-            barrel.position.set(0, 0.02, -0.52);
-            gunModel.add(barrel);
-
-            const scopeTubeGeo = new THREE.CylinderGeometry(0.024, 0.026, 0.26, 12);
-            scopeTubeGeo.rotateX(Math.PI / 2);
-            const scopeTube = new THREE.Mesh(scopeTubeGeo, gunMat);
+            // 4. Hunting Rifle (with Scope)
+            const rifle = new THREE.Group();
+            const rBody = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.11, 0.65), darkMetal);
+            rifle.add(rBody);
+            const rStock = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.13, 0.28), woodMat);
+            rStock.position.set(0, -0.02, 0.38);
+            rifle.add(rStock);
+            const rBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.55, 10).rotateX(Math.PI / 2), darkMetal);
+            rBarrel.position.set(0, 0.02, -0.52);
+            rifle.add(rBarrel);
+            const scopeTube = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.26, 12).rotateX(Math.PI / 2), darkMetal);
             scopeTube.position.set(0, 0.085, -0.05);
-            gunModel.add(scopeTube);
+            rifle.add(scopeTube);
+            rifle.position.set(0.28, -0.26, -0.45);
+            camera.add(rifle);
+            weaponMeshes.rifle = rifle;
 
-            const flashGeo = new THREE.SphereGeometry(0.09, 8, 8);
+            // 5. AK-47
+            const ak = new THREE.Group();
+            const akBody = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, 0.55), darkMetal);
+            ak.add(akBody);
+            const akStock = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.26), woodMat);
+            akStock.position.set(0, -0.02, 0.36);
+            ak.add(akStock);
+            const akHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.085, 0.24), woodMat);
+            akHandguard.position.set(0, 0, -0.25);
+            ak.add(akHandguard);
+            const akBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.38, 8).rotateX(Math.PI / 2), darkMetal);
+            akBarrel.position.set(0, 0.015, -0.48);
+            ak.add(akBarrel);
+            const akMag = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.22, 0.09), darkMetal);
+            akMag.position.set(0, -0.14, -0.08);
+            akMag.rotation.x = -0.32;
+            ak.add(akMag);
+            ak.position.set(0.28, -0.26, -0.45);
+            camera.add(ak);
+            weaponMeshes.ak47 = ak;
+
+            // 6. Minigun
+            const minigun = new THREE.Group();
+            const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.32, 12).rotateX(Math.PI / 2), darkMetal);
+            minigun.add(drum);
+            for (let b = 0; b < 6; b++) {
+                const ang = (b / 6) * Math.PI * 2;
+                const mb = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.62, 6).rotateX(Math.PI / 2), darkMetal);
+                mb.position.set(Math.cos(ang) * 0.055, Math.sin(ang) * 0.055, -0.42);
+                minigun.add(mb);
+            }
+            minigun.position.set(0.32, -0.34, -0.42);
+            camera.add(minigun);
+            weaponMeshes.minigun = minigun;
+
+            // 7. Rocket Launcher
+            const rocket = new THREE.Group();
+            const tube = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.085, 0.085, 1.05, 12).rotateX(Math.PI / 2),
+                new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.65, metalness: 0.3 })
+            );
+            rocket.add(tube);
+            const sight = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.09, 0.14), darkMetal);
+            sight.position.set(-0.08, 0.06, -0.15);
+            rocket.add(sight);
+            rocket.position.set(0.32, -0.22, -0.38);
+            camera.add(rocket);
+            weaponMeshes.rocket = rocket;
+
+            // 8. Village Compass (Brass casing, glass dial, rotating red/white magnetic needle)
+            const compass = new THREE.Group();
+            const brassMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.82, roughness: 0.25 });
+            const caseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.032, 20), brassMat);
+            compass.add(caseMesh);
+
+            const ringMesh = new THREE.Mesh(
+                new THREE.TorusGeometry(0.105, 0.012, 8, 24).rotateX(Math.PI / 2),
+                brassMat
+            );
+            ringMesh.position.y = 0.018;
+            compass.add(ringMesh);
+
+            const dialMesh = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.095, 0.095, 0.005, 20),
+                new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45 })
+            );
+            dialMesh.position.y = 0.016;
+            compass.add(dialMesh);
+
+            compassNeedlePivot = new THREE.Group();
+            compassNeedlePivot.position.y = 0.023;
+
+            const northNeedle = new THREE.Mesh(
+                new THREE.ConeGeometry(0.016, 0.075, 4).rotateX(-Math.PI / 2),
+                new THREE.MeshBasicMaterial({ color: 0xef4444 })
+            );
+            northNeedle.position.z = -0.038;
+            compassNeedlePivot.add(northNeedle);
+
+            const southNeedle = new THREE.Mesh(
+                new THREE.ConeGeometry(0.016, 0.075, 4).rotateX(Math.PI / 2),
+                new THREE.MeshBasicMaterial({ color: 0x334155 })
+            );
+            southNeedle.position.z = 0.038;
+            compassNeedlePivot.add(southNeedle);
+
+            const pinMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.012, 8), brassMat);
+            compassNeedlePivot.add(pinMesh);
+
+            compass.add(compassNeedlePivot);
+            compass.position.set(0.24, -0.24, -0.42);
+            compass.rotation.set(0.58, -0.18, 0.08);
+            camera.add(compass);
+            weaponMeshes.compass = compass;
+
+            // Shared Muzzle Flash attached to camera front-right
+            const flashGeo = new THREE.SphereGeometry(0.11, 8, 8);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
             muzzleFlash = new THREE.Mesh(flashGeo, flashMat);
-            muzzleFlash.position.set(0, 0.02, -0.82);
+            muzzleFlash.position.set(0.28, -0.22, -1.25);
             muzzleFlash.visible = false;
-            gunModel.add(muzzleFlash);
-
-            gunModel.position.set(0.28, -0.26, -0.45);
-            gunModel.visible = false;
-            camera.add(gunModel);
+            camera.add(muzzleFlash);
         }
 
-        // Builds a deterministic tree or desert cactus from its cell spec
         function createDeterministicFlora(spec) {
             if (activeTrees.has(spec.key)) return;
 
@@ -805,7 +1053,6 @@
             const scale = spec.scale;
 
             if (spec.kind === 'cactus') {
-                // Tall Saguaro Cactus with arms & desert blossom
                 const stem = new THREE.Mesh(sharedResources.cactusTrunkGeo, sharedResources.cactusMat);
                 stem.scale.set(scale, scale, scale);
                 stem.position.y = 2.2 * scale;
@@ -817,7 +1064,6 @@
                 cap.position.y = 4.4 * scale;
                 group.add(cap);
 
-                // Left Arm
                 const leftH = new THREE.Mesh(sharedResources.cactusArmHorizGeo, sharedResources.cactusMat);
                 leftH.rotation.z = Math.PI / 2;
                 leftH.scale.setScalar(scale);
@@ -830,7 +1076,6 @@
                 leftV.castShadow = true;
                 group.add(leftV);
 
-                // Right Arm
                 const rightH = new THREE.Mesh(sharedResources.cactusArmHorizGeo, sharedResources.cactusMat);
                 rightH.rotation.z = Math.PI / 2;
                 rightH.scale.setScalar(scale);
@@ -843,18 +1088,12 @@
                 rightV.castShadow = true;
                 group.add(rightV);
 
-                // Pink Cactus Flower on top
                 const flower = new THREE.Mesh(sharedResources.bloomGeo, sharedResources.cactusFlowerMat);
                 flower.scale.setScalar(scale);
                 flower.position.set(0, 4.78 * scale, 0);
                 group.add(flower);
 
-                group.userData = {
-                    key: spec.key,
-                    kind: 'cactus',
-                    hp: 3,
-                    radius: 1.0 * scale
-                };
+                group.userData = { key: spec.key, kind: 'cactus', hp: 3, radius: 1.0 * scale };
             } else {
                 const trunkH = (spec.kind === 'pine' ? 4.8 : 3.8) * scale;
                 const trunk = new THREE.Mesh(sharedResources.trunkGeo, sharedResources.barkMat);
@@ -887,51 +1126,174 @@
                     });
                 }
 
-                group.userData = {
-                    key: spec.key,
-                    kind: spec.kind,
-                    hp: 3,
-                    radius: 1.4 * scale
-                };
+                group.userData = { key: spec.key, kind: spec.kind, hp: 3, radius: 1.4 * scale };
             }
 
             scene.add(group);
             activeTrees.set(spec.key, group);
         }
 
+        // Build Village Huts & Loot Crates on Giant Ocean Village Islands
+        function createVillageForSector(giant) {
+            if (activeVillages.has(giant.key)) return;
+
+            const villageGroup = new THREE.Group();
+            const crates = [];
+
+            const hutCount = 6;
+            for (let i = 0; i < hutCount; i++) {
+                const angle = (i / hutCount) * Math.PI * 2 + 0.3;
+                const rad = 32 + (i % 2) * 14;
+                const hx = giant.cx + Math.cos(angle) * rad;
+                const hz = giant.cz + Math.sin(angle) * rad;
+                const hy = getTerrainHeight(hx, hz);
+
+                const hut = new THREE.Group();
+                hut.position.set(hx, hy, hz);
+                hut.rotation.y = angle + Math.PI;
+
+                const walls = new THREE.Mesh(sharedResources.hutBodyGeo, sharedResources.hutWallMat);
+                walls.position.y = 1.7;
+                walls.castShadow = true;
+                hut.add(walls);
+
+                const roof = new THREE.Mesh(sharedResources.hutRoofGeo, sharedResources.hutRoofMat);
+                roof.position.y = 4.6;
+                roof.castShadow = true;
+                hut.add(roof);
+
+                villageGroup.add(hut);
+            }
+
+            const crateCount = 8;
+            for (let c = 0; c < crateCount; c++) {
+                const crateId = `${giant.key}_crate_${c}`;
+                const angle = (c / crateCount) * Math.PI * 2;
+                const rad = c < 4 ? 12 : 26;
+                const kx = giant.cx + Math.cos(angle) * rad;
+                const kz = giant.cz + Math.sin(angle) * rad;
+                const ky = getTerrainHeight(kx, kz);
+
+                const isOpened = openedCrates.has(crateId);
+                const crateGroup = new THREE.Group();
+                crateGroup.position.set(kx, ky, kz);
+                crateGroup.rotation.y = angle;
+
+                const boxMesh = new THREE.Mesh(
+                    sharedResources.crateBoxGeo,
+                    isOpened ? sharedResources.crateOpenMat : sharedResources.crateClosedMat
+                );
+                boxMesh.position.y = 0.5;
+                boxMesh.castShadow = true;
+                crateGroup.add(boxMesh);
+
+                const lidMesh = new THREE.Mesh(
+                    sharedResources.crateLidGeo,
+                    isOpened ? sharedResources.crateOpenMat : sharedResources.crateTrimMat
+                );
+                lidMesh.position.y = isOpened ? 0.25 : 1.05;
+                if (isOpened) {
+                    lidMesh.position.z = -0.55;
+                    lidMesh.rotation.x = -1.1;
+                }
+                crateGroup.add(lidMesh);
+
+                crateGroup.userData = {
+                    crateId,
+                    opened: isOpened,
+                    boxMesh,
+                    lidMesh
+                };
+
+                villageGroup.add(crateGroup);
+                crates.push(crateGroup);
+            }
+
+            scene.add(villageGroup);
+            activeVillages.set(giant.key, { group: villageGroup, crates, cx: giant.cx, cz: giant.cz });
+        }
+
+        function rollCrateWeapon() {
+            const roll = Math.random() * 105;
+            if (roll < 1) return 'minigun';
+            if (roll < 5) return 'rocket';
+            if (roll < 25) return 'chainsaw';
+            if (roll < 55) return 'ak47';
+            return 'pistol';
+        }
+
+        function findNearbyClosedCrate() {
+            for (const v of activeVillages.values()) {
+                for (const c of v.crates) {
+                    if (!c.userData.opened) {
+                        const dist = Math.hypot(c.position.x - player.x, c.position.z - player.z);
+                        if (dist <= 4.5) return c;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function tryOpenNearbyCrate() {
+            const crate = findNearbyClosedCrate();
+            if (!crate) return false;
+
+            crate.userData.opened = true;
+            openedCrates.add(crate.userData.crateId);
+
+            crate.userData.boxMesh.material = sharedResources.crateOpenMat;
+            crate.userData.lidMesh.material = sharedResources.crateOpenMat;
+            crate.userData.lidMesh.position.y = 0.25;
+            crate.userData.lidMesh.position.z = -0.55;
+            crate.userData.lidMesh.rotation.x = -1.1;
+
+            const weaponId = rollCrateWeapon();
+            const w = WEAPONS[weaponId];
+            const isNew = !player.unlockedWeapons.includes(weaponId);
+
+            if (isNew) {
+                player.unlockedWeapons.push(weaponId);
+                player.selectedTool = weaponId;
+                showToast(`UNLOCKED ${w.name.toUpperCase()}!`);
+            } else {
+                if (w.ammoType) {
+                    player.reserveAmmo[w.ammoType] = (player.reserveAmmo[w.ammoType] || 0) + w.magSize;
+                }
+                showToast(`FOUND ${w.name.toUpperCase()} (+${w.magSize} AMMO)!`);
+            }
+
+            updateHUD();
+            saveGameState();
+            return true;
+        }
+
         function buildSharkMesh(bodyMat, scale) {
             const fishGroup = new THREE.Group();
 
-            // Streamlined rear torso
             const torso = new THREE.Mesh(sharedResources.sharkBodyGeo, bodyMat);
             torso.rotation.x = -Math.PI / 2;
             torso.position.set(0, 0, -0.45);
             torso.castShadow = true;
             fishGroup.add(torso);
 
-            // Pointed snout
             const snout = new THREE.Mesh(sharedResources.sharkSnoutGeo, bodyMat);
             snout.rotation.x = Math.PI / 2;
             snout.position.set(0, 0, 1.4);
             fishGroup.add(snout);
 
-            // Pale underbelly
             const belly = new THREE.Mesh(sharedResources.sharkBellyGeo, sharedResources.sharkBellyMat);
             belly.position.set(0, -0.32, 0.25);
             fishGroup.add(belly);
 
-            // Iconic Dorsal Fin
             const dorsal = new THREE.Mesh(sharedResources.sharkDorsalGeo, bodyMat);
             dorsal.position.set(0, 0.72, 0.15);
             dorsal.rotation.x = -0.25;
             fishGroup.add(dorsal);
 
-            // Pectoral Side Fins
             const pectoral = new THREE.Mesh(sharedResources.sharkPectoralGeo, bodyMat);
             pectoral.position.set(0, -0.18, 0.45);
             fishGroup.add(pectoral);
 
-            // Tail Fin Pivot for swimming animation
             const tailPivot = new THREE.Group();
             tailPivot.position.set(0, 0, -1.7);
             const tailFin = new THREE.Mesh(sharedResources.sharkTailFinGeo, bodyMat);
@@ -957,7 +1319,6 @@
             let species, maxHp, speed, damage, attackRange, hitRadius;
 
             if (inOcean) {
-                // 32% chance to spawn a colossal Megalodon (10 shots to down), 68% regular Shark (1 shot)
                 const isMegalodon = Math.random() < 0.32;
                 const scale = isMegalodon ? 2.55 : 1.05;
                 const mat = isMegalodon ? sharedResources.megalodonMat : sharedResources.sharkMat;
@@ -969,7 +1330,7 @@
                 group.position.set(x, swimY, z);
 
                 species = isMegalodon ? 'megalodon' : 'shark';
-                maxHp = isMegalodon ? 500 : 50; // Each shot deals 50 dmg -> 10 shots for Megalodon, 1 shot for Shark
+                maxHp = isMegalodon ? 500 : 50;
                 speed = isMegalodon ? 5.6 : 7.4;
                 damage = isMegalodon ? 28 : 14;
                 attackRange = isMegalodon ? 4.8 : 3.0;
@@ -1104,12 +1465,16 @@
         function spawnInitialEnvironment() {
             activeTrees.forEach(t => scene.remove(t));
             activeTrees.clear();
+            activeVillages.forEach(v => scene.remove(v.group));
+            activeVillages.clear();
             dinosaurs.forEach(d => scene.remove(d));
             flowers.forEach(f => scene.remove(f));
             bullets.forEach(b => scene.remove(b));
+            explosions.forEach(ex => scene.remove(ex));
             dinosaurs = [];
             flowers = [];
             bullets = [];
+            explosions = [];
 
             for (const f of savedFlowersData) {
                 buildFlowerMesh(f.x, f.y, f.z, f.color);
@@ -1128,9 +1493,7 @@
             const now = Date.now();
 
             for (const [key, respawnAt] of choppedTreeCells.entries()) {
-                if (now >= respawnAt) {
-                    choppedTreeCells.delete(key);
-                }
+                if (now >= respawnAt) choppedTreeCells.delete(key);
             }
 
             for (const [key, tree] of activeTrees.entries()) {
@@ -1157,6 +1520,17 @@
                     if (dist <= RENDER_RADIUS) {
                         createDeterministicFlora(spec);
                     }
+                }
+            }
+
+            const giant = getGiantSectorInfo(player.x, player.z);
+            if (giant && giant.dist <= giant.islandRadius + RENDER_RADIUS) {
+                createVillageForSector(giant);
+            }
+            for (const [vKey, v] of activeVillages.entries()) {
+                if (Math.hypot(v.cx - player.x, v.cz - player.z) > 320) {
+                    scene.remove(v.group);
+                    activeVillages.delete(vKey);
                 }
             }
 
@@ -1216,8 +1590,42 @@
             return true;
         }
 
-        function spawnBullet() {
-            const bullet = new THREE.Mesh(sharedResources.bulletGeo, sharedResources.bulletMat);
+        function triggerExplosion(pos, radius, maxDamage) {
+            const expMesh = new THREE.Mesh(
+                sharedResources.explosionGeo,
+                new THREE.MeshBasicMaterial({ color: 0xff6b00, transparent: true, opacity: 0.85 })
+            );
+            expMesh.position.copy(pos);
+            expMesh.scale.setScalar(0.5);
+            expMesh.userData = { age: 0, maxRadius: radius };
+            scene.add(expMesh);
+            explosions.push(expMesh);
+
+            for (let j = dinosaurs.length - 1; j >= 0; j--) {
+                const dino = dinosaurs[j];
+                if (dino.userData.isDead) continue;
+                const dDist = dino.position.distanceTo(pos);
+                if (dDist <= radius) {
+                    const falloff = Math.max(0.35, 1 - dDist / radius);
+                    dino.userData.hp -= Math.round(maxDamage * falloff);
+                    if (dino.userData.hp <= 0) {
+                        dino.userData.hp = 0;
+                        dino.userData.isDead = true;
+                        dino.userData.deathTimer = 0;
+                        if (dino.userData.species === 'megalodon') {
+                            showToast('MEGALODON OBLITERATED!');
+                        }
+                    }
+                }
+            }
+        }
+
+        function spawnBullet(weapon) {
+            const isRocket = weapon.id === 'rocket';
+            const bullet = new THREE.Mesh(
+                isRocket ? sharedResources.rocketGeo : sharedResources.bulletGeo,
+                isRocket ? sharedResources.rocketMat : sharedResources.bulletMat
+            );
 
             const startPos = player.isScoped
                 ? new THREE.Vector3(0, -0.05, -0.9)
@@ -1225,12 +1633,23 @@
             startPos.applyMatrix4(camera.matrixWorld);
             bullet.position.copy(startPos);
 
-            const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
-            const speed = 165;
+            const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            dir.x += (Math.random() - 0.5) * weapon.spread;
+            dir.y += (Math.random() - 0.5) * weapon.spread;
+            dir.z += (Math.random() - 0.5) * weapon.spread;
+            dir.normalize();
+
+            if (isRocket) {
+                bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+            }
+
             bullet.userData = {
-                vx: dir.x * speed,
-                vy: dir.y * speed + 1.8,
-                vz: dir.z * speed,
+                vx: dir.x * weapon.speed,
+                vy: dir.y * weapon.speed + (isRocket ? 0.8 : 1.6),
+                vz: dir.z * weapon.speed,
+                damage: weapon.damage,
+                isRocket,
+                splashRadius: weapon.splashRadius || 0,
                 life: 4.5,
                 hasHit: false
             };
@@ -1240,62 +1659,115 @@
         }
 
         function handlePrimaryAction() {
-            if (!isGameStarted || !scene || !camera) return;
+            if (!isGameStarted || !scene || !camera || fireCooldown > 0) return;
 
-            if (player.selectedTool === 'axe') {
-                swingTimer = 0.28;
+            const weapon = WEAPONS[player.selectedTool] || WEAPONS.axe;
+
+            if (weapon.type === 'tool') {
+                const nearest = findNearestVillage(player.x, player.z);
+                if (nearest) {
+                    showToast(`NEAREST VILLAGE: ${Math.round(nearest.dist)}m AWAY`);
+                }
+                return;
+            }
+
+            if (weapon.type === 'melee') {
+                if (weapon.id === 'chainsaw') {
+                    if ((player.magAmmo.chainsaw || 0) <= 0) {
+                        showToast('OUT OF CHAINSAW FUEL! (RELOAD OR CRAFT)');
+                        return;
+                    }
+                    player.magAmmo.chainsaw = Math.max(0, player.magAmmo.chainsaw - 1);
+                }
+
+                fireCooldown = weapon.cooldown;
+                swingTimer = weapon.id === 'chainsaw' ? 0.14 : 0.28;
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                for (const [key, tree] of activeTrees.entries()) {
-                    const dist = tree.position.distanceTo(camera.position);
-                    if (dist < 5.5) {
-                        const hits = raycaster.intersectObjects(tree.children, true);
-                        if (hits.length > 0 || dist < 3.4) {
-                            tree.userData.hp--;
-                            player.wood += 2;
-                            if (tree.userData.hp <= 0) {
-                                // Only drop 1 Apple (+10 HP) when a forest tree falls (not cacti, and not per hit)
-                                if (tree.userData.kind !== 'cactus') {
-                                    player.health = Math.min(100, player.health + 10);
-                                    showToast('+1 APPLE (+10 HP)');
-                                }
-                                choppedTreeCells.set(key, Date.now() + TREE_REGROW_MS);
-                                scene.remove(tree);
-                                activeTrees.delete(key);
+
+                let hitDino = false;
+                for (let j = dinosaurs.length - 1; j >= 0; j--) {
+                    const dino = dinosaurs[j];
+                    if (dino.userData.isDead) continue;
+                    const dist = dino.position.distanceTo(camera.position);
+                    if (dist <= weapon.range + (dino.userData.hitRadius || 1.5)) {
+                        const hits = raycaster.intersectObjects(dino.children, true);
+                        if (hits.length > 0 || dist < 3.6) {
+                            dino.userData.hp -= weapon.damage;
+                            hitDino = true;
+                            if (dino.userData.hp <= 0) {
+                                dino.userData.hp = 0;
+                                dino.userData.isDead = true;
+                                dino.userData.deathTimer = 0;
                             }
-                            updateHUD();
-                            saveGameState();
                             break;
                         }
                     }
                 }
-            } else if (player.selectedTool === 'gun') {
-                if (player.ammo <= 0) return;
-                player.ammo--;
-                recoilTimer = 0.16;
+
+                if (!hitDino) {
+                    for (const [key, tree] of activeTrees.entries()) {
+                        const dist = tree.position.distanceTo(camera.position);
+                        if (dist < weapon.range) {
+                            const hits = raycaster.intersectObjects(tree.children, true);
+                            if (hits.length > 0 || dist < 3.4) {
+                                tree.userData.hp -= weapon.treeHits;
+                                player.wood += (weapon.id === 'chainsaw' ? 6 : 2);
+                                if (tree.userData.hp <= 0) {
+                                    if (tree.userData.kind !== 'cactus') {
+                                        player.health = Math.min(100, player.health + 10);
+                                        showToast('+1 APPLE (+10 HP)');
+                                    }
+                                    choppedTreeCells.set(key, Date.now() + TREE_REGROW_MS);
+                                    scene.remove(tree);
+                                    activeTrees.delete(key);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                updateHUD();
+                saveGameState();
+            } else {
+                const currentMag = player.magAmmo[weapon.id] || 0;
+                if (currentMag <= 0) {
+                    showToast('EMPTY MAGAZINE! PRESS RELOAD');
+                    return;
+                }
+                player.magAmmo[weapon.id] = currentMag - 1;
+                fireCooldown = weapon.cooldown;
+                recoilTimer = Math.min(0.16, weapon.cooldown * 0.8);
+
                 if (muzzleFlash) {
                     muzzleFlash.visible = true;
-                    setTimeout(() => { if (muzzleFlash) muzzleFlash.visible = false; }, 60);
+                    setTimeout(() => { if (muzzleFlash) muzzleFlash.visible = false; }, 55);
                 }
-                spawnBullet();
+                spawnBullet(weapon);
                 updateHUD();
                 saveGameState();
             }
         }
 
         function reloadGun() {
-            if (player.selectedTool !== 'gun') return;
-            const needed = 5 - player.ammo;
-            if (needed > 0 && player.totalAmmo > 0) {
-                const transfer = Math.min(needed, player.totalAmmo);
-                player.ammo += transfer;
-                player.totalAmmo -= transfer;
+            const weapon = WEAPONS[player.selectedTool];
+            if (!weapon || !weapon.ammoType) return;
+
+            const currentMag = player.magAmmo[weapon.id] || 0;
+            const reserve = player.reserveAmmo[weapon.ammoType] || 0;
+            const needed = weapon.magSize - currentMag;
+
+            if (needed > 0 && reserve > 0) {
+                const transfer = Math.min(needed, reserve);
+                player.magAmmo[weapon.id] = currentMag + transfer;
+                player.reserveAmmo[weapon.ammoType] = reserve - transfer;
                 updateHUD();
                 saveGameState();
             }
         }
 
         function toggleScope(forceState) {
-            if (player.selectedTool !== 'gun') {
+            if (player.selectedTool !== 'rifle') {
                 player.isScoped = false;
             } else {
                 player.isScoped = typeof forceState === 'boolean' ? forceState : !player.isScoped;
@@ -1310,7 +1782,14 @@
             const crosshair = document.getElementById('crosshair');
             if (scopeOverlay) scopeOverlay.classList.toggle('hidden', !player.isScoped);
             if (crosshair) crosshair.classList.toggle('hidden', player.isScoped);
-            if (gunModel) gunModel.visible = (player.selectedTool === 'gun' && !player.isScoped);
+            updateVisibleWeaponMesh();
+        }
+
+        function updateVisibleWeaponMesh() {
+            for (const [id, mesh] of Object.entries(weaponMeshes)) {
+                if (!mesh) continue;
+                mesh.visible = (id === player.selectedTool && !player.isScoped);
+            }
         }
 
         function plantFlower() {
@@ -1335,12 +1814,12 @@
             saveGameState();
         }
 
-        function toggleCraftingMenu() {
-            const menu = document.getElementById('crafting-menu');
+        function toggleWeaponMenu() {
+            const menu = document.getElementById('weapon-menu');
             if (!menu) return;
             const isHidden = menu.classList.contains('hidden');
             if (isHidden) {
-                updateHUD();
+                renderWeaponMenu();
                 menu.classList.remove('hidden');
                 if (document.pointerLockElement) document.exitPointerLock();
             } else {
@@ -1348,12 +1827,105 @@
             }
         }
 
-        function craftAmmo() {
-            if (player.wood >= 3) {
-                player.wood -= 3;
-                player.totalAmmo += 5;
-                updateHUD();
-                saveGameState();
+        function renderWeaponMenu() {
+            const list = document.getElementById('weapon-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            for (const w of Object.values(WEAPONS)) {
+                const unlocked = player.unlockedWeapons.includes(w.id);
+                const equipped = player.selectedTool === w.id;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = equipped
+                    ? 'w-full p-3 rounded-xl bg-emerald-600/40 border border-emerald-400 text-left flex justify-between items-center cursor-pointer'
+                    : (unlocked
+                        ? 'w-full p-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-white/10 text-left flex justify-between items-center cursor-pointer'
+                        : 'w-full p-3 rounded-xl bg-slate-900/60 border border-white/5 text-left flex justify-between items-center opacity-50 cursor-not-allowed');
+
+                const ammoText = w.ammoType
+                    ? `${player.magAmmo[w.id] || 0} / ${player.reserveAmmo[w.ammoType] || 0}`
+                    : 'UNLIMITED';
+
+                btn.innerHTML = `
+                    <div>
+                        <div class="font-black text-sm ${unlocked ? 'text-white' : 'text-slate-400'}">[${w.keyNum}] ${w.name}</div>
+                        <div class="text-[11px] text-slate-300">${unlocked ? w.desc : 'Locked — Open crates on Village Islands'}</div>
+                    </div>
+                    <div class="text-xs font-bold ${equipped ? 'text-emerald-300' : 'text-cyan-300'} ml-2 shrink-0">
+                        ${equipped ? 'EQUIPPED' : (unlocked ? ammoText : 'LOCKED')}
+                    </div>
+                `;
+
+                if (unlocked) {
+                    btn.onclick = () => {
+                        player.selectedTool = w.id;
+                        updateHUD();
+                        saveGameState();
+                        toggleWeaponMenu();
+                    };
+                }
+                list.appendChild(btn);
+            }
+        }
+
+        function toggleCraftingMenu() {
+            const menu = document.getElementById('crafting-menu');
+            if (!menu) return;
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                renderCraftingMenu();
+                menu.classList.remove('hidden');
+                if (document.pointerLockElement) document.exitPointerLock();
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
+
+        function renderCraftingMenu() {
+            const craftWoodEl = document.getElementById('craft-wood-val');
+            if (craftWoodEl) craftWoodEl.innerText = player.wood;
+
+            const list = document.getElementById('craft-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            const craftableWeapons = Object.values(WEAPONS).filter(w => w.ammoType !== null);
+            for (const w of craftableWeapons) {
+                const unlocked = player.unlockedWeapons.includes(w.id);
+                const canAfford = player.wood >= w.craftCost;
+                const unitLabel = w.id === 'chainsaw' ? 'Fuel' : 'Ammo';
+
+                const row = document.createElement('div');
+                row.className = 'p-2.5 rounded-xl bg-slate-900/85 border border-white/10 flex justify-between items-center';
+                row.innerHTML = `
+                    <div>
+                        <div class="text-xs font-black text-white">${w.name} ${unitLabel}</div>
+                        <div class="text-[11px] text-slate-400">+${w.craftGain} ${unitLabel} • Cost: <span class="text-amber-400 font-bold">${w.craftCost} Wood</span></div>
+                    </div>
+                `;
+
+                const craftBtn = document.createElement('button');
+                craftBtn.type = 'button';
+                craftBtn.innerText = unlocked ? 'CRAFT' : 'LOCKED';
+                craftBtn.className = (unlocked && canAfford)
+                    ? 'px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer'
+                    : 'px-3 py-1.5 rounded-lg bg-slate-700 text-slate-400 font-bold text-xs cursor-not-allowed';
+
+                if (unlocked && canAfford) {
+                    craftBtn.onclick = () => {
+                        if (player.wood >= w.craftCost) {
+                            player.wood -= w.craftCost;
+                            player.reserveAmmo[w.ammoType] = (player.reserveAmmo[w.ammoType] || 0) + w.craftGain;
+                            updateHUD();
+                            saveGameState();
+                            renderCraftingMenu();
+                        }
+                    };
+                }
+                row.appendChild(craftBtn);
+                list.appendChild(row);
             }
         }
 
@@ -1362,64 +1934,61 @@
             const healthBar = document.getElementById('health-bar');
             const woodVal = document.getElementById('wood-val');
             const craftWoodEl = document.getElementById('craft-wood-val');
+            const ammoLabel = document.getElementById('ammo-label');
             const ammoVal = document.getElementById('ammo-val');
-            const biomeVal = document.getElementById('biome-val');
+            const equippedName = document.getElementById('equipped-name');
+
+            const weapon = WEAPONS[player.selectedTool] || WEAPONS.axe;
 
             if (healthVal) healthVal.innerText = Math.max(0, Math.round(player.health));
             if (healthBar) healthBar.style.width = Math.max(0, player.health) + '%';
             if (woodVal) woodVal.innerText = player.wood;
             if (craftWoodEl) craftWoodEl.innerText = player.wood;
-            if (ammoVal) ammoVal.innerText = player.ammo + ' / ' + player.totalAmmo;
+            if (equippedName) equippedName.innerText = weapon.name.toUpperCase();
 
-            if (biomeVal) {
-                const biome = getBiomeType(player.x, player.z);
-                if (biome === 'ocean') {
-                    biomeVal.innerText = 'OCEAN';
-                    biomeVal.className = 'text-[11px] font-bold text-cyan-300';
-                } else if (biome === 'desert') {
-                    biomeVal.innerText = 'DESERT';
-                    biomeVal.className = 'text-[11px] font-bold text-amber-300';
+            if (ammoLabel && ammoVal) {
+                if (!weapon.ammoType) {
+                    ammoLabel.innerText = weapon.type === 'tool' ? 'RANGE' : 'DURABILITY';
+                    ammoVal.innerText = weapon.type === 'tool' ? 'GLOBAL' : 'INFINITE';
                 } else {
-                    biomeVal.innerText = 'FOREST';
-                    biomeVal.className = 'text-[11px] font-bold text-emerald-300';
+                    ammoLabel.innerText = weapon.id === 'chainsaw' ? 'FUEL' : 'AMMO';
+                    const cur = player.magAmmo[weapon.id] || 0;
+                    const res = player.reserveAmmo[weapon.ammoType] || 0;
+                    ammoVal.innerText = `${cur} / ${res}`;
                 }
             }
 
-            const isGun = player.selectedTool === 'gun';
-            if (!isGun && player.isScoped) {
+            if (player.selectedTool !== 'rifle' && player.isScoped) {
                 toggleScope(false);
             }
 
+            const isRanged = weapon.type === 'ranged';
+            const isTool = weapon.type === 'tool';
+            const hasReload = weapon.ammoType !== null;
+            const hasScope = weapon.id === 'rifle';
+
+            const compassHud = document.getElementById('compass-hud');
+            if (compassHud) {
+                compassHud.classList.toggle('hidden', player.selectedTool !== 'compass');
+            }
+
             const actionBtn = document.getElementById('btn-action');
-            if (actionBtn) actionBtn.innerText = isGun ? 'SHOOT' : 'CHOP';
+            if (actionBtn) {
+                actionBtn.innerText = isTool ? 'PING' : (isRanged ? 'SHOOT' : (weapon.id === 'chainsaw' ? 'SAW' : 'CHOP'));
+            }
 
             const reloadBtn = document.getElementById('btn-reload');
             const scopeBtn = document.getElementById('btn-scope');
             if (reloadBtn) {
-                reloadBtn.classList.toggle('hidden', !isGun);
-                reloadBtn.classList.toggle('flex', isGun);
+                reloadBtn.classList.toggle('hidden', !hasReload);
+                reloadBtn.classList.toggle('flex', hasReload);
             }
             if (scopeBtn) {
-                scopeBtn.classList.toggle('hidden', !isGun);
-                scopeBtn.classList.toggle('flex', isGun);
+                scopeBtn.classList.toggle('hidden', !hasScope);
+                scopeBtn.classList.toggle('flex', hasScope);
             }
 
-            if (axeModel && gunModel) {
-                axeModel.visible = !isGun;
-                gunModel.visible = isGun && !player.isScoped;
-            }
-
-            const axeBtn = document.getElementById('select-axe-btn');
-            const gunBtn = document.getElementById('select-gun-btn');
-            if (axeBtn && gunBtn) {
-                if (!isGun) {
-                    axeBtn.className = "px-3 py-1.5 bg-emerald-600 rounded-lg text-sm font-bold border border-emerald-400 cursor-pointer";
-                    gunBtn.className = "px-3 py-1.5 bg-slate-800 rounded-lg text-sm font-bold border border-slate-600 cursor-pointer";
-                } else {
-                    axeBtn.className = "px-3 py-1.5 bg-slate-800 rounded-lg text-sm font-bold border border-slate-600 cursor-pointer";
-                    gunBtn.className = "px-3 py-1.5 bg-emerald-600 rounded-lg text-sm font-bold border border-emerald-400 cursor-pointer";
-                }
-            }
+            updateVisibleWeaponMesh();
         }
 
         function setupControls() {
@@ -1514,25 +2083,50 @@
             window.addEventListener('touchend', resetTouches);
             window.addEventListener('touchcancel', resetTouches);
 
+            const actionBtn = document.getElementById('btn-action');
+            if (actionBtn) {
+                actionBtn.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                    if (e.cancelable) e.preventDefault();
+                    isActionHeld = true;
+                    handlePrimaryAction();
+                }, { passive: false });
+                actionBtn.addEventListener('touchend', () => { isActionHeld = false; });
+                actionBtn.addEventListener('touchcancel', () => { isActionHeld = false; });
+                actionBtn.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    isActionHeld = true;
+                    handlePrimaryAction();
+                });
+                actionBtn.addEventListener('mouseup', () => { isActionHeld = false; });
+            }
+
             bindBtn('start-btn', startGame);
-            bindBtn('select-axe-btn', () => { player.selectedTool = 'axe'; updateHUD(); saveGameState(); });
-            bindBtn('select-gun-btn', () => { player.selectedTool = 'gun'; updateHUD(); saveGameState(); });
-            bindBtn('btn-action', handlePrimaryAction);
+            bindBtn('open-weapons-btn', toggleWeaponMenu);
+            bindBtn('close-weapon-btn', toggleWeaponMenu);
+            bindBtn('btn-open-crate', tryOpenNearbyCrate);
             bindBtn('btn-reload', reloadGun);
             bindBtn('btn-scope', () => toggleScope());
             bindBtn('btn-plant', plantFlower);
             bindBtn('btn-fly', () => { player.isFlying = !player.isFlying; saveGameState(); });
             bindBtn('btn-sprint', () => { player.isSprinting = !player.isSprinting; });
             bindBtn('btn-craft', toggleCraftingMenu);
-            bindBtn('craft-ammo-btn', craftAmmo);
             bindBtn('close-craft-btn', toggleCraftingMenu);
 
             window.addEventListener('keydown', (e) => {
                 const k = e.key.toLowerCase();
                 keys[k] = true;
                 if (!isGameStarted) return;
-                if (k === '1') { player.selectedTool = 'axe'; updateHUD(); saveGameState(); }
-                if (k === '2') { player.selectedTool = 'gun'; updateHUD(); saveGameState(); }
+
+                const weaponByKey = Object.values(WEAPONS).find(w => w.keyNum === k);
+                if (weaponByKey && player.unlockedWeapons.includes(weaponByKey.id)) {
+                    player.selectedTool = weaponByKey.id;
+                    updateHUD();
+                    saveGameState();
+                }
+
+                if (k === 'b') toggleWeaponMenu();
+                if (k === 'e') tryOpenNearbyCrate();
                 if (k === 'r') reloadGun();
                 if (k === 'z' || k === 'f') toggleScope();
                 if (k === 'p') plantFlower();
@@ -1560,14 +2154,20 @@
                     return;
                 }
                 isMouseDown = true;
+                isActionHeld = true;
                 if (document.pointerLockElement === renderer?.domElement) {
-                    handlePrimaryAction();
+                    if (!tryOpenNearbyCrate()) {
+                        handlePrimaryAction();
+                    }
                 } else if (renderer?.domElement && renderer.domElement.requestPointerLock) {
                     renderer.domElement.requestPointerLock();
                 }
             });
 
-            window.addEventListener('mouseup', () => { isMouseDown = false; });
+            window.addEventListener('mouseup', () => {
+                isMouseDown = false;
+                isActionHeld = false;
+            });
 
             window.addEventListener('mousemove', (e) => {
                 if (!isGameStarted) return;
@@ -1606,6 +2206,14 @@
             if (!isGameStarted || !renderer || !scene || !camera) return;
 
             const dt = Math.min(clock.getDelta(), 0.1);
+            if (fireCooldown > 0) fireCooldown -= dt;
+
+            if (isActionHeld && fireCooldown <= 0) {
+                const w = WEAPONS[player.selectedTool];
+                if (w && (w.id === 'ak47' || w.id === 'minigun' || w.id === 'chainsaw')) {
+                    handlePrimaryAction();
+                }
+            }
 
             autoSaveTimer += dt;
             if (autoSaveTimer >= 3.0) {
@@ -1636,22 +2244,31 @@
             updateInfiniteTerrain(player.x, player.z);
             updateInfiniteWorldEntities();
 
-            // Update biome badge & subtle sky atmosphere tint
+            const nearCrate = findNearbyClosedCrate();
+            const crateBtn = document.getElementById('btn-open-crate');
+            if (crateBtn) {
+                crateBtn.classList.toggle('hidden', !nearCrate);
+                crateBtn.classList.toggle('flex', Boolean(nearCrate));
+            }
+
             const oFactor = getOceanFactor(player.x, player.z);
             const dFactor = getDesertFactor(player.x, player.z) * (1 - oFactor);
             const biomeVal = document.getElementById('biome-val');
             if (biomeVal) {
                 const biome = getBiomeType(player.x, player.z);
-                const label = biome.toUpperCase();
+                const label = biome === 'giant_ocean'
+                    ? 'GIANT OCEAN'
+                    : (biome === 'village_island' ? 'VILLAGE ISLAND' : biome.toUpperCase());
                 if (biomeVal.innerText !== label) {
                     biomeVal.innerText = label;
-                    biomeVal.className = label === 'OCEAN'
+                    biomeVal.className = (biome === 'ocean' || biome === 'giant_ocean')
                         ? 'text-[11px] font-bold text-cyan-300'
-                        : (label === 'DESERT'
+                        : (biome === 'desert' || biome === 'village_island'
                             ? 'text-[11px] font-bold text-amber-300'
                             : 'text-[11px] font-bold text-emerald-300');
                 }
             }
+
             if (scene.background && scene.fog) {
                 const landR = 0.53 * (1 - dFactor) + 0.86 * dFactor;
                 const landG = 0.72 * (1 - dFactor) + 0.78 * dFactor;
@@ -1681,7 +2298,6 @@
                 player.y += (flyUp + Math.sin(player.pitch) * forwardInput) * moveSpeed * dt;
                 if (player.y < groundY) player.y = groundY;
             } else if (inWater) {
-                // Buoyant swimming physics in the Ocean
                 const swimUp = (keys[' '] ? 1 : 0) - (keys['q'] ? 1 : 0);
                 const targetSwimY = Math.max(groundY, WATER_LEVEL + 0.75);
                 player.vy = (targetSwimY - player.y) * 4.5 + swimUp * 6.5;
@@ -1703,30 +2319,54 @@
             camera.rotation.x = player.pitch;
 
             const bob = mag > 0.05 ? Math.sin(performance.now() * 0.011) * 0.016 : 0;
-            if (axeModel && axeModel.visible) {
-                if (swingTimer > 0) {
-                    swingTimer -= dt;
-                    axeModel.rotation.x = 0.2 + Math.sin((0.28 - swingTimer) * 22) * 1.15;
+            const activeMesh = weaponMeshes[player.selectedTool];
+            if (activeMesh && activeMesh.visible) {
+                if (player.selectedTool === 'compass') {
+                    activeMesh.position.y = -0.24 + bob * 0.5;
+                    const nearest = findNearestVillage(player.x, player.z);
+                    const distEl = document.getElementById('compass-dist');
+                    if (nearest) {
+                        const dx = nearest.cx - player.x;
+                        const dz = nearest.cz - player.z;
+                        const worldTargetYaw = Math.atan2(-dx, -dz);
+                        const relAngle = worldTargetYaw - player.yaw;
+                        if (compassNeedlePivot) {
+                            compassNeedlePivot.rotation.y = relAngle;
+                        }
+                        if (distEl) {
+                            distEl.innerText = nearest.dist < 135 ? 'ARRIVED!' : `${Math.round(nearest.dist)} m`;
+                        }
+                    } else if (distEl) {
+                        distEl.innerText = 'SEARCHING...';
+                    }
+                } else if (player.selectedTool === 'axe') {
+                    if (swingTimer > 0) {
+                        swingTimer -= dt;
+                        activeMesh.rotation.x = 0.2 + Math.sin((0.28 - swingTimer) * 22) * 1.15;
+                    } else {
+                        activeMesh.rotation.x = 0.2;
+                    }
+                    activeMesh.position.y = -0.32 + bob;
+                } else if (player.selectedTool === 'chainsaw') {
+                    const buzz = isActionHeld ? (Math.random() - 0.5) * 0.025 : 0;
+                    activeMesh.position.x = 0.34 + buzz;
+                    activeMesh.position.y = -0.32 + bob + buzz;
                 } else {
-                    axeModel.rotation.x = 0.2;
+                    if (recoilTimer > 0) {
+                        recoilTimer -= dt;
+                        activeMesh.position.z = -0.45 + recoilTimer * 0.45;
+                    } else {
+                        activeMesh.position.z = -0.45;
+                    }
+                    activeMesh.position.y = -0.26 + bob * 0.6;
                 }
-                axeModel.position.y = -0.32 + bob;
-            }
-            if (gunModel && gunModel.visible) {
-                if (recoilTimer > 0) {
-                    recoilTimer -= dt;
-                    gunModel.position.z = -0.45 + recoilTimer * 0.45;
-                } else {
-                    gunModel.position.z = -0.45;
-                }
-                gunModel.position.y = -0.26 + bob * 0.6;
             }
 
-            // Physical Bullets (Single-Target Hit + Megalodon 10-Shot Health)
+            // Physical Bullets & Rockets
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const b = bullets[i];
                 b.userData.life -= dt;
-                b.userData.vy -= 14.0 * dt;
+                b.userData.vy -= (b.userData.isRocket ? 4.5 : 14.0) * dt;
 
                 b.position.x += b.userData.vx * dt;
                 b.position.y += b.userData.vy * dt;
@@ -1740,17 +2380,20 @@
                         const dinoCenter = new THREE.Vector3(dino.position.x, dino.position.y + yOffset, dino.position.z);
                         if (b.position.distanceTo(dinoCenter) < (dino.userData.hitRadius || 1.9)) {
                             b.userData.hasHit = true;
-                            dino.userData.hp -= 50; // 500 HP Megalodon = 10 shots; 50 HP Rex/Raptor/Shark = 1 shot
-                            if (dino.userData.hp <= 0) {
-                                dino.userData.hp = 0;
-                                dino.userData.isDead = true;
-                                dino.userData.deathTimer = 0;
-                                if (dino.userData.species === 'megalodon') {
-                                    showToast('MEGALODON DEFEATED!');
+                            if (b.userData.isRocket) {
+                                triggerExplosion(b.position, b.userData.splashRadius, b.userData.damage);
+                            } else {
+                                dino.userData.hp -= b.userData.damage;
+                                if (dino.userData.hp <= 0) {
+                                    dino.userData.hp = 0;
+                                    dino.userData.isDead = true;
+                                    dino.userData.deathTimer = 0;
+                                    if (dino.userData.species === 'megalodon') {
+                                        showToast('MEGALODON DEFEATED!');
+                                    }
+                                } else if (dino.userData.species === 'megalodon') {
+                                    showToast(`MEGALODON HP: ${dino.userData.hp} / ${dino.userData.maxHp}`);
                                 }
-                            } else if (dino.userData.species === 'megalodon') {
-                                const shotsLeft = Math.ceil(dino.userData.hp / 50);
-                                showToast(`MEGALODON HIT! (${shotsLeft} SHOTS LEFT)`);
                             }
                             break;
                         }
@@ -1759,8 +2402,25 @@
 
                 const terrainAtBullet = getTerrainHeight(b.position.x, b.position.z);
                 if (b.userData.hasHit || b.position.y <= terrainAtBullet || b.userData.life <= 0) {
+                    if (!b.userData.hasHit && b.userData.isRocket && b.position.y <= terrainAtBullet) {
+                        triggerExplosion(b.position, b.userData.splashRadius, b.userData.damage);
+                    }
                     scene.remove(b);
                     bullets.splice(i, 1);
+                }
+            }
+
+            // Rocket Explosion Expanding Fireballs
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const ex = explosions[i];
+                ex.userData.age += dt;
+                const progress = ex.userData.age / 0.45;
+                if (progress >= 1) {
+                    scene.remove(ex);
+                    explosions.splice(i, 1);
+                } else {
+                    ex.scale.setScalar(0.5 + progress * ex.userData.maxRadius);
+                    ex.material.opacity = 0.85 * (1 - progress);
                 }
             }
 
@@ -1772,7 +2432,6 @@
                 if (d.isDead) {
                     d.deathTimer += dt;
                     if (d.isAquatic) {
-                        // Roll belly-up and sink toward the ocean floor
                         if (dino.rotation.z < Math.PI) {
                             dino.rotation.z = Math.min(Math.PI, dino.rotation.z + dt * 3.5);
                         }
@@ -1799,7 +2458,6 @@
                 const dist = Math.hypot(dx, dz);
 
                 if (d.isAquatic) {
-                    // Aquatic AI: Sharks & Megalodons stay in ocean water and chase swimming players
                     const playerInOcean = getTerrainHeight(player.x, player.z) < WATER_LEVEL - 0.2 && player.y <= WATER_LEVEL + 2.2;
                     const aggroRange = d.species === 'megalodon' ? 58 : 42;
                     const chasesPlayer = playerInOcean && dist < aggroRange;
@@ -1840,7 +2498,6 @@
                             }
                         }
                     } else {
-                        // Patrol deep ocean water; turn back if approaching shoreline
                         d.wanderTimer -= dt;
                         if (d.wanderTimer <= 0) {
                             d.wanderTimer = 2.5 + Math.random() * 4;
@@ -1869,7 +2526,6 @@
                     continue;
                 }
 
-                // Land Dino AI (Rex & Desert Raptor)
                 const verticalGap = Math.abs((player.y - 1.5) - dino.position.y);
                 const seesPlayer = canDinoSeePlayer(dino);
 
@@ -1877,7 +2533,6 @@
                     if (dist > d.attackRange) {
                         const nx = dino.position.x + (dx / dist) * d.speed * dt;
                         const nz = dino.position.z + (dz / dist) * d.speed * dt;
-                        // Keep land dinosaurs from walking deep into the ocean
                         if (getTerrainHeight(nx, nz) >= WATER_LEVEL - 0.2) {
                             dino.position.x = nx;
                             dino.position.z = nz;
