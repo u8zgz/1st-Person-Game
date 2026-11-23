@@ -122,6 +122,10 @@
             background: rgba(239, 68, 68, 0.9);
             box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
         }
+        #username-input {
+            user-select: text;
+            -webkit-user-select: text;
+        }
     </style>
 </head>
 <body>
@@ -138,7 +142,7 @@
         </div>
 
         <!-- Top Left Stats & Biome HUD -->
-        <div class="absolute top-4 left-4 hud-panel p-3.5 rounded-xl text-white flex flex-col gap-2 min-w-[195px] pointer-events-none z-20">
+        <div class="absolute top-4 left-4 hud-panel p-3.5 rounded-xl text-white flex flex-col gap-2 min-w-[205px] pointer-events-none z-20">
             <div class="flex justify-between items-center text-xs font-bold text-slate-200">
                 <span>HEALTH</span>
                 <span id="health-val" class="text-rose-400 font-black">100%</span>
@@ -147,7 +151,12 @@
                 <div id="health-bar" class="bg-rose-500 h-full w-full transition-all duration-150"></div>
             </div>
 
-            <div class="flex justify-between items-center text-xs font-bold text-slate-200 mt-1">
+            <div class="flex justify-between items-center text-xs font-bold text-slate-200 mt-0.5">
+                <span>AUTO-MEDKITS</span>
+                <span id="medkit-val" class="text-emerald-400 font-black">0</span>
+            </div>
+
+            <div class="flex justify-between items-center text-xs font-bold text-slate-200">
                 <span>WOOD</span>
                 <span id="wood-val" class="text-amber-300 font-black">0</span>
             </div>
@@ -160,6 +169,11 @@
             <div class="flex justify-between items-center text-xs font-bold text-slate-200 pt-1 border-t border-white/15">
                 <span>BIOME</span>
                 <span id="biome-val" class="text-[11px] font-black text-emerald-300">FOREST</span>
+            </div>
+
+            <div class="flex justify-between items-center text-[11px] font-bold text-slate-300">
+                <span id="hud-username">EXPLORER</span>
+                <span id="hud-server-badge" class="text-cyan-300 font-black">SOLO WORLD</span>
             </div>
         </div>
 
@@ -216,35 +230,73 @@
             </div>
         </div>
 
-        <!-- Start Screen Overlay -->
-        <div id="start-overlay" class="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 pointer-events-auto">
-            <div class="max-w-lg w-full flex flex-col items-center text-center">
+        <!-- Start Screen Overlay with Username & Server Selection -->
+        <div id="start-overlay" class="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-6 pointer-events-auto overflow-y-auto">
+            <div class="max-w-lg w-full flex flex-col items-center text-center my-auto">
                 <h1 class="text-4xl md:text-6xl font-black tracking-wider text-emerald-400 mb-2 drop-shadow-md">DINO SURVIVAL 3D</h1>
-                <p class="text-slate-300 mb-6 text-sm md:text-base leading-relaxed">
-                    Explore an infinite wilderness of Forests, Rainforests, Savannas, Deserts, Ice Tundras, and vast Oceans. Discover Village Islands with loot crates, swim and dive in deep seas, and unlock epic Bosses!
+                <p class="text-slate-300 mb-5 text-sm leading-relaxed">
+                    Explore 17 massive biomes, swim and dive in deep seas, craft Auto-Medkits & ammo, and defeat 18 Apex Bosses!
                 </p>
 
-                <div class="hud-panel p-4 rounded-xl w-full text-left text-xs md:text-sm text-slate-200 mb-6 grid grid-cols-2 gap-3 border border-white/15">
-                    <div><span class="text-emerald-400 font-bold">WASD / Joystick:</span> Move / Swim</div>
-                    <div><span class="text-emerald-400 font-bold">Space / Q (Water):</span> Swim Up / Dive</div>
-                    <div><span class="text-emerald-400 font-bold">[1-8] / [B] Key:</span> Weapons Menu</div>
-                    <div><span class="text-emerald-400 font-bold">Action / E Key:</span> Attack / Open Crate</div>
-                    <div><span class="text-emerald-400 font-bold">Right-Click / Z:</span> Aim / Scope</div>
-                    <div><span class="text-emerald-400 font-bold">M Key / Compass:</span> Village Compass</div>
-                    <div><span class="text-emerald-400 font-bold">C Key / Button:</span> Crafting Station</div>
-                    <div><span class="text-emerald-400 font-bold">K Key / Bosses:</span> Boss Menu</div>
+                <!-- Username & Server Mode Box -->
+                <div class="hud-panel p-4 rounded-2xl w-full text-left mb-4 border border-white/20 flex flex-col gap-3">
+                    <div>
+                        <label for="username-input" class="block text-xs font-black text-emerald-400 tracking-wider mb-1">ENTER UNIQUE USERNAME (SAVES PROGRESS)</label>
+                        <input id="username-input" type="text" maxlength="18" placeholder="e.g. RexHunter99" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white font-bold text-sm focus:outline-none focus:border-emerald-400" />
+                        <p id="username-error" class="text-rose-400 text-xs font-bold mt-1 hidden">Username is required or already taken!</p>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/10">
+                        <div>
+                            <div class="text-xs font-black text-slate-200">SERVER MODE (NO PVP)</div>
+                            <div id="server-mode-desc" class="text-[11px] text-slate-400">Private Server — Solo expedition</div>
+                        </div>
+                        <button id="server-toggle-btn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-400/60 text-cyan-300 font-black text-xs cursor-pointer shrink-0">
+                            SERVER: PRIVATE
+                        </button>
+                    </div>
                 </div>
 
-                <button id="start-btn" type="button" onclick="window.startGame && window.startGame()" class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xl shadow-xl transition transform active:scale-95 cursor-pointer">
-                    PLAY SURVIVAL
+                <div class="hud-panel p-3.5 rounded-xl w-full text-left text-xs text-slate-200 mb-5 grid grid-cols-2 gap-2.5 border border-white/15">
+                    <div><span class="text-emerald-400 font-bold">WASD / Joystick:</span> Move / Swim</div>
+                    <div><span class="text-emerald-400 font-bold">Space / Q (Water):</span> Swim Up / Dive</div>
+                    <div><span class="text-emerald-400 font-bold">[B] Key:</span> 18 Weapons & Tools</div>
+                    <div><span class="text-emerald-400 font-bold">[E] Key:</span> Open Village Crates</div>
+                    <div><span class="text-emerald-400 font-bold">Right-Click / Z:</span> Aim / Scope</div>
+                    <div><span class="text-emerald-400 font-bold">[M] Key:</span> Village Compass</div>
+                    <div><span class="text-emerald-400 font-bold">[C] Key:</span> Craft Medkits & Ammo</div>
+                    <div><span class="text-emerald-400 font-bold">[K] Key:</span> 18 Apex Bosses</div>
+                </div>
+
+                <button id="start-btn" type="button" class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xl shadow-xl transition transform active:scale-95 cursor-pointer">
+                    JOIN WORLD
                 </button>
+            </div>
+        </div>
+
+        <!-- Server Selector Modal -->
+        <div id="server-modal" class="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-4">
+            <div class="hud-panel p-6 rounded-2xl max-w-md w-full text-white flex flex-col items-center border border-cyan-500/40">
+                <h2 class="text-xl font-black text-cyan-400 mb-1">SELECT SERVER TYPE</h2>
+                <p class="text-xs text-slate-300 mb-4 text-center">PvP is disabled on all servers. Play solo or explore alongside other players.</p>
+                <div class="w-full flex flex-col gap-3 mb-4">
+                    <button id="select-private-btn" type="button" class="w-full p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-emerald-400/60 text-left cursor-pointer">
+                        <div class="font-black text-sm text-emerald-300">PRIVATE SERVER</div>
+                        <div class="text-xs text-slate-300">Single-player world with full dinosaur survival & bosses.</div>
+                    </button>
+                    <button id="select-public-btn" type="button" class="w-full p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-400/60 text-left cursor-pointer">
+                        <div class="font-black text-sm text-cyan-300">PUBLIC SERVER (PEACEFUL CO-OP)</div>
+                        <div class="text-xs text-slate-300">See other online explorers in real time. No PvP damage.</div>
+                    </button>
+                </div>
+                <button id="close-server-modal-btn" type="button" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl cursor-pointer">CANCEL</button>
             </div>
         </div>
 
         <!-- Weapons Menu -->
         <div id="weapon-menu" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-4">
             <div class="hud-panel p-6 rounded-2xl max-w-lg w-full text-white flex flex-col items-center border border-white/20">
-                <h2 class="text-2xl font-black text-emerald-400 mb-1">WEAPONS & TOOLS</h2>
+                <h2 class="text-2xl font-black text-emerald-400 mb-1">WEAPONS & TOOLS (18)</h2>
                 <p class="text-xs text-slate-300 mb-4 text-center">Find rare weapons in Village Island crates or equip unlocked gear.</p>
                 <div id="weapon-list" class="w-full flex flex-col gap-2 max-h-80 overflow-y-auto mb-4 pr-1"></div>
                 <button id="close-weapon-btn" type="button" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl cursor-pointer">CLOSE</button>
@@ -255,7 +307,7 @@
         <div id="crafting-menu" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-4">
             <div class="hud-panel p-6 rounded-2xl max-w-lg w-full text-white flex flex-col items-center border border-white/20">
                 <h2 class="text-2xl font-black text-amber-400 mb-1">CRAFTING STATION</h2>
-                <p class="text-xs text-slate-300 mb-4 text-center">Spend Wood (<span id="craft-wood-display" class="text-amber-300 font-black">0</span> available) to craft ammo & chainsaw fuel.</p>
+                <p class="text-xs text-slate-300 mb-4 text-center">Spend Wood (<span id="craft-wood-display" class="text-amber-300 font-black">0</span> available) to craft Auto-Medkits & ammo.</p>
                 <div id="craft-list" class="w-full flex flex-col gap-2 max-h-80 overflow-y-auto mb-4 pr-1"></div>
                 <button id="close-craft-btn" type="button" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl cursor-pointer">CLOSE</button>
             </div>
@@ -264,8 +316,8 @@
         <!-- Boss Arena Menu -->
         <div id="boss-menu" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-4">
             <div class="hud-panel p-6 rounded-2xl max-w-lg w-full text-white flex flex-col items-center border border-rose-500/30">
-                <h2 class="text-2xl font-black text-rose-400 mb-1">APEX BOSS ARENA</h2>
-                <p id="kill-stats-summary" class="text-xs text-slate-300 mb-4 text-center">Sharks: 0 | Megalodons: 0 | Land Dinos: 0</p>
+                <h2 class="text-2xl font-black text-rose-400 mb-1">APEX BOSS ARENA (18)</h2>
+                <p id="kill-stats-summary" class="text-xs text-slate-300 mb-4 text-center">Sharks: 0 | Leviathans: 0 | Flyers: 0 | Herbivores: 0 | Carnivores: 0</p>
                 <div id="boss-list" class="w-full flex flex-col gap-2 max-h-80 overflow-y-auto mb-4 pr-1"></div>
                 <button id="close-boss-btn" type="button" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl cursor-pointer">CLOSE</button>
             </div>
@@ -291,17 +343,201 @@
         </div>
     </div>
 
-    <script>
-        const SAVE_KEY = 'dino_survival_3d_save_v5';
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const SAVE_KEY = 'dino_survival_3d_save_v7';
+        const LAST_USER_KEY = 'dino_survival_last_username';
         const TREE_CELL_SIZE = 18;
         const TREE_REGROW_MS = 18000;
-        const MAX_DINOS = 5;
+        const MAX_DINOS = 7;
         const RENDER_RADIUS = 125;
         const WATER_LEVEL = -1.6;
         const GIANT_SECTOR_SIZE = 1600;
         const CRATES_PER_VILLAGE = 8;
 
-        // Balanced Weapon & Gear Definitions
+        // Multiplayer & Cloud Profile State
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dino-survival-default';
+        let db = null;
+        let auth = null;
+        let currentUserId = null;
+        let playersColRef = null;
+        let serverMode = 'private';
+        let playerUsername = '';
+        const activeUsernames = new Map();
+        const remotePlayers = new Map();
+        let lastSyncTime = 0;
+        let lastCloudSaveTime = 0;
+
+        async function initMultiplayer() {
+            try {
+                if (typeof __firebase_config === 'undefined') return;
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                currentUserId = auth.currentUser?.uid || ('player_' + Math.random().toString(36).slice(2, 10));
+                playersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'online_players');
+
+                onSnapshot(playersColRef, (snapshot) => {
+                    const now = Date.now();
+                    const seenUids = new Set();
+                    activeUsernames.clear();
+
+                    snapshot.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        const uid = docSnap.id;
+                        if (data && data.username && (!data.updatedAt || now - data.updatedAt < 25000)) {
+                            activeUsernames.set(uid, data.username.trim().toLowerCase());
+                            seenUids.add(uid);
+
+                            if (uid !== currentUserId && serverMode === 'public' && data.mode === 'public' && scene) {
+                                updateOrCreateRemotePlayer(uid, data);
+                            }
+                        }
+                    });
+
+                    for (const [uid, remoteObj] of remotePlayers.entries()) {
+                        if (!seenUids.has(uid) || serverMode !== 'public') {
+                            if (scene && remoteObj.group) scene.remove(remoteObj.group);
+                            remotePlayers.delete(uid);
+                        }
+                    }
+                }, () => {});
+
+                window.addEventListener('beforeunload', () => {
+                    if (db && currentUserId) {
+                        deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'online_players', currentUserId)).catch(() => {});
+                    }
+                });
+            } catch (e) {}
+        }
+
+        // Persistent Cloud Profile Save & Load (survives redeploys and new sessions by username)
+        async function loadCloudProfile(username) {
+            if (!db || !currentUserId || !username) return false;
+            try {
+                const profileKey = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+                const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'player_profiles', profileKey);
+                const snap = await getDoc(profileRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    applyLoadedPayload(data);
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        function saveCloudProfile(payload, force = false) {
+            if (!db || !currentUserId || !playerUsername) return;
+            const now = Date.now();
+            if (!force && now - lastCloudSaveTime < 3500) return;
+            lastCloudSaveTime = now;
+
+            try {
+                const profileKey = playerUsername.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+                const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'player_profiles', profileKey);
+                setDoc(profileRef, {
+                    ...payload,
+                    username: playerUsername,
+                    updatedAt: now
+                }).catch(() => {});
+            } catch (e) {}
+        }
+
+        function createNameplateSprite(name) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+            ctx.fillRect(16, 12, 224, 40);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(16, 12, 224, 40);
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 22px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(name, 128, 32);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(2.4, 0.6, 1);
+            return sprite;
+        }
+
+        function updateOrCreateRemotePlayer(uid, data) {
+            let entry = remotePlayers.get(uid);
+            if (!entry) {
+                const group = new THREE.Group();
+                const torso = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.65, 1.0, 0.35),
+                    new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.6 })
+                );
+                torso.position.y = 1.05;
+                group.add(torso);
+
+                const head = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.45, 0.45, 0.45),
+                    new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.6 })
+                );
+                head.position.y = 1.82;
+                group.add(head);
+
+                const legs = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.6, 0.65, 0.32),
+                    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
+                );
+                legs.position.y = 0.32;
+                group.add(legs);
+
+                const label = createNameplateSprite(data.username || 'Explorer');
+                label.position.y = 2.45;
+                group.add(label);
+
+                scene.add(group);
+                entry = {
+                    group,
+                    targetPos: new THREE.Vector3(data.x || 0, (data.y || 2) - 1.7, data.z || 0),
+                    targetYaw: data.yaw || 0
+                };
+                remotePlayers.set(uid, entry);
+            }
+            entry.targetPos.set(data.x || 0, (data.y || 2) - 1.7, data.z || 0);
+            entry.targetYaw = data.yaw || 0;
+        }
+
+        function syncPlayerStateToServer(force = false) {
+            if (!db || !currentUserId || !playerUsername) return;
+            const now = Date.now();
+            if (!force && now - lastSyncTime < 220) return;
+            lastSyncTime = now;
+
+            const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', 'online_players', currentUserId);
+            setDoc(playerDoc, {
+                username: playerUsername,
+                mode: serverMode,
+                x: player.x,
+                y: player.y,
+                z: player.z,
+                yaw: player.yaw,
+                updatedAt: now
+            }).catch(() => {});
+        }
+
+        // Balanced Weapon & Gear Definitions (18 Weapons & Tools with Ballistic Gravity Drop)
         const WEAPONS = {
             axe: {
                 id: 'axe', name: 'Wood Axe', type: 'melee', keyNum: '1',
@@ -317,40 +553,110 @@
                 hipPos: [0.36, -0.34, -0.48], aimPos: [0.20, -0.26, -0.42], aimFov: 66,
                 desc: 'Fells trees in 1 hit & shreds dinos (85 DMG/tick)'
             },
+            katana: {
+                id: 'katana', name: 'Samurai Katana', type: 'melee', keyNum: '',
+                damage: 115, treeHits: 2, cooldown: 0.24, range: 6.8,
+                ammoType: null, craftCost: 0, craftGain: 0,
+                hipPos: [0.35, -0.30, -0.50], aimPos: [0.16, -0.22, -0.42], aimFov: 65,
+                desc: 'Razor-sharp folded steel blade (115 melee DMG, unlimited durability)'
+            },
+            warhammer: {
+                id: 'warhammer', name: 'Obsidian Warhammer', type: 'melee', keyNum: '',
+                damage: 185, treeHits: 3, cooldown: 0.58, range: 6.5,
+                ammoType: null, craftCost: 0, craftGain: 0,
+                hipPos: [0.38, -0.32, -0.52], aimPos: [0.18, -0.24, -0.44], aimFov: 66,
+                desc: 'Crushing volcanic maul dealing massive 185 melee impact damage'
+            },
             pistol: {
                 id: 'pistol', name: 'Pistol', type: 'ranged', keyNum: '3',
-                damage: 45, cooldown: 0.24, speed: 175, gravity: 9.8, spread: 0.007,
+                damage: 45, cooldown: 0.24, speed: 120, gravity: 24.0, spread: 0.007, pellets: 1,
                 ammoType: 'pistol', magSize: 15, craftCost: 2, craftGain: 15,
                 hipPos: [0.28, -0.26, -0.46], aimPos: [0.0, -0.175, -0.36], aimFov: 54,
                 desc: '15-round sidearm (45 DMG, crisp iron-sight aim)'
             },
+            dual_smg: {
+                id: 'dual_smg', name: 'Rapid Vector SMG', type: 'ranged', keyNum: '',
+                damage: 36, cooldown: 0.065, speed: 125, gravity: 23.0, spread: 0.022, pellets: 1,
+                ammoType: 'smg', magSize: 45, craftCost: 3, craftGain: 45,
+                hipPos: [0.29, -0.26, -0.45], aimPos: [0.0, -0.175, -0.35], aimFov: 55,
+                desc: '45-round ultra-fast submachine gun (36 DMG at 900 RPM)'
+            },
+            shotgun: {
+                id: 'shotgun', name: 'Combat Shotgun', type: 'ranged', keyNum: '',
+                damage: 32, cooldown: 0.68, speed: 105, gravity: 28.0, spread: 0.065, pellets: 6,
+                ammoType: 'shotgun', magSize: 8, craftCost: 4, craftGain: 8,
+                hipPos: [0.30, -0.27, -0.46], aimPos: [0.0, -0.18, -0.36], aimFov: 58,
+                desc: '8-shell pump shotgun firing 6 pellets (up to 192 DMG up close)'
+            },
             rifle: {
                 id: 'rifle', name: 'Hunting Rifle', type: 'ranged', keyNum: '4',
-                damage: 135, cooldown: 0.45, speed: 245, gravity: 6.5, spread: 0.001,
+                damage: 135, cooldown: 0.45, speed: 165, gravity: 18.5, spread: 0.001, pellets: 1,
                 ammoType: 'rifle', magSize: 12, craftCost: 3, craftGain: 12,
                 hipPos: [0.30, -0.27, -0.48], aimPos: [0.0, -0.18, -0.35], aimFov: 26,
                 desc: '12-round sniper rifle (135 DMG, long-range zoom scope)'
             },
+            crossbow: {
+                id: 'crossbow', name: 'Heavy Crossbow', type: 'ranged', keyNum: '',
+                damage: 210, cooldown: 0.85, speed: 105, gravity: 24.5, spread: 0.002, pellets: 1,
+                ammoType: 'bolts', magSize: 1, craftCost: 2, craftGain: 6,
+                hipPos: [0.30, -0.26, -0.48], aimPos: [0.0, -0.175, -0.36], aimFov: 44,
+                desc: 'High-tension compound bow launching 210-DMG steel bolts'
+            },
             ak47: {
                 id: 'ak47', name: 'AK-47', type: 'ranged', keyNum: '5',
-                damage: 58, cooldown: 0.11, speed: 205, gravity: 8.8, spread: 0.015,
+                damage: 58, cooldown: 0.11, speed: 140, gravity: 21.0, spread: 0.015, pellets: 1,
                 ammoType: 'ak47', magSize: 30, craftCost: 4, craftGain: 30,
                 hipPos: [0.30, -0.27, -0.48], aimPos: [0.0, -0.185, -0.36], aimFov: 50,
                 desc: '30-round automatic assault rifle (58 DMG/shot)'
             },
+            flamethrower: {
+                id: 'flamethrower', name: 'Flamethrower', type: 'ranged', keyNum: '',
+                damage: 24, cooldown: 0.06, speed: 48, gravity: -3.5, spread: 0.085, pellets: 2, isFlame: true,
+                ammoType: 'napalm', magSize: 100, craftCost: 5, craftGain: 50,
+                hipPos: [0.34, -0.30, -0.46], aimPos: [0.12, -0.23, -0.38], aimFov: 60,
+                desc: 'Continuous stream of scorching napalm (24 DMG/flame)'
+            },
+            cryo_cannon: {
+                id: 'cryo_cannon', name: 'Cryo Frost Cannon', type: 'ranged', keyNum: '',
+                damage: 95, cooldown: 0.34, speed: 105, gravity: 16.5, spread: 0.014, pellets: 1, isCryo: true,
+                ammoType: 'cryo', magSize: 20, craftCost: 5, craftGain: 20,
+                hipPos: [0.32, -0.28, -0.46], aimPos: [0.04, -0.20, -0.36], aimFov: 52,
+                desc: 'Launches sub-zero glacial orbs that chill and shatter dinos (95 DMG)'
+            },
             minigun: {
                 id: 'minigun', name: 'Minigun', type: 'ranged', keyNum: '6',
-                damage: 34, cooldown: 0.055, speed: 195, gravity: 9.5, spread: 0.032,
+                damage: 34, cooldown: 0.055, speed: 135, gravity: 22.5, spread: 0.032, pellets: 1,
                 ammoType: 'minigun', magSize: 150, craftCost: 8, craftGain: 150,
                 hipPos: [0.34, -0.35, -0.44], aimPos: [0.14, -0.27, -0.38], aimFov: 56,
                 desc: '150-round rotary cannon (34 DMG at extreme fire rate)'
             },
+            railgun: {
+                id: 'railgun', name: 'Plasma Railgun', type: 'ranged', keyNum: '',
+                damage: 360, cooldown: 1.05, speed: 220, gravity: 6.5, spread: 0.0, pellets: 1, isPlasma: true,
+                ammoType: 'cells', magSize: 5, craftCost: 9, craftGain: 5,
+                hipPos: [0.32, -0.26, -0.46], aimPos: [0.0, -0.18, -0.35], aimFov: 38,
+                desc: 'Hyper-velocity electromagnetic plasma lance (360 DMG/shot)'
+            },
+            tesla_arc: {
+                id: 'tesla_arc', name: 'Tesla Arc Emitter', type: 'ranged', keyNum: '',
+                damage: 140, splashRadius: 9, cooldown: 0.42, speed: 175, gravity: 8.5, spread: 0.008, pellets: 1, isPlasma: true,
+                ammoType: 'tesla', magSize: 12, craftCost: 7, craftGain: 12,
+                hipPos: [0.32, -0.26, -0.46], aimPos: [0.0, -0.18, -0.35], aimFov: 48,
+                desc: 'Fires high-voltage lightning spheres with 9m electric shockwave (140 DMG)'
+            },
             rocket: {
                 id: 'rocket', name: 'Rocket Launcher', type: 'ranged', keyNum: '7',
-                damage: 480, splashRadius: 13, cooldown: 1.15, speed: 105, gravity: 5.2, spread: 0.003,
+                damage: 480, splashRadius: 13, cooldown: 1.15, speed: 82, gravity: 15.5, spread: 0.003, pellets: 1,
                 ammoType: 'rocket', magSize: 4, craftCost: 10, craftGain: 2,
                 hipPos: [0.34, -0.24, -0.40], aimPos: [0.10, -0.19, -0.32], aimFov: 48,
                 desc: '4-tube launcher (480 splash DMG, arcs with gravity)'
+            },
+            meteor_staff: {
+                id: 'meteor_staff', name: 'Solar Meteor Launcher', type: 'ranged', keyNum: '',
+                damage: 650, splashRadius: 17, cooldown: 1.45, speed: 95, gravity: 14.0, spread: 0.002, pellets: 1,
+                ammoType: 'solar', magSize: 3, craftCost: 14, craftGain: 3,
+                hipPos: [0.34, -0.24, -0.40], aimPos: [0.10, -0.19, -0.32], aimFov: 46,
+                desc: 'Launches miniature solar fireballs with huge 17m blast radius (650 DMG)'
             },
             compass: {
                 id: 'compass', name: 'Village Compass', type: 'tool', keyNum: '8',
@@ -361,7 +667,7 @@
             }
         };
 
-        // Boss Arena Progression Definitions
+        // Boss Arena Progression Definitions (18 Bosses across 5 Distinct Dinosaur Classes)
         const BOSSES = [
             {
                 id: 'shark_boss', name: 'Abyssal Great White', species: 'shark', scale: 2.3,
@@ -372,34 +678,109 @@
             {
                 id: 'megalodon_boss', name: 'Leviathan Elder Megalodon', species: 'megalodon', scale: 3.8,
                 hp: 3200, damage: 36, speed: 7.4, isAquatic: true,
-                reqText: 'Kill 15 Megalodons',
+                reqText: 'Kill 15 Sea Leviathans',
                 checkUnlocked: (stats) => stats.megalodons >= 15
+            },
+            {
+                id: 'mosasaurus_boss', name: 'Trench Sovereign Mosasaurus', species: 'mosasaurus', scale: 3.2,
+                hp: 4200, damage: 40, speed: 8.2, isAquatic: true,
+                reqText: 'Kill 25 Sea Leviathans',
+                checkUnlocked: (stats) => stats.megalodons >= 25
+            },
+            {
+                id: 'ptera_boss', name: 'Stormwing Sky Tyrant', species: 'pteranodon', scale: 2.3,
+                hp: 1950, damage: 26, speed: 10.2, isAquatic: false, isFlyingBoss: true,
+                reqText: 'Kill 15 Sky Flyers',
+                checkUnlocked: (stats) => (stats.flyers || 0) >= 15
+            },
+            {
+                id: 'quetzal_boss', name: 'Tempest Sovereign Quetzal', species: 'pteranodon', scale: 3.1,
+                hp: 3600, damage: 34, speed: 11.0, isAquatic: false, isFlyingBoss: true,
+                reqText: 'Kill 35 Sky Flyers',
+                checkUnlocked: (stats) => (stats.flyers || 0) >= 35
+            },
+            {
+                id: 'stego_boss', name: 'Sunburst Elder Stegosaurus', species: 'stegosaurus', scale: 2.2,
+                hp: 2600, damage: 28, speed: 6.4, isAquatic: false,
+                reqText: 'Kill 15 Giant Herbivores',
+                checkUnlocked: (stats) => (stats.herbivores || 0) >= 15
+            },
+            {
+                id: 'bronto_boss', name: 'Colossal Canopy Brachiosaurus', species: 'bronto', scale: 2.4,
+                hp: 4600, damage: 38, speed: 5.8, isAquatic: false,
+                reqText: 'Kill 35 Giant Herbivores',
+                checkUnlocked: (stats) => (stats.herbivores || 0) >= 35
             },
             {
                 id: 'raptor_boss', name: 'Dune Alpha Raptor', species: 'raptor', scale: 2.1,
                 hp: 1800, damage: 22, speed: 9.8, isAquatic: false,
-                reqText: 'Kill 40 Land Dinosaurs',
-                checkUnlocked: (stats) => stats.landDinos >= 40
+                reqText: 'Kill 30 Carnivores',
+                checkUnlocked: (stats) => stats.landDinos >= 30
+            },
+            {
+                id: 'therizino_boss', name: 'Bamboo Scythe Emperor', species: 'therizino', scale: 2.2,
+                hp: 2400, damage: 32, speed: 8.4, isAquatic: false,
+                reqText: 'Kill 50 Carnivores',
+                checkUnlocked: (stats) => stats.landDinos >= 50
+            },
+            {
+                id: 'ankylo_boss', name: 'Crystal Juggernaut Ankylosaurus', species: 'ankylo', scale: 2.3,
+                hp: 3400, damage: 34, speed: 6.2, isAquatic: false,
+                reqText: 'Kill 55 Giant Herbivores',
+                checkUnlocked: (stats) => (stats.herbivores || 0) >= 55
             },
             {
                 id: 'frost_boss', name: 'Glacial Titan Rex', species: 'ice_dino', scale: 2.4,
-                hp: 2600, damage: 30, speed: 6.8, isAquatic: false,
-                reqText: 'Kill 80 Land Dinosaurs',
-                checkUnlocked: (stats) => stats.landDinos >= 80
+                hp: 2800, damage: 30, speed: 6.8, isAquatic: false,
+                reqText: 'Kill 70 Carnivores',
+                checkUnlocked: (stats) => stats.landDinos >= 70
             },
             {
-                id: 'omega_trex', name: 'OMEGA APEX T-REX (FINAL BOSS)', species: 'omega_trex', scale: 3.2,
-                hp: 6500, damage: 45, speed: 8.2, isAquatic: false,
-                reqText: 'Defeat All 4 Guardian Bosses',
+                id: 'triceratops_boss', name: 'Ironclad War Triceratops', species: 'triceratops', scale: 2.4,
+                hp: 3800, damage: 36, speed: 7.2, isAquatic: false,
+                reqText: 'Kill 75 Giant Herbivores',
+                checkUnlocked: (stats) => (stats.herbivores || 0) >= 75
+            },
+            {
+                id: 'carno_boss', name: 'Redrock Horned Overlord', species: 'carnotaurus', scale: 2.5,
+                hp: 3600, damage: 38, speed: 8.8, isAquatic: false,
+                reqText: 'Kill 95 Carnivores',
+                checkUnlocked: (stats) => stats.landDinos >= 95
+            },
+            {
+                id: 'spino_boss', name: 'Swamp Sail Spinosaurus', species: 'spinosaurus', scale: 2.6,
+                hp: 4400, damage: 40, speed: 7.8, isAquatic: false,
+                reqText: 'Kill 115 Carnivores',
+                checkUnlocked: (stats) => stats.landDinos >= 115
+            },
+            {
+                id: 'void_boss', name: 'Obsidian Voidwalker Giga', species: 'void_giga', scale: 2.8,
+                hp: 4500, damage: 42, speed: 8.0, isAquatic: false,
+                reqText: 'Kill 135 Carnivores',
+                checkUnlocked: (stats) => stats.landDinos >= 135
+            },
+            {
+                id: 'mammoth_boss', name: 'Permafrost Elder Mammoth', species: 'mammoth', scale: 2.7,
+                hp: 5200, damage: 44, speed: 6.9, isAquatic: false,
+                reqText: 'Kill 100 Giant Herbivores',
+                checkUnlocked: (stats) => (stats.herbivores || 0) >= 100
+            },
+            {
+                id: 'magma_boss', name: 'Cinder Core Magmasaur', species: 'magmasaur', scale: 2.9,
+                hp: 6000, damage: 46, speed: 7.5, isAquatic: false,
+                reqText: 'Kill 160 Carnivores',
+                checkUnlocked: (stats) => stats.landDinos >= 160
+            },
+            {
+                id: 'omega_trex', name: 'OMEGA APEX T-REX (FINAL BOSS)', species: 'omega_trex', scale: 3.4,
+                hp: 9000, damage: 52, speed: 8.5, isAquatic: false,
+                reqText: 'Defeat All 17 Guardian Bosses',
                 checkUnlocked: (stats, defeated) =>
-                    defeated.includes('shark_boss') &&
-                    defeated.includes('megalodon_boss') &&
-                    defeated.includes('raptor_boss') &&
-                    defeated.includes('frost_boss')
+                    BOSSES.filter(b => b.id !== 'omega_trex').every(b => defeated.includes(b.id))
             }
         ];
 
-        let scene, camera, renderer, clock;
+        let scene, camera, renderer, clock, dirLight;
         let terrainMesh, terrainGeo, terrainMat;
         let waterMesh;
         let grassInst, raycaster;
@@ -439,28 +820,47 @@
             yaw: 0, pitch: 0,
             health: 100,
             wood: 0,
+            medkits: 0,
             selectedTool: 'axe',
             unlockedWeapons: ['axe', 'rifle', 'compass'],
             compassMode: 'nearest',
             magAmmo: {
                 chainsaw: 100,
                 pistol: 15,
+                dual_smg: 45,
+                shotgun: 8,
                 rifle: 12,
+                crossbow: 1,
                 ak47: 30,
+                flamethrower: 100,
+                cryo_cannon: 20,
                 minigun: 150,
-                rocket: 4
+                railgun: 5,
+                tesla_arc: 12,
+                rocket: 4,
+                meteor_staff: 3
             },
             reserveAmmo: {
                 fuel: 100,
                 pistol: 30,
+                smg: 90,
+                shotgun: 16,
                 rifle: 24,
+                bolts: 12,
                 ak47: 60,
+                napalm: 100,
+                cryo: 40,
                 minigun: 150,
-                rocket: 4
+                cells: 10,
+                tesla: 24,
+                rocket: 4,
+                solar: 6
             },
             killStats: {
                 sharks: 0,
                 megalodons: 0,
+                flyers: 0,
+                herbivores: 0,
                 landDinos: 0
             },
             defeatedBosses: [],
@@ -487,13 +887,29 @@
             }, 2400);
         }
 
+        function smoothstep(edge0, edge1, x) {
+            const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+            return t * t * (3 - 2 * t);
+        }
+
+        function normalizeAngle(a) {
+            while (a > Math.PI) a -= Math.PI * 2;
+            while (a < -Math.PI) a += Math.PI * 2;
+            return a;
+        }
+
+        function steerAngleTowards(current, target, maxStep) {
+            const diff = normalizeAngle(target - current);
+            if (Math.abs(diff) <= maxStep) return normalizeAngle(target);
+            return normalizeAngle(current + Math.sign(diff) * maxStep);
+        }
+
         function cellHash(gx, gz, seed) {
             let h = Math.imul(gx ^ seed, 374761393) + Math.imul(gz ^ (seed * 17), 668265263);
             h = Math.imul(h ^ (h >>> 13), 1274126177);
             return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
         }
 
-        // Rare Giant Ocean Sector (~14% of 1600x1600 world sectors)
         function getGiantSectorInfo(x, z) {
             const sx = Math.round(x / GIANT_SECTOR_SIZE);
             const sz = Math.round(z / GIANT_SECTOR_SIZE);
@@ -549,64 +965,87 @@
             return best;
         }
 
-        // Large Oceans + Inland Ponds
+        // Smooth Large Oceans
         function getOceanFactor(x, z) {
             const giant = getGiantSectorInfo(x, z);
             if (giant) {
-                const outerShore = Math.max(0, Math.min(1, (giant.oceanRadius + 40 - giant.dist) / 85));
-                const innerShore = Math.max(0, Math.min(1, (giant.dist - (giant.islandRadius - 12)) / 38));
+                const outerShore = smoothstep(giant.oceanRadius + 80, giant.oceanRadius - 40, giant.dist);
+                const innerShore = smoothstep(giant.islandRadius - 8, giant.islandRadius + 48, giant.dist);
                 return outerShore * innerShore;
             }
 
             const spawnDist = Math.hypot(x, z);
-            if (spawnDist < 130) return 0;
+            if (spawnDist < 140) return 0;
 
-            const macro = Math.sin(x * 0.0032 - 0.95) * Math.cos(z * 0.0032 + 0.72)
-                        + Math.cos((x - z) * 0.0021) * 0.35;
-            const spawnFade = Math.min(1, (spawnDist - 130) / 70);
-            return Math.max(0, Math.min(1, (macro - 0.16) * 3.4)) * spawnFade;
+            const macro = Math.sin(x * 0.0024 - 0.95) * Math.cos(z * 0.0024 + 0.72)
+                        + Math.cos((x - z) * 0.0016) * 0.35;
+            const spawnFade = smoothstep(140, 240, spawnDist);
+            return smoothstep(0.14, 0.48, macro) * spawnFade;
         }
 
         // Small Freshwater Ponds (no sharks spawn here)
         function getPondFactor(x, z) {
             if (Math.hypot(x, z) < 55) return 0;
-            if (getOceanFactor(x, z) > 0.05) return 0;
-            const p = Math.sin(x * 0.019 + 1.2) * Math.cos(z * 0.019 - 0.8);
-            return Math.max(0, Math.min(1, (p - 0.78) * 6.5));
+            if (getOceanFactor(x, z) > 0.04) return 0;
+            const p = Math.sin(x * 0.017 + 1.2) * Math.cos(z * 0.017 - 0.8);
+            return smoothstep(0.76, 0.92, p);
         }
 
-        // Temperature & Moisture fields for 6 distinct biomes:
-        // Forest, Rainforest, Savanna, Desert, Ice Tundra, and Ocean
+        // Low-frequency continuous Temperature & Moisture fields
         function getTemperature(x, z) {
-            const t = Math.sin(x * 0.0038 + 0.5) * 0.55 + Math.cos(z * 0.0034 - 0.4) * 0.45;
+            const warpX = x + Math.sin(z * 0.0011) * 180;
+            const warpZ = z + Math.cos(x * 0.0011) * 180;
+            const t = Math.sin(warpX * 0.0012 + 0.35) * 0.55 + Math.cos(warpZ * 0.0011 - 0.25) * 0.45;
             return Math.max(0, Math.min(1, (t + 1) * 0.5));
         }
 
         function getMoisture(x, z) {
-            const m = Math.cos(x * 0.0041 - 0.7) * 0.5 + Math.sin(z * 0.0039 + 0.9) * 0.5;
+            const warpX = x + Math.cos(z * 0.0012) * 160;
+            const warpZ = z + Math.sin(x * 0.0012) * 160;
+            const m = Math.cos(warpX * 0.0013 - 0.55) * 0.5 + Math.sin(warpZ * 0.0012 + 0.65) * 0.5;
             return Math.max(0, Math.min(1, (m + 1) * 0.5));
         }
 
         function getBiomeType(x, z) {
             const giant = getGiantSectorInfo(x, z);
-            if (giant && giant.dist <= giant.islandRadius + 10) return 'village_island';
-            if (getOceanFactor(x, z) > 0.42) return giant ? 'giant_ocean' : 'ocean';
-            if (getPondFactor(x, z) > 0.45 && getTerrainHeight(x, z) < WATER_LEVEL - 0.1) return 'pond';
+            if (giant && giant.dist <= giant.islandRadius + 12) return 'village_island';
+
+            const wy = getTerrainHeight(x, z);
+            if (getOceanFactor(x, z) > 0.36) return giant ? 'giant_ocean' : 'ocean';
+            if (getPondFactor(x, z) > 0.25 && wy < WATER_LEVEL + 0.35) return 'pond';
 
             const temp = getTemperature(x, z);
             const moist = getMoisture(x, z);
 
-            if (temp < 0.28) return 'ice';
-            if (temp > 0.68 && moist < 0.36) return 'desert';
-            if (temp > 0.60 && moist >= 0.36 && moist < 0.62) return 'savanna';
-            if (temp >= 0.42 && moist >= 0.64) return 'rainforest';
-            return 'forest';
+            if (temp < 0.34) {
+                if (moist < 0.24) return 'glacier';
+                if (moist < 0.44) return 'crystal_badlands';
+                if (moist < 0.68) return 'ice';
+                return 'taiga';
+            }
+
+            if (temp <= 0.66) {
+                if (moist < 0.20) return 'lavender';
+                if (moist < 0.38) return 'meadow';
+                if (moist < 0.56) return 'forest';
+                if (moist < 0.72) return 'autumn_woods';
+                if (moist < 0.86) return 'bamboo';
+                return 'mushroom';
+            }
+
+            if (moist < 0.18) return 'volcanic';
+            if (moist < 0.34) return 'obsidian';
+            if (moist < 0.52) return 'desert';
+            if (moist < 0.68) return 'redrock';
+            if (moist < 0.82) return 'savanna';
+            if (moist < 0.92) return 'mangrove';
+            return 'rainforest';
         }
 
         function getTerrainHeight(x, z) {
             const giant = getGiantSectorInfo(x, z);
-            if (giant && giant.dist < giant.islandRadius + 30) {
-                const t = Math.max(0, Math.min(1, (giant.islandRadius + 15 - giant.dist) / 48));
+            if (giant && giant.dist < giant.islandRadius + 48) {
+                const t = smoothstep(giant.islandRadius + 48, giant.islandRadius - 6, giant.dist);
                 const islandPlateau = 3.2 + Math.sin(x * 0.03) * Math.cos(z * 0.03) * 0.65;
                 const deepSea = -24.0;
                 return deepSea * (1 - t) + islandPlateau * t;
@@ -617,24 +1056,26 @@
             const temp = getTemperature(x, z);
             const moist = getMoisture(x, z);
 
-            const forestH = Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.2 + Math.sin(x * 0.11 + z * 0.08) * 0.75;
-            const duneH = Math.sin(x * 0.025 + Math.sin(z * 0.02) * 1.4) * 4.2 + Math.cos(z * 0.03) * 1.6;
-            const iceH = Math.sin(x * 0.032) * Math.cos(z * 0.032) * 4.8 + Math.sin(x * 0.09) * 1.1;
+            const forestH = Math.sin(x * 0.035) * Math.cos(z * 0.035) * 3.0 + Math.sin(x * 0.09 + z * 0.07) * 0.65;
+            const duneH = Math.sin(x * 0.022 + Math.sin(z * 0.018) * 1.3) * 4.0 + Math.cos(z * 0.028) * 1.4;
+            const iceH = Math.sin(x * 0.028) * Math.cos(z * 0.028) * 4.6 + Math.sin(x * 0.08) * 1.0;
+            const canyonH = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 5.2;
 
             let landH = forestH;
-            if (temp < 0.32) {
-                const iceBlend = Math.min(1, (0.32 - temp) * 5);
+            if (temp < 0.34) {
+                const iceBlend = smoothstep(0.34, 0.24, temp);
                 landH = landH * (1 - iceBlend) + iceH * iceBlend;
-            } else if (temp > 0.65 && moist < 0.42) {
-                const sandBlend = Math.min(1, (temp - 0.65) * 4);
-                landH = landH * (1 - sandBlend) + duneH * sandBlend;
+            } else if (temp > 0.66) {
+                const hotBlend = smoothstep(0.66, 0.76, temp);
+                const hotTarget = moist < 0.65 ? canyonH : duneH;
+                landH = landH * (1 - hotBlend) + hotTarget * hotBlend;
             }
 
             if (pond > 0) {
-                landH = landH * (1 - pond) + (-3.4) * pond;
+                landH = landH * (1 - pond) + (-3.5) * pond;
             }
 
-            const seabedH = (giant ? -25.0 : -19.5) + Math.sin(x * 0.025) * Math.cos(z * 0.025) * 2.8;
+            const seabedH = (giant ? -25.0 : -19.5) + Math.sin(x * 0.02) * Math.cos(z * 0.02) * 2.2;
             return landH * (1 - ocean) + seabedH * ocean;
         }
 
@@ -643,7 +1084,7 @@
 
             const approxX = gx * TREE_CELL_SIZE;
             const approxZ = gz * TREE_CELL_SIZE;
-            if (getOceanFactor(approxX, approxZ) > 0.30) return null;
+            if (getOceanFactor(approxX, approxZ) > 0.25) return null;
 
             const giant = getGiantSectorInfo(approxX, approxZ);
             if (giant && giant.dist < 68) return null;
@@ -653,10 +1094,22 @@
 
             const densityMap = {
                 rainforest: 0.66,
+                mangrove: 0.58,
+                bamboo: 0.62,
+                autumn_woods: 0.48,
+                taiga: 0.50,
                 forest: 0.42,
-                ice: 0.34,
-                desert: 0.26,
+                mushroom: 0.38,
+                lavender: 0.26,
+                ice: 0.32,
+                glacier: 0.20,
+                meadow: 0.28,
+                desert: 0.25,
                 savanna: 0.22,
+                redrock: 0.18,
+                crystal_badlands: 0.22,
+                obsidian: 0.16,
+                volcanic: 0.18,
                 village_island: 0.30
             };
             const density = densityMap[biome] || 0.38;
@@ -667,114 +1120,150 @@
             const x = gx * TREE_CELL_SIZE + offsetX;
             const z = gz * TREE_CELL_SIZE + offsetZ;
 
-            if (getTerrainHeight(x, z) < WATER_LEVEL + 0.55) return null;
+            if (getTerrainHeight(x, z) < WATER_LEVEL + 0.65) return null;
 
             const scale = 0.85 + cellHash(gx, gz, 404) * 0.6;
             const subRoll = cellHash(gx, gz, 505);
             const finalBiome = getBiomeType(x, z);
 
             let kind = subRoll > 0.35 ? 'pine' : 'oak';
-            if (finalBiome === 'desert') kind = 'cactus';
-            else if (finalBiome === 'ice') kind = 'snow_pine';
+            if (finalBiome === 'desert' || finalBiome === 'redrock') kind = 'cactus';
+            else if (finalBiome === 'ice' || finalBiome === 'glacier') kind = 'snow_pine';
+            else if (finalBiome === 'taiga') kind = 'pine';
             else if (finalBiome === 'savanna') kind = 'acacia';
-            else if (finalBiome === 'rainforest') kind = 'jungle';
+            else if (finalBiome === 'rainforest' || finalBiome === 'mangrove') kind = 'jungle';
+            else if (finalBiome === 'bamboo') kind = 'bamboo';
+            else if (finalBiome === 'mushroom') kind = 'giant_mushroom';
+            else if (finalBiome === 'crystal_badlands') kind = 'crystal_spire';
+            else if (finalBiome === 'obsidian' || finalBiome === 'volcanic') kind = 'obsidian_pillar';
+            else if (finalBiome === 'autumn_woods') kind = 'autumn_oak';
+            else if (finalBiome === 'lavender' || finalBiome === 'meadow') kind = 'oak';
 
             return { key: `${gx},${gz}`, gx, gz, x, z, scale, kind };
         }
 
-        function saveGameState() {
+        function buildSavePayload() {
+            const now = Date.now();
+            const choppedList = [];
+            choppedTreeCells.forEach((respawnAt, key) => {
+                if (respawnAt > now) choppedList.push([key, respawnAt]);
+            });
+
+            return {
+                player: {
+                    x: player.x,
+                    y: player.y,
+                    z: player.z,
+                    yaw: player.yaw,
+                    pitch: player.pitch,
+                    health: player.health,
+                    wood: player.wood,
+                    medkits: player.medkits,
+                    selectedTool: player.selectedTool,
+                    unlockedWeapons: player.unlockedWeapons,
+                    compassMode: player.compassMode,
+                    magAmmo: player.magAmmo,
+                    reserveAmmo: player.reserveAmmo,
+                    killStats: player.killStats,
+                    defeatedBosses: player.defeatedBosses,
+                    isFlying: player.isFlying
+                },
+                choppedTrees: choppedList,
+                openedCrates: Array.from(openedCrates).slice(-400),
+                flowers: savedFlowersData.slice(-250)
+            };
+        }
+
+        function applyLoadedPayload(data) {
+            if (!data) return false;
+            if (data.player) {
+                player.x = Number.isFinite(data.player.x) ? data.player.x : 0;
+                player.z = Number.isFinite(data.player.z) ? data.player.z : 0;
+                const minGroundY = getTerrainHeight(player.x, player.z) + 2.0;
+                player.y = Number.isFinite(data.player.y) ? Math.max(minGroundY, data.player.y) : minGroundY;
+                player.yaw = Number.isFinite(data.player.yaw) ? data.player.yaw : 0;
+                player.pitch = Number.isFinite(data.player.pitch) ? data.player.pitch : 0;
+                player.health = Number.isFinite(data.player.health) ? data.player.health : 100;
+                player.wood = Number.isFinite(data.player.wood) ? data.player.wood : 0;
+                player.medkits = Number.isFinite(data.player.medkits) ? data.player.medkits : 0;
+                if (Array.isArray(data.player.unlockedWeapons) && data.player.unlockedWeapons.length > 0) {
+                    player.unlockedWeapons = data.player.unlockedWeapons.filter(id => WEAPONS[id]);
+                    if (!player.unlockedWeapons.includes('compass')) {
+                        player.unlockedWeapons.push('compass');
+                    }
+                }
+                if (data.player.selectedTool && WEAPONS[data.player.selectedTool]) {
+                    player.selectedTool = data.player.selectedTool;
+                }
+                if (data.player.compassMode === 'unlooted' || data.player.compassMode === 'nearest') {
+                    player.compassMode = data.player.compassMode;
+                }
+                if (data.player.magAmmo) Object.assign(player.magAmmo, data.player.magAmmo);
+                if (data.player.reserveAmmo) Object.assign(player.reserveAmmo, data.player.reserveAmmo);
+                if (data.player.killStats) Object.assign(player.killStats, data.player.killStats);
+                if (Array.isArray(data.player.defeatedBosses)) {
+                    player.defeatedBosses = data.player.defeatedBosses;
+                }
+                player.isFlying = Boolean(data.player.isFlying);
+            }
+
+            choppedTreeCells.clear();
+            const now = Date.now();
+            if (Array.isArray(data.choppedTrees)) {
+                for (const [key, respawnAt] of data.choppedTrees) {
+                    if (typeof key === 'string' && respawnAt > now) {
+                        choppedTreeCells.set(key, respawnAt);
+                    }
+                }
+            }
+
+            openedCrates.clear();
+            if (Array.isArray(data.openedCrates)) {
+                for (const cid of data.openedCrates) openedCrates.add(cid);
+            }
+
+            savedFlowersData = Array.isArray(data.flowers) ? data.flowers : [];
+            return true;
+        }
+
+        function saveGameState(forceCloud = false) {
             if (!isGameStarted) return;
             try {
-                const now = Date.now();
-                const choppedList = [];
-                choppedTreeCells.forEach((respawnAt, key) => {
-                    if (respawnAt > now) choppedList.push([key, respawnAt]);
-                });
-
-                const payload = {
-                    player: {
-                        x: player.x,
-                        y: player.y,
-                        z: player.z,
-                        yaw: player.yaw,
-                        pitch: player.pitch,
-                        health: player.health,
-                        wood: player.wood,
-                        selectedTool: player.selectedTool,
-                        unlockedWeapons: player.unlockedWeapons,
-                        compassMode: player.compassMode,
-                        magAmmo: player.magAmmo,
-                        reserveAmmo: player.reserveAmmo,
-                        killStats: player.killStats,
-                        defeatedBosses: player.defeatedBosses,
-                        isFlying: player.isFlying
-                    },
-                    choppedTrees: choppedList,
-                    openedCrates: Array.from(openedCrates).slice(-400),
-                    flowers: savedFlowersData.slice(-250)
-                };
+                const payload = buildSavePayload();
+                const storageKey = playerUsername
+                    ? `${SAVE_KEY}_${playerUsername.trim().toLowerCase()}`
+                    : SAVE_KEY;
+                localStorage.setItem(storageKey, JSON.stringify(payload));
                 localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+                if (playerUsername) {
+                    localStorage.setItem(LAST_USER_KEY, playerUsername);
+                }
+                saveCloudProfile(payload, forceCloud);
             } catch (e) {}
         }
 
         function loadGameState() {
             try {
-                const raw = localStorage.getItem(SAVE_KEY);
+                const storageKey = playerUsername
+                    ? `${SAVE_KEY}_${playerUsername.trim().toLowerCase()}`
+                    : SAVE_KEY;
+                const raw = localStorage.getItem(storageKey) || localStorage.getItem(SAVE_KEY);
                 if (!raw) return false;
                 const data = JSON.parse(raw);
-                if (data && data.player) {
-                    player.x = Number.isFinite(data.player.x) ? data.player.x : 0;
-                    player.z = Number.isFinite(data.player.z) ? data.player.z : 0;
-                    const minGroundY = getTerrainHeight(player.x, player.z) + 2.0;
-                    player.y = Number.isFinite(data.player.y) ? Math.max(minGroundY, data.player.y) : minGroundY;
-                    player.yaw = Number.isFinite(data.player.yaw) ? data.player.yaw : 0;
-                    player.pitch = Number.isFinite(data.player.pitch) ? data.player.pitch : 0;
-                    player.health = Number.isFinite(data.player.health) ? data.player.health : 100;
-                    player.wood = Number.isFinite(data.player.wood) ? data.player.wood : 0;
-                    if (Array.isArray(data.player.unlockedWeapons) && data.player.unlockedWeapons.length > 0) {
-                        player.unlockedWeapons = data.player.unlockedWeapons.filter(id => WEAPONS[id]);
-                        if (!player.unlockedWeapons.includes('compass')) {
-                            player.unlockedWeapons.push('compass');
-                        }
-                    }
-                    if (data.player.selectedTool && WEAPONS[data.player.selectedTool]) {
-                        player.selectedTool = data.player.selectedTool;
-                    }
-                    if (data.player.compassMode === 'unlooted' || data.player.compassMode === 'nearest') {
-                        player.compassMode = data.player.compassMode;
-                    }
-                    if (data.player.magAmmo) Object.assign(player.magAmmo, data.player.magAmmo);
-                    if (data.player.reserveAmmo) Object.assign(player.reserveAmmo, data.player.reserveAmmo);
-                    if (data.player.killStats) Object.assign(player.killStats, data.player.killStats);
-                    if (Array.isArray(data.player.defeatedBosses)) {
-                        player.defeatedBosses = data.player.defeatedBosses;
-                    }
-                    player.isFlying = Boolean(data.player.isFlying);
-                }
-
-                choppedTreeCells.clear();
-                const now = Date.now();
-                if (Array.isArray(data.choppedTrees)) {
-                    for (const [key, respawnAt] of data.choppedTrees) {
-                        if (typeof key === 'string' && respawnAt > now) {
-                            choppedTreeCells.set(key, respawnAt);
-                        }
-                    }
-                }
-
-                openedCrates.clear();
-                if (Array.isArray(data.openedCrates)) {
-                    for (const cid of data.openedCrates) openedCrates.add(cid);
-                }
-
-                savedFlowersData = Array.isArray(data.flowers) ? data.flowers : [];
-                return true;
+                return applyLoadedPayload(data);
             } catch (e) {
                 return false;
             }
         }
 
-        // Restored classic grass surface texture with rich organic blades & natural variation
+        function checkAutoMedkit() {
+            if (player.health > 0 && player.health <= 60 && player.medkits > 0) {
+                player.medkits--;
+                player.health = Math.min(100, player.health + 50);
+                showToast(`AUTO-MEDKIT USED! (+50 HP • ${player.medkits} LEFT)`);
+            }
+        }
+
         function createBiomeSurfaceTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
@@ -853,8 +1342,14 @@
                 pineMat: new THREE.MeshStandardMaterial({ color: 0x1e4620, bumpMap: leafBump, bumpScale: 0.05, roughness: 0.85 }),
                 snowPineMat: new THREE.MeshStandardMaterial({ color: 0xdbeafe, bumpMap: leafBump, bumpScale: 0.06, roughness: 0.65 }),
                 oakMat: new THREE.MeshStandardMaterial({ color: 0x2d5a27, bumpMap: leafBump, bumpScale: 0.06, roughness: 0.82 }),
+                autumnMat: new THREE.MeshStandardMaterial({ color: 0xd97706, bumpMap: leafBump, bumpScale: 0.06, roughness: 0.80 }),
                 jungleMat: new THREE.MeshStandardMaterial({ color: 0x0f5132, bumpMap: leafBump, bumpScale: 0.07, roughness: 0.80 }),
                 acaciaMat: new THREE.MeshStandardMaterial({ color: 0x657c2a, bumpMap: leafBump, bumpScale: 0.05, roughness: 0.85 }),
+                bambooMat: new THREE.MeshStandardMaterial({ color: 0x65a30d, bumpMap: barkBump, bumpScale: 0.04, roughness: 0.55 }),
+                mushroomStemMat: new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.8 }),
+                mushroomCapMat: new THREE.MeshStandardMaterial({ color: 0x9333ea, emissive: 0x3b0764, roughness: 0.5 }),
+                crystalMat: new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, metalness: 0.4, roughness: 0.2 }),
+                obsidianMat: new THREE.MeshStandardMaterial({ color: 0x1e1b4b, emissive: 0x4c1d95, roughness: 0.4 }),
                 cactusMat: new THREE.MeshStandardMaterial({ color: 0x2e8b57, bumpMap: skinBump, bumpScale: 0.07, roughness: 0.78 }),
                 cactusFlowerMat: new THREE.MeshStandardMaterial({ color: 0xff4d6d, roughness: 0.4 }),
 
@@ -873,6 +1368,8 @@
                 ],
                 oakCrownGeo: new THREE.DodecahedronGeometry(1, 1),
                 acaciaCanopyGeo: new THREE.CylinderGeometry(2.8, 1.8, 0.75, 8),
+                mushroomCapGeo: new THREE.ConeGeometry(2.6, 1.6, 10),
+                crystalGeo: new THREE.OctahedronGeometry(1.4, 0),
                 cactusTrunkGeo: new THREE.CylinderGeometry(0.36, 0.42, 4.4, 8),
                 cactusArmVertGeo: new THREE.CylinderGeometry(0.24, 0.26, 1.7, 7),
                 cactusArmHorizGeo: new THREE.CylinderGeometry(0.24, 0.24, 1.1, 7),
@@ -883,7 +1380,6 @@
                 crateBoxGeo: new THREE.BoxGeometry(1.3, 1.0, 1.3),
                 crateLidGeo: new THREE.BoxGeometry(1.38, 0.18, 1.38),
 
-                // Restored vibrant classic Forest Dinosaur skins
                 dinoMats: [
                     new THREE.MeshStandardMaterial({ color: 0x3b7a2a, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 }),
                     new THREE.MeshStandardMaterial({ color: 0x6b4423, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 }),
@@ -891,6 +1387,24 @@
                 ],
                 iceDinoMat: new THREE.MeshStandardMaterial({ color: 0x93c5fd, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.55 }),
                 jungleDinoMat: new THREE.MeshStandardMaterial({ color: 0x059669, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.65 }),
+                therizinoMat: new THREE.MeshStandardMaterial({ color: 0x15803d, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.68 }),
+                clawMat: new THREE.MeshStandardMaterial({ color: 0xfef08a, metalness: 0.4, roughness: 0.3 }),
+                brontoMat: new THREE.MeshStandardMaterial({ color: 0x7e22ce, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.72 }),
+                stegoMat: new THREE.MeshStandardMaterial({ color: 0x4d7c0f, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.7 }),
+                stegoPlateMat: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5 }),
+                ankyloMat: new THREE.MeshStandardMaterial({ color: 0x0369a1, bumpMap: skinBump, bumpScale: 0.08, roughness: 0.6 }),
+                ankyloSpikeMat: new THREE.MeshStandardMaterial({ color: 0xe0f2fe, roughness: 0.35 }),
+                pteraMat: new THREE.MeshStandardMaterial({ color: 0xb91c1c, bumpMap: skinBump, bumpScale: 0.05, roughness: 0.65 }),
+                carnoMat: new THREE.MeshStandardMaterial({ color: 0xb45309, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.65 }),
+                voidGigaMat: new THREE.MeshStandardMaterial({ color: 0x1e1b4b, emissive: 0x581c87, bumpMap: skinBump, bumpScale: 0.08, roughness: 0.45 }),
+                triceraMat: new THREE.MeshStandardMaterial({ color: 0x92400e, bumpMap: skinBump, bumpScale: 0.07, roughness: 0.68 }),
+                spinoMat: new THREE.MeshStandardMaterial({ color: 0x0d9488, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.65 }),
+                spinoSailMat: new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.5 }),
+                mammothMat: new THREE.MeshStandardMaterial({ color: 0x5c4033, bumpMap: skinBump, bumpScale: 0.09, roughness: 0.88 }),
+                magmaMat: new THREE.MeshStandardMaterial({ color: 0x27272a, emissive: 0xea580c, bumpMap: skinBump, bumpScale: 0.08, roughness: 0.5 }),
+                mosasaurMat: new THREE.MeshStandardMaterial({ color: 0x1e3a8a, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.45 }),
+                dilophoMat: new THREE.MeshStandardMaterial({ color: 0x4d7c0f, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.65 }),
+                parasaurMat: new THREE.MeshStandardMaterial({ color: 0x7c3aed, bumpMap: skinBump, bumpScale: 0.06, roughness: 0.68 }),
                 omegaBossMat: new THREE.MeshStandardMaterial({ color: 0x7f1d1d, emissive: 0x450a0a, bumpMap: skinBump, bumpScale: 0.08, roughness: 0.5 }),
 
                 dinoTorsoGeo: new THREE.BoxGeometry(1.15, 1.15, 2.3),
@@ -918,9 +1432,12 @@
                 sharkPectoralGeo: new THREE.BoxGeometry(1.8, 0.08, 0.48),
                 sharkTailFinGeo: new THREE.ConeGeometry(0.55, 1.1, 4),
 
-                bulletGeo: new THREE.SphereGeometry(0.08, 6, 6),
+                bulletGeo: new THREE.CylinderGeometry(0.045, 0.045, 1.35, 6),
                 rocketGeo: new THREE.CylinderGeometry(0.08, 0.1, 0.55, 8),
+                boltGeo: new THREE.CylinderGeometry(0.035, 0.035, 0.95, 6),
                 bulletMat: new THREE.MeshBasicMaterial({ color: 0xffe066 }),
+                plasmaMat: new THREE.MeshBasicMaterial({ color: 0x38bdf8 }),
+                flameMat: new THREE.MeshBasicMaterial({ color: 0xf97316 }),
                 rocketMat: new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xb91c1c }),
                 explosionGeo: new THREE.SphereGeometry(1, 12, 10),
                 stemGeo: new THREE.CylinderGeometry(0.03, 0.04, 0.45, 5),
@@ -935,7 +1452,6 @@
             if (!container || !canvasEl) return;
 
             initSharedResources();
-            loadGameState();
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87b8d8);
@@ -959,19 +1475,20 @@
             const hemiLight = new THREE.HemisphereLight(0xdff2ff, 0x3b4d2b, 0.85);
             scene.add(hemiLight);
 
-            const dirLight = new THREE.DirectionalLight(0xfff4d6, 1.35);
+            dirLight = new THREE.DirectionalLight(0xfff4d6, 1.35);
             dirLight.position.set(70, 110, 50);
             dirLight.castShadow = true;
             dirLight.shadow.mapSize.width = 1024;
             dirLight.shadow.mapSize.height = 1024;
             dirLight.shadow.camera.near = 10;
-            dirLight.shadow.camera.far = 220;
-            const d = 75;
+            dirLight.shadow.camera.far = 260;
+            const d = 110;
             dirLight.shadow.camera.left = -d;
             dirLight.shadow.camera.right = d;
             dirLight.shadow.camera.top = d;
             dirLight.shadow.camera.bottom = -d;
             scene.add(dirLight);
+            scene.add(dirLight.target);
 
             buildInfiniteTerrain();
             buildFirstPersonWeapons();
@@ -987,7 +1504,7 @@
 
         function buildInfiniteTerrain() {
             const size = 280;
-            const segments = 72;
+            const segments = 112;
             terrainGeo = new THREE.PlaneGeometry(size, size, segments, segments);
             terrainGeo.rotateX(-Math.PI / 2);
 
@@ -1054,30 +1571,78 @@
             const temp = getTemperature(wx, wz);
             const moist = getMoisture(wx, wz);
 
-            // Vibrant classic Forest green
-            let r = 0.26, g = 0.56, b = 0.16;
+            const getColdColor = (m) => {
+                if (m < 0.24) return [0.78, 0.92, 1.00];
+                if (m < 0.44) {
+                    const t = smoothstep(0.24, 0.30, m);
+                    return [0.78 * (1 - t) + 0.68 * t, 0.92 * (1 - t) + 0.86 * t, 1.00 * (1 - t) + 0.96 * t];
+                }
+                if (m < 0.68) {
+                    const t = smoothstep(0.44, 0.50, m);
+                    return [0.68 * (1 - t) + 0.88 * t, 0.86 * (1 - t) + 0.94 * t, 0.96 * (1 - t) + 0.98 * t];
+                }
+                const t = smoothstep(0.68, 0.74, m);
+                return [0.88 * (1 - t) + 0.24 * t, 0.94 * (1 - t) + 0.42 * t, 0.98 * (1 - t) + 0.34 * t];
+            };
 
-            if (temp < 0.30) {
-                const t = Math.min(1, (0.30 - temp) * 5);
-                r = r * (1 - t) + 0.88 * t;
-                g = g * (1 - t) + 0.94 * t;
-                b = b * (1 - t) + 0.98 * t;
-            } else if (temp > 0.66 && moist < 0.38) {
-                const t = Math.min(1, (temp - 0.66) * 4.5);
-                r = r * (1 - t) + 0.86 * t;
-                g = g * (1 - t) + 0.72 * t;
-                b = b * (1 - t) + 0.42 * t;
-            } else if (temp > 0.58 && moist >= 0.38 && moist < 0.62) {
-                const t = Math.min(1, (temp - 0.58) * 5);
-                r = r * (1 - t) + 0.66 * t;
-                g = g * (1 - t) + 0.64 * t;
-                b = b * (1 - t) + 0.24 * t;
-            } else if (temp >= 0.42 && moist >= 0.62) {
-                const t = Math.min(1, (moist - 0.62) * 5);
-                r = r * (1 - t) + 0.12 * t;
-                g = g * (1 - t) + 0.45 * t;
-                b = b * (1 - t) + 0.18 * t;
-            }
+            const getTempColor = (m) => {
+                if (m < 0.20) return [0.58, 0.42, 0.76];
+                if (m < 0.38) {
+                    const t = smoothstep(0.20, 0.26, m);
+                    return [0.58 * (1 - t) + 0.42 * t, 0.42 * (1 - t) + 0.72 * t, 0.76 * (1 - t) + 0.22 * t];
+                }
+                if (m < 0.56) {
+                    const t = smoothstep(0.38, 0.44, m);
+                    return [0.42 * (1 - t) + 0.26 * t, 0.72 * (1 - t) + 0.56 * t, 0.22 * (1 - t) + 0.16 * t];
+                }
+                if (m < 0.72) {
+                    const t = smoothstep(0.56, 0.62, m);
+                    return [0.26 * (1 - t) + 0.68 * t, 0.56 * (1 - t) + 0.42 * t, 0.16 * (1 - t) + 0.16 * t];
+                }
+                if (m < 0.86) {
+                    const t = smoothstep(0.72, 0.78, m);
+                    return [0.68 * (1 - t) + 0.34 * t, 0.42 * (1 - t) + 0.64 * t, 0.16 * (1 - t) + 0.18 * t];
+                }
+                const t = smoothstep(0.86, 0.92, m);
+                return [0.34 * (1 - t) + 0.32 * t, 0.64 * (1 - t) + 0.22 * t, 0.18 * (1 - t) + 0.44 * t];
+            };
+
+            const getHotColor = (m) => {
+                if (m < 0.18) return [0.26, 0.12, 0.10];
+                if (m < 0.34) {
+                    const t = smoothstep(0.18, 0.24, m);
+                    return [0.26 * (1 - t) + 0.16 * t, 0.12 * (1 - t) + 0.14 * t, 0.10 * (1 - t) + 0.22 * t];
+                }
+                if (m < 0.52) {
+                    const t = smoothstep(0.34, 0.40, m);
+                    return [0.16 * (1 - t) + 0.86 * t, 0.14 * (1 - t) + 0.72 * t, 0.22 * (1 - t) + 0.42 * t];
+                }
+                if (m < 0.68) {
+                    const t = smoothstep(0.52, 0.58, m);
+                    return [0.86 * (1 - t) + 0.76 * t, 0.72 * (1 - t) + 0.34 * t, 0.42 * (1 - t) + 0.22 * t];
+                }
+                if (m < 0.82) {
+                    const t = smoothstep(0.68, 0.74, m);
+                    return [0.76 * (1 - t) + 0.66 * t, 0.34 * (1 - t) + 0.64 * t, 0.22 * (1 - t) + 0.24 * t];
+                }
+                if (m < 0.92) {
+                    const t = smoothstep(0.82, 0.87, m);
+                    return [0.66 * (1 - t) + 0.18 * t, 0.64 * (1 - t) + 0.40 * t, 0.24 * (1 - t) + 0.26 * t];
+                }
+                const t = smoothstep(0.92, 0.96, m);
+                return [0.18 * (1 - t) + 0.12 * t, 0.40 * (1 - t) + 0.45 * t, 0.26 * (1 - t) + 0.18 * t];
+            };
+
+            const coldCol = getColdColor(moist);
+            const tempCol = getTempColor(moist);
+            const hotCol = getHotColor(moist);
+
+            const coldMix = smoothstep(0.38, 0.30, temp);
+            const hotMix = smoothstep(0.62, 0.70, temp);
+
+            let r = tempCol[0] * (1 - coldMix - hotMix) + coldCol[0] * coldMix + hotCol[0] * hotMix;
+            let g = tempCol[1] * (1 - coldMix - hotMix) + coldCol[1] * coldMix + hotCol[1] * hotMix;
+            let b = tempCol[2] * (1 - coldMix - hotMix) + coldCol[2] * coldMix + hotCol[2] * hotMix;
 
             if (wy < WATER_LEVEL + 1.1) {
                 const sub = Math.max(0, Math.min(1, (WATER_LEVEL + 1.1 - wy) / 4.2));
@@ -1154,8 +1719,8 @@
                     const wy = getTerrainHeight(wx, wz);
                     const biome = getBiomeType(wx, wz);
 
-                    const noGrass = (wy < WATER_LEVEL + 0.5) || biome === 'desert' || biome === 'ice';
-                    const grassScale = noGrass ? 0 : (biome === 'savanna' ? 1.35 : 1.0);
+                    const noGrass = (wy < WATER_LEVEL + 0.5) || biome === 'desert' || biome === 'ice' || biome === 'glacier' || biome === 'obsidian' || biome === 'volcanic';
+                    const grassScale = noGrass ? 0 : (biome === 'savanna' || biome === 'meadow' ? 1.35 : 1.0);
                     dummy.position.set(wx, wy - 0.03, wz);
                     dummy.rotation.set(o.tiltX, o.rotY, o.tiltZ);
                     dummy.scale.set(o.s * grassScale, o.sy * grassScale, o.s * grassScale);
@@ -1166,7 +1731,6 @@
             }
         }
 
-        // Completely Reworked Detailed First-Person Weapon Models
         function buildFirstPersonWeapons() {
             const gunMetal = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
             const chromeSteel = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.92, roughness: 0.18 });
@@ -1174,16 +1738,13 @@
             const walnutWood = new THREE.MeshStandardMaterial({ color: 0x6b3e26, roughness: 0.78 });
             const oakWood = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.82 });
             const goldAccent = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.88, roughness: 0.22 });
+            const plasmaGlow = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
             const sightGlow = new THREE.MeshBasicMaterial({ color: 0x22c55e });
-            const scopeLensMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
 
-            // 1. Tactical Wood Axe (Curved forged blade + dual grip wraps)
+            // 1. Tactical Wood Axe
             const axe = new THREE.Group();
             const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.028, 0.78, 12), oakWood);
             axe.add(handle);
-            const gripWrap = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.03, 0.18, 12), polymerMat);
-            gripWrap.position.y = -0.24;
-            axe.add(gripWrap);
             const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.048), gunMetal);
             cheek.position.set(0.06, 0.29, 0);
             axe.add(cheek);
@@ -1195,20 +1756,10 @@
             camera.add(axe);
             weaponMeshes.axe = axe;
 
-            // 2. Heavy Industrial Chainsaw (Vented engine, wrap-around roll bar, toothed guide bar)
+            // 2. Chainsaw
             const chainsaw = new THREE.Group();
             const engineBody = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.21, 0.34), goldAccent);
             chainsaw.add(engineBody);
-            const engineTop = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.28), polymerMat);
-            engineTop.position.set(0, 0.12, 0.01);
-            chainsaw.add(engineTop);
-            const sideVent = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.18), gunMetal);
-            sideVent.position.set(0, 0, 0.03);
-            chainsaw.add(sideVent);
-            const rollBar = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.014, 8, 18, Math.PI * 1.15), polymerMat);
-            rollBar.position.set(-0.02, 0.08, -0.08);
-            rollBar.rotation.y = 0.25;
-            chainsaw.add(rollBar);
             const guideBar = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.10, 0.58), chromeSteel);
             guideBar.position.set(0, -0.02, -0.43);
             chainsaw.add(guideBar);
@@ -1219,7 +1770,23 @@
             camera.add(chainsaw);
             weaponMeshes.chainsaw = chainsaw;
 
-            // 3. Tactical 9mm Pistol (Two-tone chrome slide, lower polymer rail, glowing iron sights)
+            // 3. Samurai Katana
+            const katana = new THREE.Group();
+            const kHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.28, 10), polymerMat);
+            kHilt.position.y = -0.24;
+            katana.add(kHilt);
+            const kGuard = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.014, 14), goldAccent);
+            kGuard.position.y = -0.09;
+            katana.add(kGuard);
+            const kBlade = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.85, 0.032), chromeSteel);
+            kBlade.position.y = 0.34;
+            katana.add(kBlade);
+            katana.position.set(0.35, -0.30, -0.50);
+            katana.rotation.set(0.28, -0.18, 0.14);
+            camera.add(katana);
+            weaponMeshes.katana = katana;
+
+            // 4. Pistol
             const pistol = new THREE.Group();
             const lowerFrame = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.042, 0.27), polymerMat);
             lowerFrame.position.set(0, -0.015, -0.01);
@@ -1227,9 +1794,6 @@
             const upperSlide = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.052, 0.28), chromeSteel);
             upperSlide.position.set(0, 0.028, -0.01);
             pistol.add(upperSlide);
-            const pMuzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.04, 10).rotateX(Math.PI / 2), gunMetal);
-            pMuzzle.position.set(0, 0.026, -0.16);
-            pistol.add(pMuzzle);
             const pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.14, 0.068), polymerMat);
             pGrip.position.set(0, -0.085, 0.085);
             pGrip.rotation.x = 0.24;
@@ -1237,112 +1801,108 @@
             const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.014, 0.016), sightGlow);
             frontSight.position.set(0, 0.06, -0.13);
             pistol.add(frontSight);
-            const rearSightL = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.014, 0.014), sightGlow);
-            rearSightL.position.set(-0.014, 0.06, 0.11);
-            pistol.add(rearSightL);
-            const rearSightR = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.014, 0.014), sightGlow);
-            rearSightR.position.set(0.014, 0.06, 0.11);
-            pistol.add(rearSightR);
             pistol.position.set(0.28, -0.26, -0.46);
             camera.add(pistol);
             weaponMeshes.pistol = pistol;
 
-            // 4. Precision Sniper / Hunting Rifle (Fluted steel barrel, bolt handle, high-power scope w/ blue lens, cheek-rest stock)
+            // 5. Combat Shotgun
+            const shotgun = new THREE.Group();
+            const sgBody = new THREE.Mesh(new THREE.BoxGeometry(0.066, 0.085, 0.45), gunMetal);
+            shotgun.add(sgBody);
+            const sgStock = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.28), walnutWood);
+            sgStock.position.set(0, -0.025, 0.34);
+            shotgun.add(sgStock);
+            const sgBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.55, 10).rotateX(Math.PI / 2), chromeSteel);
+            sgBarrel.position.set(0, 0.022, -0.46);
+            shotgun.add(sgBarrel);
+            const sgPump = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.22, 10).rotateX(Math.PI / 2), walnutWood);
+            sgPump.position.set(0, -0.012, -0.36);
+            shotgun.add(sgPump);
+            shotgun.position.set(0.30, -0.27, -0.46);
+            camera.add(shotgun);
+            weaponMeshes.shotgun = shotgun;
+
+            // 6. Hunting Rifle
             const rifle = new THREE.Group();
             const rReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.085, 0.44), gunMetal);
             rifle.add(rReceiver);
             const rStock = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.125, 0.34), walnutWood);
             rStock.position.set(0, -0.025, 0.36);
             rifle.add(rStock);
-            const cheekPad = new THREE.Mesh(new THREE.BoxGeometry(0.066, 0.04, 0.16), polymerMat);
-            cheekPad.position.set(0, 0.042, 0.36);
-            rifle.add(cheekPad);
-            const rForend = new THREE.Mesh(new THREE.BoxGeometry(0.064, 0.068, 0.28), walnutWood);
-            rForend.position.set(0, -0.018, -0.32);
-            rifle.add(rForend);
             const rBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.019, 0.62, 12).rotateX(Math.PI / 2), chromeSteel);
             rBarrel.position.set(0, 0.018, -0.56);
             rifle.add(rBarrel);
-            const muzzleBrake = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.07, 10).rotateX(Math.PI / 2), gunMetal);
-            muzzleBrake.position.set(0, 0.018, -0.88);
-            rifle.add(muzzleBrake);
-            const boltKnob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), chromeSteel);
-            boltKnob.position.set(0.052, 0.015, 0.08);
-            rifle.add(boltKnob);
-            const scopeMountF = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.04, 0.024), gunMetal);
-            scopeMountF.position.set(0, 0.058, -0.14);
-            rifle.add(scopeMountF);
-            const scopeMountR = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.04, 0.024), gunMetal);
-            scopeMountR.position.set(0, 0.058, 0.06);
-            rifle.add(scopeMountR);
             const scopeTube = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.032, 0.32, 14).rotateX(Math.PI / 2), polymerMat);
             scopeTube.position.set(0, 0.092, -0.05);
             rifle.add(scopeTube);
-            const scopeLens = new THREE.Mesh(new THREE.CircleGeometry(0.028, 14), scopeLensMat);
-            scopeLens.position.set(0, 0.092, 0.112);
-            rifle.add(scopeLens);
             rifle.position.set(0.30, -0.27, -0.48);
             camera.add(rifle);
             weaponMeshes.rifle = rifle;
 
-            // 5. AK-47 Assault Rifle (Stamped receiver, ribbed dust cover, gas tube, curved banana magazine, wood furniture)
+            // 7. Heavy Crossbow
+            const crossbow = new THREE.Group();
+            const cbRail = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.06, 0.65), polymerMat);
+            crossbow.add(cbRail);
+            const cbLimbL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.025, 0.045), gunMetal);
+            cbLimbL.position.set(0.17, 0.01, -0.28);
+            cbLimbL.rotation.y = -0.32;
+            crossbow.add(cbLimbL);
+            const cbLimbR = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.025, 0.045), gunMetal);
+            cbLimbR.position.set(-0.17, 0.01, -0.28);
+            cbLimbR.rotation.y = 0.32;
+            crossbow.add(cbLimbR);
+            const cbBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.48, 6).rotateX(Math.PI / 2), goldAccent);
+            cbBolt.position.set(0, 0.038, -0.15);
+            crossbow.add(cbBolt);
+            crossbow.position.set(0.30, -0.26, -0.48);
+            camera.add(crossbow);
+            weaponMeshes.crossbow = crossbow;
+
+            // 8. AK-47
             const ak = new THREE.Group();
             const akReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.066, 0.088, 0.46), gunMetal);
             ak.add(akReceiver);
-            const akDustCover = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.42, 10, 1, false, -Math.PI / 2, Math.PI).rotateX(Math.PI / 2), chromeSteel);
-            akDustCover.position.set(0, 0.042, 0.01);
-            ak.add(akDustCover);
             const akStock = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.115, 0.28), walnutWood);
             akStock.position.set(0, -0.022, 0.35);
             ak.add(akStock);
-            const akGrip = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.12, 0.058), polymerMat);
-            akGrip.position.set(0, -0.085, 0.12);
-            akGrip.rotation.x = 0.25;
-            ak.add(akGrip);
             const akLowerHG = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.055, 0.24), walnutWood);
             akLowerHG.position.set(0, -0.008, -0.32);
             ak.add(akLowerHG);
-            const akUpperHG = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.22, 10).rotateX(Math.PI / 2), walnutWood);
-            akUpperHG.position.set(0, 0.032, -0.32);
-            ak.add(akUpperHG);
             const akBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.34, 10).rotateX(Math.PI / 2), gunMetal);
             akBarrel.position.set(0, 0.008, -0.56);
             ak.add(akBarrel);
-            const akFrontSight = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.038, 0.02), gunMetal);
-            akFrontSight.position.set(0, 0.035, -0.68);
-            ak.add(akFrontSight);
-            const akMagUpper = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.13, 0.082), gunMetal);
-            akMagUpper.position.set(0, -0.09, -0.06);
-            akMagUpper.rotation.x = -0.22;
-            ak.add(akMagUpper);
-            const akMagLower = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.13, 0.082), gunMetal);
-            akMagLower.position.set(0, -0.19, -0.105);
-            akMagLower.rotation.x = -0.48;
-            ak.add(akMagLower);
+            const akMag = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.21, 0.082), gunMetal);
+            akMag.position.set(0, -0.13, -0.08);
+            akMag.rotation.x = -0.34;
+            ak.add(akMag);
             ak.position.set(0.30, -0.27, -0.48);
             camera.add(ak);
             weaponMeshes.ak47 = ak;
 
-            // 6. Heavy Rotary Minigun (Motor housing, top carry handle, ammo drum, 6 spinning chrome barrels)
+            // 9. Flamethrower
+            const flame = new THREE.Group();
+            const fBody = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.58), gunMetal);
+            flame.add(fBody);
+            const fTank = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.34, 12), new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4 }));
+            fTank.position.set(0.09, -0.05, 0.05);
+            flame.add(fTank);
+            const fNozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.036, 0.28, 10).rotateX(Math.PI / 2), chromeSteel);
+            fNozzle.position.set(0, 0.01, -0.42);
+            flame.add(fNozzle);
+            flame.position.set(0.34, -0.30, -0.46);
+            camera.add(flame);
+            weaponMeshes.flamethrower = flame;
+
+            // 10. Minigun
             const minigun = new THREE.Group();
             const motorHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.34, 14).rotateX(Math.PI / 2), gunMetal);
             minigun.add(motorHousing);
             const ammoDrum = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.22, 12).rotateZ(Math.PI / 2), goldAccent);
             ammoDrum.position.set(0.14, -0.04, 0.02);
             minigun.add(ammoDrum);
-            const topHandle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 0.24), polymerMat);
-            topHandle.position.set(0, 0.14, -0.02);
-            minigun.add(topHandle);
 
             minigunBarrelPivot = new THREE.Group();
             minigunBarrelPivot.position.set(0, 0, -0.17);
-            const clampFront = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.025, 14).rotateX(Math.PI / 2), gunMetal);
-            clampFront.position.z = -0.48;
-            minigunBarrelPivot.add(clampFront);
-            const clampMid = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.025, 14).rotateX(Math.PI / 2), gunMetal);
-            clampMid.position.z = -0.24;
-            minigunBarrelPivot.add(clampMid);
-
             for (let b = 0; b < 6; b++) {
                 const ang = (b / 6) * Math.PI * 2;
                 const mb = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.62, 8).rotateX(Math.PI / 2), chromeSteel);
@@ -1354,7 +1914,24 @@
             camera.add(minigun);
             weaponMeshes.minigun = minigun;
 
-            // 7. Quad-Tube Tactical Rocket Launcher (Olive housing, blast shield, side optical sight, 4 warhead tips)
+            // 11. Plasma Railgun
+            const railgun = new THREE.Group();
+            const rgBody = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.10, 0.56), polymerMat);
+            railgun.add(rgBody);
+            const rgTopRail = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.022, 0.54), chromeSteel);
+            rgTopRail.position.set(0, 0.055, -0.42);
+            railgun.add(rgTopRail);
+            const rgBotRail = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.022, 0.54), chromeSteel);
+            rgBotRail.position.set(0, -0.015, -0.42);
+            railgun.add(rgBotRail);
+            const rgCore = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.024, 0.52), plasmaGlow);
+            rgCore.position.set(0, 0.02, -0.42);
+            railgun.add(rgCore);
+            railgun.position.set(0.32, -0.26, -0.46);
+            camera.add(railgun);
+            weaponMeshes.railgun = railgun;
+
+            // 12. Rocket Launcher
             const rocket = new THREE.Group();
             const oliveMat = new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.62, metalness: 0.35 });
             const housing = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.96), oliveMat);
@@ -1362,35 +1939,14 @@
             const frontShield = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.04), gunMetal);
             frontShield.position.z = -0.48;
             rocket.add(frontShield);
-            const rearExhaust = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.21, 0.05), gunMetal);
-            rearExhaust.position.z = 0.48;
-            rocket.add(rearExhaust);
-
-            const tubeOffsets = [[-0.044, 0.044], [0.044, 0.044], [-0.044, -0.044], [0.044, -0.044]];
-            const warheadMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4 });
-            tubeOffsets.forEach(([ox, oy]) => {
-                const rTube = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 1.0, 10).rotateX(Math.PI / 2), polymerMat);
-                rTube.position.set(ox, oy, 0);
-                rocket.add(rTube);
-                const tip = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.07, 8).rotateX(-Math.PI / 2), warheadMat);
-                tip.position.set(ox, oy, -0.49);
-                rocket.add(tip);
-            });
-
-            const sideOptic = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.18, 10).rotateX(Math.PI / 2), gunMetal);
-            sideOptic.position.set(-0.12, 0.05, -0.14);
-            rocket.add(sideOptic);
             rocket.position.set(0.34, -0.24, -0.40);
             camera.add(rocket);
             weaponMeshes.rocket = rocket;
 
-            // 8. Brass Village Compass
+            // 13. Village Compass
             const compass = new THREE.Group();
             const caseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.032, 20), goldAccent);
             compass.add(caseMesh);
-            const ringMesh = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 8, 24).rotateX(Math.PI / 2), goldAccent);
-            ringMesh.position.y = 0.018;
-            compass.add(ringMesh);
             const dialMesh = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.095, 0.095, 0.005, 20),
                 new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45 })
@@ -1413,7 +1969,65 @@
             camera.add(compass);
             weaponMeshes.compass = compass;
 
-            // Muzzle Flash
+            // 14. Obsidian Warhammer
+            const warhammer = new THREE.Group();
+            const whShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.025, 0.86, 10), oakWood);
+            warhammer.add(whShaft);
+            const whHead = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.13, 0.13), gunMetal);
+            whHead.position.set(0, 0.38, 0);
+            warhammer.add(whHead);
+            warhammer.position.set(0.38, -0.32, -0.52);
+            warhammer.rotation.set(0.22, -0.22, 0.12);
+            camera.add(warhammer);
+            weaponMeshes.warhammer = warhammer;
+
+            // 15. Rapid Vector SMG
+            const dualSmg = new THREE.Group();
+            const smgBody = new THREE.Mesh(new THREE.BoxGeometry(0.056, 0.082, 0.34), polymerMat);
+            dualSmg.add(smgBody);
+            const smgMag = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.16, 0.052), chromeSteel);
+            smgMag.position.set(0, -0.09, -0.06);
+            smgMag.rotation.x = -0.2;
+            dualSmg.add(smgMag);
+            dualSmg.position.set(0.29, -0.26, -0.45);
+            camera.add(dualSmg);
+            weaponMeshes.dual_smg = dualSmg;
+
+            // 16. Cryo Frost Cannon
+            const cryoCannon = new THREE.Group();
+            const cryoBody = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.56, 12).rotateX(Math.PI / 2), chromeSteel);
+            cryoCannon.add(cryoBody);
+            const cryoCore = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.42, 10).rotateX(Math.PI / 2), plasmaGlow);
+            cryoCore.position.set(0, 0.045, -0.04);
+            cryoCannon.add(cryoCore);
+            cryoCannon.position.set(0.32, -0.28, -0.46);
+            camera.add(cryoCannon);
+            weaponMeshes.cryo_cannon = cryoCannon;
+
+            // 17. Tesla Arc Emitter
+            const teslaArc = new THREE.Group();
+            const teslaBody = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.095, 0.54), gunMetal);
+            teslaArc.add(teslaBody);
+            for (let c = 0; c < 3; c++) {
+                const coil = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.01, 8, 16), plasmaGlow);
+                coil.position.set(0, 0.02, -0.12 - c * 0.11);
+                teslaArc.add(coil);
+            }
+            teslaArc.position.set(0.32, -0.26, -0.46);
+            camera.add(teslaArc);
+            weaponMeshes.tesla_arc = teslaArc;
+
+            // 18. Solar Meteor Launcher
+            const meteorStaff = new THREE.Group();
+            const msTube = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.88, 12).rotateX(Math.PI / 2), goldAccent);
+            meteorStaff.add(msTube);
+            const msCore = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
+            msCore.position.set(0, 0.02, -0.44);
+            meteorStaff.add(msCore);
+            meteorStaff.position.set(0.34, -0.24, -0.40);
+            camera.add(meteorStaff);
+            weaponMeshes.meteor_staff = meteorStaff;
+
             const flashGeo = new THREE.SphereGeometry(0.11, 8, 8);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
             muzzleFlash = new THREE.Mesh(flashGeo, flashMat);
@@ -1428,7 +2042,6 @@
             const group = new THREE.Group();
             const y = getTerrainHeight(spec.x, spec.z);
             group.position.set(spec.x, y, spec.z);
-
             const scale = spec.scale;
 
             if (spec.kind === 'cactus') {
@@ -1436,7 +2049,6 @@
                 stem.scale.set(scale, scale, scale);
                 stem.position.y = 2.2 * scale;
                 stem.castShadow = true;
-                stem.receiveShadow = true;
                 group.add(stem);
 
                 const cap = new THREE.Mesh(sharedResources.cactusCapGeo, sharedResources.cactusMat);
@@ -1444,52 +2056,55 @@
                 cap.position.y = 4.4 * scale;
                 group.add(cap);
 
-                const leftH = new THREE.Mesh(sharedResources.cactusArmHorizGeo, sharedResources.cactusMat);
-                leftH.rotation.z = Math.PI / 2;
-                leftH.scale.setScalar(scale);
-                leftH.position.set(-0.65 * scale, 2.3 * scale, 0);
-                group.add(leftH);
-
-                const leftV = new THREE.Mesh(sharedResources.cactusArmVertGeo, sharedResources.cactusMat);
-                leftV.scale.setScalar(scale);
-                leftV.position.set(-1.1 * scale, 3.05 * scale, 0);
-                leftV.castShadow = true;
-                group.add(leftV);
-
-                const rightH = new THREE.Mesh(sharedResources.cactusArmHorizGeo, sharedResources.cactusMat);
-                rightH.rotation.z = Math.PI / 2;
-                rightH.scale.setScalar(scale);
-                rightH.position.set(0.65 * scale, 1.85 * scale, 0);
-                group.add(rightH);
-
-                const rightV = new THREE.Mesh(sharedResources.cactusArmVertGeo, sharedResources.cactusMat);
-                rightV.scale.setScalar(scale);
-                rightV.position.set(1.1 * scale, 2.6 * scale, 0);
-                rightV.castShadow = true;
-                group.add(rightV);
-
                 const flower = new THREE.Mesh(sharedResources.bloomGeo, sharedResources.cactusFlowerMat);
                 flower.scale.setScalar(scale);
                 flower.position.set(0, 4.78 * scale, 0);
                 group.add(flower);
 
                 group.userData = { key: spec.key, kind: 'cactus', hp: 3, radius: 1.0 * scale };
+            } else if (spec.kind === 'bamboo') {
+                for (let b = 0; b < 3; b++) {
+                    const stalk = new THREE.Mesh(sharedResources.trunkGeo, sharedResources.bambooMat);
+                    stalk.scale.set(scale * 0.35, 6.2 * scale, scale * 0.35);
+                    stalk.position.set((b - 1) * 0.5 * scale, 3.1 * scale, ((b % 2) - 0.5) * 0.4 * scale);
+                    stalk.castShadow = true;
+                    group.add(stalk);
+                }
+                group.userData = { key: spec.key, kind: 'bamboo', hp: 2, radius: 1.0 * scale };
+            } else if (spec.kind === 'giant_mushroom') {
+                const stem = new THREE.Mesh(sharedResources.trunkGeo, sharedResources.mushroomStemMat);
+                stem.scale.set(scale * 1.4, 4.2 * scale, scale * 1.4);
+                stem.position.y = 2.1 * scale;
+                stem.castShadow = true;
+                group.add(stem);
+
+                const cap = new THREE.Mesh(sharedResources.mushroomCapGeo, sharedResources.mushroomCapMat);
+                cap.scale.setScalar(scale);
+                cap.position.y = 4.6 * scale;
+                cap.castShadow = true;
+                group.add(cap);
+                group.userData = { key: spec.key, kind: 'giant_mushroom', hp: 3, radius: 1.5 * scale };
+            } else if (spec.kind === 'crystal_spire' || spec.kind === 'obsidian_pillar') {
+                const mat = spec.kind === 'crystal_spire' ? sharedResources.crystalMat : sharedResources.obsidianMat;
+                const spire = new THREE.Mesh(sharedResources.crystalGeo, mat);
+                spire.scale.set(scale * 0.9, scale * 2.6, scale * 0.9);
+                spire.position.y = 2.4 * scale;
+                spire.castShadow = true;
+                group.add(spire);
+                group.userData = { key: spec.key, kind: spec.kind, hp: 3, radius: 1.2 * scale };
             } else if (spec.kind === 'acacia') {
                 const trunkH = 4.4 * scale;
                 const trunk = new THREE.Mesh(sharedResources.trunkGeo, sharedResources.barkMat);
                 trunk.scale.set(scale * 0.85, trunkH, scale * 0.85);
                 trunk.position.y = trunkH / 2;
                 trunk.castShadow = true;
-                trunk.receiveShadow = true;
                 group.add(trunk);
 
                 const canopy = new THREE.Mesh(sharedResources.acaciaCanopyGeo, sharedResources.acaciaMat);
                 canopy.scale.set(scale * 1.3, scale, scale * 1.3);
                 canopy.position.y = 4.5 * scale;
                 canopy.castShadow = true;
-                canopy.receiveShadow = true;
                 group.add(canopy);
-
                 group.userData = { key: spec.key, kind: 'acacia', hp: 3, radius: 1.3 * scale };
             } else if (spec.kind === 'jungle') {
                 const trunkH = 6.8 * scale;
@@ -1497,7 +2112,6 @@
                 trunk.scale.set(scale * 1.2, trunkH, scale * 1.2);
                 trunk.position.y = trunkH / 2;
                 trunk.castShadow = true;
-                trunk.receiveShadow = true;
                 group.add(trunk);
 
                 const offsets = [
@@ -1511,10 +2125,8 @@
                     crown.scale.setScalar(rad * scale);
                     crown.position.set(ox * scale, oy * scale, oz * scale);
                     crown.castShadow = true;
-                    crown.receiveShadow = true;
                     group.add(crown);
                 });
-
                 group.userData = { key: spec.key, kind: 'jungle', hp: 3, radius: 1.6 * scale };
             } else {
                 const isSnow = spec.kind === 'snow_pine';
@@ -1524,7 +2136,6 @@
                 trunk.scale.set(scale, trunkH, scale);
                 trunk.position.y = trunkH / 2;
                 trunk.castShadow = true;
-                trunk.receiveShadow = true;
                 group.add(trunk);
 
                 if (isPine) {
@@ -1534,7 +2145,6 @@
                         cone.scale.set(scale, scale, scale);
                         cone.position.y = (3.2 + i * 1.45) * scale;
                         cone.castShadow = true;
-                        cone.receiveShadow = true;
                         group.add(cone);
                     }
                 } else {
@@ -1544,12 +2154,12 @@
                         [-1.1, 4.1, -0.6, 1.7],
                         [0.4, 4.2, -1.1, 1.5]
                     ];
+                    const crownMat = spec.kind === 'autumn_oak' ? sharedResources.autumnMat : sharedResources.oakMat;
                     offsets.forEach(([ox, oy, oz, rad]) => {
-                        const crown = new THREE.Mesh(sharedResources.oakCrownGeo, sharedResources.oakMat);
+                        const crown = new THREE.Mesh(sharedResources.oakCrownGeo, crownMat);
                         crown.scale.setScalar(rad * scale);
                         crown.position.set(ox * scale, oy * scale, oz * scale);
                         crown.castShadow = true;
-                        crown.receiveShadow = true;
                         group.add(crown);
                     });
                 }
@@ -1582,13 +2192,11 @@
                 const walls = new THREE.Mesh(sharedResources.hutBodyGeo, sharedResources.hutWallMat);
                 walls.position.y = 1.7;
                 walls.castShadow = true;
-                walls.receiveShadow = true;
                 hut.add(walls);
 
                 const roof = new THREE.Mesh(sharedResources.hutRoofGeo, sharedResources.hutRoofMat);
                 roof.position.y = 4.6;
                 roof.castShadow = true;
-                roof.receiveShadow = true;
                 hut.add(roof);
 
                 villageGroup.add(hut);
@@ -1613,7 +2221,6 @@
                 );
                 boxMesh.position.y = 0.5;
                 boxMesh.castShadow = true;
-                boxMesh.receiveShadow = true;
                 crateGroup.add(boxMesh);
 
                 const lidMesh = new THREE.Mesh(
@@ -1638,11 +2245,21 @@
         }
 
         function rollCrateWeapon() {
-            const roll = Math.random() * 105;
-            if (roll < 1) return 'minigun';
-            if (roll < 5) return 'rocket';
-            if (roll < 25) return 'chainsaw';
-            if (roll < 55) return 'ak47';
+            const roll = Math.random() * 100;
+            if (roll < 2) return 'meteor_staff';
+            if (roll < 5) return 'minigun';
+            if (roll < 8) return 'railgun';
+            if (roll < 12) return 'tesla_arc';
+            if (roll < 17) return 'rocket';
+            if (roll < 23) return 'cryo_cannon';
+            if (roll < 30) return 'flamethrower';
+            if (roll < 38) return 'warhammer';
+            if (roll < 47) return 'katana';
+            if (roll < 56) return 'chainsaw';
+            if (roll < 66) return 'dual_smg';
+            if (roll < 76) return 'crossbow';
+            if (roll < 85) return 'ak47';
+            if (roll < 93) return 'shotgun';
             return 'pistol';
         }
 
@@ -1687,7 +2304,7 @@
             }
 
             updateHUD();
-            saveGameState();
+            saveGameState(true);
             return true;
         }
 
@@ -1735,8 +2352,11 @@
             return { fishGroup, tailPivot };
         }
 
-        function buildBipedDinoMesh(mat, scale, isRaptor = false) {
+        function buildBipedDinoMesh(mat, scale, variant = 'rex') {
             const group = new THREE.Group();
+            const isRaptor = variant === 'raptor';
+            const isTherizino = variant === 'therizino';
+            const isCarno = variant === 'carnotaurus';
 
             const torso = new THREE.Mesh(isRaptor ? sharedResources.raptorTorsoGeo : sharedResources.dinoTorsoGeo, mat);
             torso.position.set(0, isRaptor ? 1.35 : 1.65, 0);
@@ -1763,6 +2383,31 @@
                 group.add(crest);
             }
 
+            if (isCarno) {
+                const hornGeo = new THREE.ConeGeometry(0.11, 0.55, 5);
+                [-0.25, 0.25].forEach((hx) => {
+                    const horn = new THREE.Mesh(hornGeo, sharedResources.ankyloSpikeMat);
+                    horn.position.set(hx, 3.25, 1.55);
+                    horn.rotation.x = 0.35;
+                    group.add(horn);
+                });
+            }
+
+            if (isTherizino) {
+                [-0.65, 0.65].forEach((ax) => {
+                    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.95, 0.25), mat);
+                    arm.position.set(ax, 1.75, 0.75);
+                    arm.rotation.x = 0.65;
+                    group.add(arm);
+
+                    for (let c = -1; c <= 1; c++) {
+                        const claw = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.85, 4).rotateX(Math.PI / 2), sharedResources.clawMat);
+                        claw.position.set(ax + c * 0.06, 1.35, 1.35);
+                        group.add(claw);
+                    }
+                });
+            }
+
             const tail = new THREE.Mesh(isRaptor ? sharedResources.raptorTailGeo : sharedResources.dinoTailGeo, mat);
             tail.rotation.x = isRaptor ? -Math.PI / 2.05 : -Math.PI / 2.15;
             tail.position.set(0, isRaptor ? 1.42 : 1.6, isRaptor ? -2.15 : -2.1);
@@ -1784,24 +2429,278 @@
             return { group, leftLeg, rightLeg };
         }
 
+        function buildSauropodMesh(mat, scale) {
+            const group = new THREE.Group();
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.5, 3.2), mat);
+            body.position.set(0, 1.85, 0);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.55, 4.2, 8), mat);
+            neck.position.set(0, 3.85, 2.05);
+            neck.rotation.x = 0.42;
+            neck.castShadow = true;
+            group.add(neck);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.48, 0.95), mat);
+            head.position.set(0, 5.65, 2.95);
+            head.castShadow = true;
+            group.add(head);
+
+            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.45, 4.5, 7), mat);
+            tail.rotation.x = -Math.PI / 2.05;
+            tail.position.set(0, 1.75, -3.6);
+            tail.castShadow = true;
+            group.add(tail);
+
+            const legGeo = new THREE.CylinderGeometry(0.28, 0.32, 1.5, 7);
+            const fl = new THREE.Mesh(legGeo, mat); fl.position.set(0.58, 0.75, 1.05); fl.castShadow = true; group.add(fl);
+            const fr = new THREE.Mesh(legGeo, mat); fr.position.set(-0.58, 0.75, 1.05); fr.castShadow = true; group.add(fr);
+            const bl = new THREE.Mesh(legGeo, mat); bl.position.set(0.58, 0.75, -1.05); bl.castShadow = true; group.add(bl);
+            const br = new THREE.Mesh(legGeo, mat); br.position.set(-0.58, 0.75, -1.05); br.castShadow = true; group.add(br);
+
+            group.scale.setScalar(scale);
+            return { group, leftLeg: fl, rightLeg: fr, backLeftLeg: bl, backRightLeg: br };
+        }
+
+        function buildStegosaurusMesh(mat, scale) {
+            const group = new THREE.Group();
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.35, 1.25, 2.7), mat);
+            body.position.set(0, 1.35, 0);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.42, 0.85), mat);
+            head.position.set(0, 1.15, 1.75);
+            head.castShadow = true;
+            group.add(head);
+
+            const plateGeo = new THREE.BoxGeometry(0.12, 0.75, 0.55);
+            for (let p = 0; p < 5; p++) {
+                const plate = new THREE.Mesh(plateGeo, sharedResources.stegoPlateMat);
+                plate.position.set(p % 2 === 0 ? 0.22 : -0.22, 2.25 - Math.abs(p - 2) * 0.12, 1.0 - p * 0.52);
+                plate.rotation.z = p % 2 === 0 ? -0.18 : 0.18;
+                plate.castShadow = true;
+                group.add(plate);
+            }
+
+            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.35, 2.4, 6), mat);
+            tail.rotation.x = -Math.PI / 2;
+            tail.position.set(0, 1.25, -2.4);
+            tail.castShadow = true;
+            group.add(tail);
+
+            const spikeGeo = new THREE.ConeGeometry(0.08, 0.55, 5);
+            [-0.25, 0.25].forEach((sx) => {
+                const sp = new THREE.Mesh(spikeGeo, sharedResources.ankyloSpikeMat);
+                sp.position.set(sx, 1.35, -3.2);
+                sp.rotation.z = sx > 0 ? -0.9 : 0.9;
+                group.add(sp);
+            });
+
+            const legGeo = new THREE.BoxGeometry(0.36, 0.95, 0.42);
+            const fl = new THREE.Mesh(legGeo, mat); fl.position.set(0.52, 0.48, 0.85); fl.castShadow = true; group.add(fl);
+            const fr = new THREE.Mesh(legGeo, mat); fr.position.set(-0.52, 0.48, 0.85); fr.castShadow = true; group.add(fr);
+            const bl = new THREE.Mesh(legGeo, mat); bl.position.set(0.52, 0.48, -0.85); bl.castShadow = true; group.add(bl);
+            const br = new THREE.Mesh(legGeo, mat); br.position.set(-0.52, 0.48, -0.85); br.castShadow = true; group.add(br);
+
+            group.scale.setScalar(scale);
+            return { group, leftLeg: fl, rightLeg: fr, backLeftLeg: bl, backRightLeg: br };
+        }
+
+        function buildAnkylosaurusMesh(mat, scale) {
+            const group = new THREE.Group();
+
+            const shell = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.95, 2.6), mat);
+            shell.position.set(0, 1.05, 0);
+            shell.castShadow = true;
+            shell.receiveShadow = true;
+            group.add(shell);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.62, 0.95), mat);
+            head.position.set(0, 0.95, 1.65);
+            head.castShadow = true;
+            group.add(head);
+
+            const spikeGeo = new THREE.ConeGeometry(0.14, 0.45, 5);
+            for (let z = -0.9; z <= 0.9; z += 0.6) {
+                [-0.95, 0.95].forEach((sx) => {
+                    const sp = new THREE.Mesh(spikeGeo, sharedResources.ankyloSpikeMat);
+                    sp.position.set(sx, 1.05, z);
+                    sp.rotation.z = sx > 0 ? -Math.PI / 2 : Math.PI / 2;
+                    group.add(sp);
+                });
+            }
+
+            const tailRod = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 2.1, 6).rotateX(Math.PI / 2), mat);
+            tailRod.position.set(0, 0.85, -2.2);
+            group.add(tailRod);
+
+            const club = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45, 0), mat);
+            club.position.set(0, 0.85, -3.25);
+            club.castShadow = true;
+            group.add(club);
+
+            const legGeo = new THREE.BoxGeometry(0.38, 0.65, 0.42);
+            const fl = new THREE.Mesh(legGeo, mat); fl.position.set(0.68, 0.32, 0.85); fl.castShadow = true; group.add(fl);
+            const fr = new THREE.Mesh(legGeo, mat); fr.position.set(-0.68, 0.32, 0.85); fr.castShadow = true; group.add(fr);
+            const bl = new THREE.Mesh(legGeo, mat); bl.position.set(0.68, 0.32, -0.85); bl.castShadow = true; group.add(bl);
+            const br = new THREE.Mesh(legGeo, mat); br.position.set(-0.68, 0.32, -0.85); br.castShadow = true; group.add(br);
+
+            group.scale.setScalar(scale);
+            return { group, leftLeg: fl, rightLeg: fr, backLeftLeg: bl, backRightLeg: br };
+        }
+
+        function buildPteranodonMesh(mat, scale) {
+            const group = new THREE.Group();
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 1.45), mat);
+            body.castShadow = true;
+            group.add(body);
+
+            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.35, 5).rotateX(Math.PI / 2), sharedResources.stegoPlateMat);
+            beak.position.set(0, 0.12, 1.25);
+            beak.castShadow = true;
+            group.add(beak);
+
+            const crest = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.15, 4).rotateX(-Math.PI / 2.4), mat);
+            crest.position.set(0, 0.48, 0.25);
+            group.add(crest);
+
+            const leftWingPivot = new THREE.Group();
+            leftWingPivot.position.set(0.32, 0.1, 0.1);
+            const leftWing = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 0.95), mat);
+            leftWing.position.set(1.3, 0, -0.1);
+            leftWing.castShadow = true;
+            leftWingPivot.add(leftWing);
+            group.add(leftWingPivot);
+
+            const rightWingPivot = new THREE.Group();
+            rightWingPivot.position.set(-0.32, 0.1, 0.1);
+            const rightWing = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 0.95), mat);
+            rightWing.position.set(-1.3, 0, -0.1);
+            rightWing.castShadow = true;
+            rightWingPivot.add(rightWing);
+            group.add(rightWingPivot);
+
+            group.scale.setScalar(scale);
+            return { group, leftWingPivot, rightWingPivot };
+        }
+
+        function buildTriceratopsMesh(mat, scale) {
+            const group = new THREE.Group();
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.55, 1.35, 2.7), mat);
+            body.position.set(0, 1.35, 0);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+
+            const frill = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 0.22, 12).rotateX(Math.PI / 2.4), mat);
+            frill.position.set(0, 1.95, 1.35);
+            frill.castShadow = true;
+            group.add(frill);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.72, 1.15), mat);
+            head.position.set(0, 1.35, 1.85);
+            head.castShadow = true;
+            group.add(head);
+
+            const hornGeo = new THREE.ConeGeometry(0.11, 0.95, 6).rotateX(Math.PI / 2);
+            [-0.28, 0.28].forEach((hx) => {
+                const horn = new THREE.Mesh(hornGeo, sharedResources.ankyloSpikeMat);
+                horn.position.set(hx, 1.72, 2.55);
+                group.add(horn);
+            });
+            const noseHorn = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.48, 6).rotateX(Math.PI / 2), sharedResources.ankyloSpikeMat);
+            noseHorn.position.set(0, 1.45, 2.52);
+            group.add(noseHorn);
+
+            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.38, 2.1, 6), mat);
+            tail.rotation.x = -Math.PI / 2;
+            tail.position.set(0, 1.25, -2.25);
+            group.add(tail);
+
+            const legGeo = new THREE.BoxGeometry(0.38, 0.95, 0.44);
+            const fl = new THREE.Mesh(legGeo, mat); fl.position.set(0.58, 0.48, 0.9); fl.castShadow = true; group.add(fl);
+            const fr = new THREE.Mesh(legGeo, mat); fr.position.set(-0.58, 0.48, 0.9); fr.castShadow = true; group.add(fr);
+            const bl = new THREE.Mesh(legGeo, mat); bl.position.set(0.58, 0.48, -0.9); bl.castShadow = true; group.add(bl);
+            const br = new THREE.Mesh(legGeo, mat); br.position.set(-0.58, 0.48, -0.9); br.castShadow = true; group.add(br);
+
+            group.scale.setScalar(scale);
+            return { group, leftLeg: fl, rightLeg: fr, backLeftLeg: bl, backRightLeg: br };
+        }
+
+        function buildSpinosaurusMesh(mat, scale) {
+            const built = buildBipedDinoMesh(mat, 1.0, 'rex');
+            const sailGeo = new THREE.CylinderGeometry(1.35, 1.35, 0.14, 14, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).rotateY(Math.PI / 2);
+            const sail = new THREE.Mesh(sailGeo, sharedResources.spinoSailMat);
+            sail.position.set(0, 2.35, -0.1);
+            sail.castShadow = true;
+            built.group.add(sail);
+            built.group.scale.setScalar(scale);
+            return built;
+        }
+
+        function buildMammothMesh(mat, scale) {
+            const group = new THREE.Group();
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.85, 1.75, 2.9), mat);
+            body.position.set(0, 1.75, 0);
+            body.castShadow = true;
+            group.add(body);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.25, 1.15), mat);
+            head.position.set(0, 1.95, 1.75);
+            head.castShadow = true;
+            group.add(head);
+
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 1.85, 8), mat);
+            trunk.position.set(0, 1.15, 2.35);
+            trunk.rotation.x = -0.25;
+            group.add(trunk);
+
+            const tuskGeo = new THREE.CylinderGeometry(0.07, 0.12, 1.65, 8).rotateX(Math.PI / 2.6);
+            [-0.45, 0.45].forEach((tx) => {
+                const tusk = new THREE.Mesh(tuskGeo, sharedResources.ankyloSpikeMat);
+                tusk.position.set(tx, 1.45, 2.55);
+                group.add(tusk);
+            });
+
+            const legGeo = new THREE.CylinderGeometry(0.32, 0.36, 1.35, 8);
+            const fl = new THREE.Mesh(legGeo, mat); fl.position.set(0.65, 0.68, 0.95); fl.castShadow = true; group.add(fl);
+            const fr = new THREE.Mesh(legGeo, mat); fr.position.set(-0.65, 0.68, 0.95); fr.castShadow = true; group.add(fr);
+            const bl = new THREE.Mesh(legGeo, mat); bl.position.set(0.65, 0.68, -0.95); bl.castShadow = true; group.add(bl);
+            const br = new THREE.Mesh(legGeo, mat); br.position.set(-0.65, 0.68, -0.95); br.castShadow = true; group.add(br);
+
+            group.scale.setScalar(scale);
+            return { group, leftLeg: fl, rightLeg: fr, backLeftLeg: bl, backRightLeg: br };
+        }
+
         function createDino(x, z) {
             if (dinosaurs.length >= MAX_DINOS) return;
 
             const groundY = getTerrainHeight(x, z);
             const biome = getBiomeType(x, z);
 
-            // Never spawn sharks in small inland ponds
             if (biome === 'pond') return;
 
             const inOcean = (biome === 'ocean' || biome === 'giant_ocean') && groundY < WATER_LEVEL - 0.8;
-            let group, leftLeg = null, rightLeg = null, tailPivot = null;
-            let species, maxHp, speed, damage, attackRange, hitRadius, scale = 1.0;
+            let group, leftLeg = null, rightLeg = null, backLeftLeg = null, backRightLeg = null;
+            let tailPivot = null, leftWingPivot = null, rightWingPivot = null;
+            let species, maxHp, speed, damage, attackRange, hitRadius, scale = 1.0, isFlyingDino = false;
 
             if (inOcean) {
                 group = new THREE.Group();
-                const isMegalodon = Math.random() < 0.30;
-                scale = isMegalodon ? 2.55 : 1.05;
-                const mat = isMegalodon ? sharedResources.megalodonMat : sharedResources.sharkMat;
+                const roll = Math.random();
+                const isMosasaur = roll < 0.18;
+                const isMegalodon = !isMosasaur && roll < 0.42;
+                scale = isMosasaur ? 2.75 : (isMegalodon ? 2.55 : 1.05);
+                const mat = isMosasaur ? sharedResources.mosasaurMat : (isMegalodon ? sharedResources.megalodonMat : sharedResources.sharkMat);
                 const built = buildSharkMesh(mat, scale);
                 group.add(built.fishGroup);
                 tailPivot = built.tailPivot;
@@ -1809,48 +2708,114 @@
                 const swimY = Math.max(groundY + 1.4 * scale, WATER_LEVEL - 0.95 * scale);
                 group.position.set(x, swimY, z);
 
-                species = isMegalodon ? 'megalodon' : 'shark';
-                maxHp = isMegalodon ? 650 : 90;
-                speed = isMegalodon ? 5.6 : 7.4;
-                damage = isMegalodon ? 28 : 14;
-                attackRange = isMegalodon ? 4.8 : 3.0;
-                hitRadius = isMegalodon ? 3.8 : 1.85;
-            } else if (biome === 'desert' || biome === 'savanna') {
-                const built = buildBipedDinoMesh(sharedResources.raptorMat, 1.0, true);
+                species = isMosasaur ? 'mosasaurus' : (isMegalodon ? 'megalodon' : 'shark');
+                maxHp = isMosasaur ? 780 : (isMegalodon ? 650 : 90);
+                speed = isMosasaur ? 6.2 : (isMegalodon ? 5.6 : 7.4);
+                damage = isMosasaur ? 32 : (isMegalodon ? 28 : 14);
+                attackRange = isMosasaur ? 5.2 : (isMegalodon ? 4.8 : 3.0);
+                hitRadius = isMosasaur ? 4.0 : (isMegalodon ? 3.8 : 1.85);
+            } else if (biome === 'glacier') {
+                const built = buildMammothMesh(sharedResources.mammothMat, 1.15);
                 group = built.group;
-                leftLeg = built.leftLeg;
-                rightLeg = built.rightLeg;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
                 group.position.set(x, groundY, z);
-
-                species = 'raptor';
-                maxHp = 85;
-                speed = 6.8 + Math.random() * 1.4;
-                damage = 12;
-                attackRange = 2.8;
-                hitRadius = 1.9;
+                species = 'mammoth'; maxHp = 340; speed = 4.6; damage = 26; attackRange = 3.5; hitRadius = 2.5;
+            } else if (biome === 'autumn_woods') {
+                const built = buildTriceratopsMesh(sharedResources.triceraMat, 1.08);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(x, groundY, z);
+                species = 'triceratops'; maxHp = 270; speed = 5.4; damage = 24; attackRange = 3.3; hitRadius = 2.3;
+            } else if (biome === 'mangrove') {
+                const built = buildSpinosaurusMesh(sharedResources.spinoMat, 1.15);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                group.position.set(x, groundY, z);
+                species = 'spinosaurus'; maxHp = 295; speed = 6.0; damage = 25; attackRange = 3.3; hitRadius = 2.2;
+            } else if (biome === 'volcanic') {
+                const built = buildAnkylosaurusMesh(sharedResources.magmaMat, 1.18);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(x, groundY, z);
+                species = 'magmasaur'; maxHp = 360; speed = 4.8; damage = 30; attackRange = 3.4; hitRadius = 2.4;
+            } else if (biome === 'lavender') {
+                const built = buildBipedDinoMesh(sharedResources.parasaurMat, 1.04, 'raptor');
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                group.position.set(x, groundY, z);
+                species = 'parasaurolophus'; maxHp = 155; speed = 6.6; damage = 16; attackRange = 2.9; hitRadius = 1.9;
+            } else if (biome === 'mushroom') {
+                const built = buildSauropodMesh(sharedResources.brontoMat, 1.15);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(x, groundY, z);
+                species = 'bronto'; maxHp = 260; speed = 4.2; damage = 20; attackRange = 3.6; hitRadius = 2.6;
+            } else if (biome === 'meadow') {
+                const built = buildStegosaurusMesh(sharedResources.stegoMat, 1.05);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(x, groundY, z);
+                species = 'stegosaurus'; maxHp = 210; speed = 4.8; damage = 18; attackRange = 3.2; hitRadius = 2.2;
+            } else if (biome === 'crystal_badlands') {
+                const built = buildAnkylosaurusMesh(sharedResources.ankyloMat, 1.08);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(x, groundY, z);
+                species = 'ankylo'; maxHp = 290; speed = 4.4; damage = 22; attackRange = 3.2; hitRadius = 2.3;
+            } else if ((biome === 'redrock' && Math.random() < 0.55) || (!inOcean && Math.random() < 0.16)) {
+                const built = buildPteranodonMesh(sharedResources.pteraMat, 1.15);
+                group = built.group;
+                leftWingPivot = built.leftWingPivot;
+                rightWingPivot = built.rightWingPivot;
+                group.position.set(x, Math.max(groundY, WATER_LEVEL) + 11.0, z);
+                species = 'pteranodon'; isFlyingDino = true; maxHp = 115; speed = 8.8; damage = 14; attackRange = 3.1; hitRadius = 2.1;
+            } else if (biome === 'bamboo') {
+                const built = buildBipedDinoMesh(sharedResources.therizinoMat, 1.12, 'therizino');
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                group.position.set(x, groundY, z);
+                species = 'therizino'; maxHp = 220; speed = 5.8; damage = 24; attackRange = 3.2; hitRadius = 2.1;
+            } else if (biome === 'redrock') {
+                const built = buildBipedDinoMesh(sharedResources.carnoMat, 1.1, 'carnotaurus');
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                group.position.set(x, groundY, z);
+                species = 'carnotaurus'; maxHp = 240; speed = 6.5; damage = 26; attackRange = 3.0; hitRadius = 2.0;
+            } else if (biome === 'obsidian') {
+                const built = buildBipedDinoMesh(sharedResources.voidGigaMat, 1.25, 'rex');
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                group.position.set(x, groundY, z);
+                species = 'void_giga'; maxHp = 320; speed = 5.6; damage = 30; attackRange = 3.4; hitRadius = 2.3;
+            } else if (biome === 'desert' || biome === 'savanna') {
+                const built = buildBipedDinoMesh(sharedResources.raptorMat, 1.0, 'raptor');
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                group.position.set(x, groundY, z);
+                species = 'raptor'; maxHp = 95; speed = 6.8 + Math.random() * 1.4; damage = 13; attackRange = 2.8; hitRadius = 1.9;
             } else {
-                const mat = biome === 'ice'
+                const mat = (biome === 'ice' || biome === 'taiga')
                     ? sharedResources.iceDinoMat
                     : (biome === 'rainforest'
                         ? sharedResources.jungleDinoMat
                         : sharedResources.dinoMats[Math.floor(Math.random() * sharedResources.dinoMats.length)]);
-                const built = buildBipedDinoMesh(mat, 1.0, false);
+                const built = buildBipedDinoMesh(mat, 1.0, 'rex');
                 group = built.group;
-                leftLeg = built.leftLeg;
-                rightLeg = built.rightLeg;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-
-                species = 'rex';
-                maxHp = 120;
-                speed = 4.6 + Math.random() * 1.4;
-                damage = 16;
-                attackRange = 2.8;
-                hitRadius = 1.9;
+                species = 'rex'; maxHp = 130; speed = 4.6 + Math.random() * 1.4; damage = 16; attackRange = 2.8; hitRadius = 1.9;
             }
 
             group.userData = {
                 species,
                 isAquatic: inOcean,
+                isFlyingDino,
                 isBoss: false,
                 scale,
                 hp: maxHp,
@@ -1861,12 +2826,18 @@
                 hitRadius,
                 attackCooldown: 0,
                 turnCooldown: 0,
+                isAlerted: false,
+                alertTimer: 0,
                 walkPhase: Math.random() * Math.PI * 2,
                 wanderAngle: Math.random() * Math.PI * 2,
                 wanderTimer: 2 + Math.random() * 3,
                 leftLeg,
                 rightLeg,
+                backLeftLeg,
+                backRightLeg,
                 tailPivot,
+                leftWingPivot,
+                rightWingPivot,
                 isDead: false,
                 deathTimer: 0
             };
@@ -1901,19 +2872,70 @@
                 groundY = getTerrainHeight(spawnX, spawnZ);
             }
 
-            let group, leftLeg = null, rightLeg = null, tailPivot = null;
+            let group, leftLeg = null, rightLeg = null, backLeftLeg = null, backRightLeg = null, tailPivot = null, leftWingPivot = null, rightWingPivot = null;
             if (bossCfg.isAquatic) {
                 group = new THREE.Group();
-                const mat = bossCfg.species === 'megalodon' ? sharedResources.megalodonMat : sharedResources.sharkMat;
+                const mat = bossCfg.species === 'mosasaurus'
+                    ? sharedResources.mosasaurMat
+                    : (bossCfg.species === 'megalodon' ? sharedResources.megalodonMat : sharedResources.sharkMat);
                 const built = buildSharkMesh(mat, bossCfg.scale);
                 group.add(built.fishGroup);
                 tailPivot = built.tailPivot;
                 group.position.set(spawnX, Math.max(groundY + 2.0, WATER_LEVEL - 2.0), spawnZ);
+            } else if (bossCfg.isFlyingBoss) {
+                const mat = bossCfg.id === 'quetzal_boss' ? sharedResources.voidGigaMat : sharedResources.pteraMat;
+                const built = buildPteranodonMesh(mat, bossCfg.scale);
+                group = built.group;
+                leftWingPivot = built.leftWingPivot;
+                rightWingPivot = built.rightWingPivot;
+                group.position.set(spawnX, Math.max(groundY, WATER_LEVEL) + 12.0, spawnZ);
+            } else if (bossCfg.species === 'stegosaurus') {
+                const built = buildStegosaurusMesh(sharedResources.stegoMat, bossCfg.scale);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(spawnX, groundY, spawnZ);
+            } else if (bossCfg.species === 'bronto') {
+                const built = buildSauropodMesh(sharedResources.brontoMat, bossCfg.scale);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(spawnX, groundY, spawnZ);
+            } else if (bossCfg.species === 'ankylo' || bossCfg.species === 'magmasaur') {
+                const mat = bossCfg.species === 'magmasaur' ? sharedResources.magmaMat : sharedResources.ankyloMat;
+                const built = buildAnkylosaurusMesh(mat, bossCfg.scale);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(spawnX, groundY, spawnZ);
+            } else if (bossCfg.species === 'triceratops') {
+                const built = buildTriceratopsMesh(sharedResources.triceraMat, bossCfg.scale);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(spawnX, groundY, spawnZ);
+            } else if (bossCfg.species === 'mammoth') {
+                const built = buildMammothMesh(sharedResources.mammothMat, bossCfg.scale);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
+                group.position.set(spawnX, groundY, spawnZ);
+            } else if (bossCfg.species === 'spinosaurus') {
+                const built = buildSpinosaurusMesh(sharedResources.spinoMat, bossCfg.scale);
+                group = built.group;
+                leftLeg = built.leftLeg; rightLeg = built.rightLeg;
+                group.position.set(spawnX, groundY, spawnZ);
             } else {
                 const mat = bossCfg.species === 'omega_trex'
                     ? sharedResources.omegaBossMat
-                    : (bossCfg.species === 'ice_dino' ? sharedResources.iceDinoMat : sharedResources.raptorMat);
-                const built = buildBipedDinoMesh(mat, bossCfg.scale, bossCfg.species === 'raptor');
+                    : (bossCfg.species === 'void_giga'
+                        ? sharedResources.voidGigaMat
+                        : (bossCfg.species === 'therizino'
+                            ? sharedResources.therizinoMat
+                            : (bossCfg.species === 'carnotaurus'
+                                ? sharedResources.carnoMat
+                                : (bossCfg.species === 'ice_dino' ? sharedResources.iceDinoMat : sharedResources.raptorMat))));
+                const built = buildBipedDinoMesh(mat, bossCfg.scale, bossCfg.species);
                 group = built.group;
                 leftLeg = built.leftLeg;
                 rightLeg = built.rightLeg;
@@ -1925,6 +2947,7 @@
                 bossId: bossCfg.id,
                 bossName: bossCfg.name,
                 isAquatic: bossCfg.isAquatic,
+                isFlyingDino: Boolean(bossCfg.isFlyingBoss),
                 isBoss: true,
                 scale: bossCfg.scale,
                 hp: bossCfg.hp,
@@ -1935,12 +2958,18 @@
                 hitRadius: 2.2 * bossCfg.scale,
                 attackCooldown: 0,
                 turnCooldown: 0,
+                isAlerted: true,
+                alertTimer: 99,
                 walkPhase: 0,
                 wanderAngle: 0,
                 wanderTimer: 3,
                 leftLeg,
                 rightLeg,
+                backLeftLeg,
+                backRightLeg,
                 tailPivot,
+                leftWingPivot,
+                rightWingPivot,
                 isDead: false,
                 deathTimer: 0
             };
@@ -2064,15 +3093,35 @@
         }
 
         function canDinoSeePlayer(dino) {
+            const d = dino.userData;
             const dx = player.x - dino.position.x;
             const dz = player.z - dino.position.z;
             const dist = Math.hypot(dx, dz);
 
-            const visionRange = dino.userData.isBoss ? 75 : 44;
+            const visionRange = d.isBoss ? 75 : 44;
             if (dist > visionRange) return false;
-            if (dist < 6.5) return true;
 
-            const eyeY = dino.position.y + 2.6;
+            const groundUnderPlayer = getTerrainHeight(player.x, player.z);
+            const playerAirborne = player.isFlying || (player.y - groundUnderPlayer > 4.2 && groundUnderPlayer >= WATER_LEVEL - 0.3);
+            if (!d.isFlyingDino && !d.isAquatic && playerAirborne) return false;
+
+            if (dist < 4.5 && !playerAirborne) return true;
+
+            const angleToPlayer = Math.atan2(dx, dz);
+            const angleDiff = Math.abs(normalizeAngle(angleToPlayer - dino.rotation.y));
+            const halfFov = d.isBoss ? 1.35 : (d.isAlerted ? 1.25 : 1.08);
+            if (angleDiff > halfFov) return false;
+
+            const dy = (player.y - 0.5) - (dino.position.y + (d.isFlyingDino ? 0 : 2.2));
+            const pitchToPlayer = Math.atan2(dy, Math.max(0.1, dist));
+            if (d.isFlyingDino) {
+                if (pitchToPlayer > 0.55 || pitchToPlayer < -1.25) return false;
+            } else {
+                const maxUpPitch = d.isBoss ? 0.95 : (d.isAlerted ? 0.78 : 0.58);
+                if (pitchToPlayer > maxUpPitch || pitchToPlayer < -0.95) return false;
+            }
+
+            const eyeY = dino.position.y + (d.isFlyingDino ? 0 : 2.6);
             const targetY = player.y - 0.3;
 
             const steps = 8;
@@ -2106,6 +3155,7 @@
 
         function recordDinoKill(dino) {
             const d = dino.userData;
+            const herbivoreSpecies = ['bronto', 'stegosaurus', 'ankylo', 'triceratops', 'mammoth', 'parasaurolophus'];
             if (d.isBoss) {
                 if (!player.defeatedBosses.includes(d.bossId)) {
                     player.defeatedBosses.push(d.bossId);
@@ -2114,13 +3164,17 @@
                 if (activeBoss === dino) activeBoss = null;
             } else if (d.species === 'shark') {
                 player.killStats.sharks++;
-            } else if (d.species === 'megalodon') {
+            } else if (d.species === 'megalodon' || d.species === 'mosasaurus') {
                 player.killStats.megalodons++;
-                showToast(`MEGALODON DEFEATED! (TOTAL: ${player.killStats.megalodons})`);
+                showToast(`LEVIATHAN DEFEATED! (TOTAL: ${player.killStats.megalodons})`);
+            } else if (d.isFlyingDino || d.species === 'pteranodon') {
+                player.killStats.flyers = (player.killStats.flyers || 0) + 1;
+            } else if (herbivoreSpecies.includes(d.species)) {
+                player.killStats.herbivores = (player.killStats.herbivores || 0) + 1;
             } else {
                 player.killStats.landDinos++;
             }
-            saveGameState();
+            saveGameState(true);
         }
 
         function triggerExplosion(pos, radius, maxDamage) {
@@ -2141,6 +3195,8 @@
                 if (dDist <= radius) {
                     const falloff = Math.max(0.35, 1 - dDist / radius);
                     dino.userData.hp -= Math.round(maxDamage * falloff);
+                    dino.userData.isAlerted = true;
+                    dino.userData.alertTimer = 8.0;
                     if (dino.userData.hp <= 0) {
                         dino.userData.hp = 0;
                         dino.userData.isDead = true;
@@ -2151,45 +3207,51 @@
             }
         }
 
-        // Physical Projectile with Gravity Bullet Drop
         function spawnBullet(weapon) {
-            const isRocket = weapon.id === 'rocket';
-            const bullet = new THREE.Mesh(
-                isRocket ? sharedResources.rocketGeo : sharedResources.bulletGeo,
-                isRocket ? sharedResources.rocketMat : sharedResources.bulletMat
-            );
+            const isRocket = weapon.id === 'rocket' || weapon.id === 'meteor_staff';
+            const isBolt = weapon.id === 'crossbow';
+            const pellets = weapon.pellets || 1;
 
-            const startPos = player.isAiming
-                ? new THREE.Vector3(0, -0.05, -0.9)
-                : new THREE.Vector3(0.25, -0.18, -0.9);
-            startPos.applyMatrix4(camera.matrixWorld);
-            bullet.position.copy(startPos);
+            for (let p = 0; p < pellets; p++) {
+                const geo = isRocket ? sharedResources.rocketGeo : (isBolt ? sharedResources.boltGeo : sharedResources.bulletGeo);
+                const mat = isRocket
+                    ? sharedResources.rocketMat
+                    : (weapon.isPlasma
+                        ? sharedResources.plasmaMat
+                        : (weapon.isFlame ? sharedResources.flameMat : sharedResources.bulletMat));
 
-            const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            const spreadMult = player.isAiming ? 0.35 : 1.0;
-            dir.x += (Math.random() - 0.5) * weapon.spread * spreadMult;
-            dir.y += (Math.random() - 0.5) * weapon.spread * spreadMult;
-            dir.z += (Math.random() - 0.5) * weapon.spread * spreadMult;
-            dir.normalize();
+                const bullet = new THREE.Mesh(geo, mat);
 
-            if (isRocket) {
+                const startPos = player.isAiming
+                    ? new THREE.Vector3(0, -0.05, -0.9)
+                    : new THREE.Vector3(0.25, -0.18, -0.9);
+                startPos.applyMatrix4(camera.matrixWorld);
+                bullet.position.copy(startPos);
+
+                const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                const spreadMult = player.isAiming ? 0.35 : 1.0;
+                dir.x += (Math.random() - 0.5) * weapon.spread * spreadMult;
+                dir.y += (Math.random() - 0.5) * weapon.spread * spreadMult;
+                dir.z += (Math.random() - 0.5) * weapon.spread * spreadMult;
+                dir.normalize();
+
                 bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+
+                bullet.userData = {
+                    vx: dir.x * weapon.speed,
+                    vy: dir.y * weapon.speed,
+                    vz: dir.z * weapon.speed,
+                    gravity: weapon.gravity !== undefined ? weapon.gravity : 21.0,
+                    damage: weapon.damage,
+                    isRocket,
+                    splashRadius: weapon.splashRadius || 0,
+                    life: weapon.isFlame ? 0.42 : 4.5,
+                    hasHit: false
+                };
+
+                scene.add(bullet);
+                bullets.push(bullet);
             }
-
-            bullet.userData = {
-                vx: dir.x * weapon.speed,
-                vy: dir.y * weapon.speed,
-                vz: dir.z * weapon.speed,
-                gravity: weapon.gravity || 9.8,
-                damage: weapon.damage,
-                isRocket,
-                splashRadius: weapon.splashRadius || 0,
-                life: 4.5,
-                hasHit: false
-            };
-
-            scene.add(bullet);
-            bullets.push(bullet);
         }
 
         function handlePrimaryAction() {
@@ -2228,6 +3290,8 @@
                         const hits = raycaster.intersectObjects(dino.children, true);
                         if (hits.length > 0 || dist < 3.6) {
                             dino.userData.hp -= weapon.damage;
+                            dino.userData.isAlerted = true;
+                            dino.userData.alertTimer = 8.0;
                             hitDino = true;
                             if (dino.userData.hp <= 0) {
                                 dino.userData.hp = 0;
@@ -2249,7 +3313,7 @@
                                 tree.userData.hp -= weapon.treeHits;
                                 player.wood += (weapon.id === 'chainsaw' ? 6 : 2);
                                 if (tree.userData.hp <= 0) {
-                                    if (tree.userData.kind !== 'cactus') {
+                                    if (tree.userData.kind !== 'cactus' && tree.userData.kind !== 'crystal_spire' && tree.userData.kind !== 'obsidian_pillar') {
                                         player.health = Math.min(100, player.health + 10);
                                         showToast('+1 APPLE (+10 HP)');
                                     }
@@ -2303,7 +3367,6 @@
             }
         }
 
-        // Aiming for ALL weapons & tools (with Sniper Scope overlay for Hunting Rifle)
         function toggleAim(forceState) {
             const weapon = WEAPONS[player.selectedTool] || WEAPONS.axe;
             player.isAiming = typeof forceState === 'boolean' ? forceState : !player.isAiming;
@@ -2393,10 +3456,11 @@
                 const ammoText = w.ammoType
                     ? `${player.magAmmo[w.id] || 0} / ${player.reserveAmmo[w.ammoType] || 0}`
                     : 'UNLIMITED';
+                const keyBadge = w.keyNum ? `[${w.keyNum}] ` : '';
 
                 btn.innerHTML = `
                     <div>
-                        <div class="font-black text-sm ${unlocked ? 'text-white' : 'text-slate-400'}">[${w.keyNum}] ${w.name}</div>
+                        <div class="font-black text-sm ${unlocked ? 'text-white' : 'text-slate-400'}">${keyBadge}${w.name}</div>
                         <div class="text-[11px] text-slate-300">${unlocked ? w.desc : 'Locked — Open crates on Village Islands'}</div>
                     </div>
                     <div class="text-xs font-bold ${equipped ? 'text-emerald-300' : 'text-cyan-300'} ml-2 shrink-0">
@@ -2438,6 +3502,35 @@
             if (!list) return;
             list.innerHTML = '';
 
+            // Auto-Medkit Crafting Option
+            const medRow = document.createElement('div');
+            medRow.className = 'p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 flex justify-between items-center';
+            medRow.innerHTML = `
+                <div>
+                    <div class="text-xs font-black text-emerald-300">Auto-Medkit (Owned: ${player.medkits})</div>
+                    <div class="text-[11px] text-slate-300">Automatically restores +50 HP when health drops to 60% or below • Cost: <span class="text-amber-400 font-bold">5 Wood</span></div>
+                </div>
+            `;
+            const medBtn = document.createElement('button');
+            medBtn.type = 'button';
+            medBtn.innerText = 'CRAFT';
+            medBtn.className = player.wood >= 5
+                ? 'px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg bg-slate-700 text-slate-400 font-bold text-xs cursor-not-allowed';
+            if (player.wood >= 5) {
+                medBtn.onclick = () => {
+                    if (player.wood >= 5) {
+                        player.wood -= 5;
+                        player.medkits++;
+                        updateHUD();
+                        saveGameState(true);
+                        renderCraftingMenu();
+                    }
+                };
+            }
+            medRow.appendChild(medBtn);
+            list.appendChild(medRow);
+
             const craftableWeapons = Object.values(WEAPONS).filter(w => w.ammoType !== null);
             for (const w of craftableWeapons) {
                 const unlocked = player.unlockedWeapons.includes(w.id);
@@ -2466,7 +3559,7 @@
                             player.wood -= w.craftCost;
                             player.reserveAmmo[w.ammoType] = (player.reserveAmmo[w.ammoType] || 0) + w.craftGain;
                             updateHUD();
-                            saveGameState();
+                            saveGameState(true);
                             renderCraftingMenu();
                         }
                     };
@@ -2492,7 +3585,7 @@
         function renderBossMenu() {
             const summary = document.getElementById('kill-stats-summary');
             if (summary) {
-                summary.innerText = `Sharks: ${player.killStats.sharks} | Megalodons: ${player.killStats.megalodons} | Land Dinos: ${player.killStats.landDinos}`;
+                summary.innerText = `Sharks: ${player.killStats.sharks} | Leviathans: ${player.killStats.megalodons} | Flyers: ${player.killStats.flyers || 0} | Herbivores: ${player.killStats.herbivores || 0} | Carnivores: ${player.killStats.landDinos}`;
             }
 
             const list = document.getElementById('boss-list');
@@ -2555,6 +3648,7 @@
         function updateHUD() {
             const healthVal = document.getElementById('health-val');
             const healthBar = document.getElementById('health-bar');
+            const medkitVal = document.getElementById('medkit-val');
             const woodVal = document.getElementById('wood-val');
             const ammoLabel = document.getElementById('ammo-label');
             const ammoVal = document.getElementById('ammo-val');
@@ -2564,6 +3658,7 @@
 
             if (healthVal) healthVal.innerText = `${Math.max(0, Math.round(player.health))}%`;
             if (healthBar) healthBar.style.width = Math.max(0, player.health) + '%';
+            if (medkitVal) medkitVal.innerText = player.medkits;
             if (woodVal) woodVal.innerText = player.wood;
             if (equippedName) equippedName.innerText = weapon.name.toUpperCase();
 
@@ -2610,10 +3705,9 @@
                 }
             }
 
-            // Contextual weapon-specific buttons
             const actionBtn = document.getElementById('btn-action');
             if (actionBtn) {
-                actionBtn.innerText = isTool ? 'PING [E]' : (isRanged ? 'SHOOT' : (weapon.id === 'chainsaw' ? 'SAW' : 'CHOP'));
+                actionBtn.innerText = isTool ? 'PING [E]' : (isRanged ? 'SHOOT' : (weapon.id === 'chainsaw' ? 'SAW' : 'ATTACK'));
             }
 
             const reloadBtn = document.getElementById('btn-reload');
@@ -2634,6 +3728,83 @@
             updateVisibleWeaponMesh();
         }
 
+        function setServerMode(mode) {
+            serverMode = mode;
+            const toggleBtn = document.getElementById('server-toggle-btn');
+            const descEl = document.getElementById('server-mode-desc');
+            if (toggleBtn) {
+                toggleBtn.innerText = mode === 'public' ? 'SERVER: PUBLIC' : 'SERVER: PRIVATE';
+            }
+            if (descEl) {
+                descEl.innerText = mode === 'public'
+                    ? 'Public Server — Live online explorers (No PvP)'
+                    : 'Private Server — Solo expedition';
+            }
+        }
+
+        async function attemptJoinWorld() {
+            if (isGameStarted) return;
+            const inputEl = document.getElementById('username-input');
+            const errEl = document.getElementById('username-error');
+            const rawName = inputEl ? inputEl.value.trim() : '';
+
+            if (!rawName || rawName.length < 2) {
+                if (errEl) {
+                    errEl.innerText = 'Please enter a username (at least 2 characters).';
+                    errEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            const normalized = rawName.toLowerCase();
+            let taken = false;
+            for (const [uid, existingName] of activeUsernames.entries()) {
+                if (uid !== currentUserId && existingName === normalized) {
+                    taken = true;
+                    break;
+                }
+            }
+
+            if (taken) {
+                if (errEl) {
+                    errEl.innerText = `Username "${rawName}" is already taken! Choose another.`;
+                    errEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (errEl) errEl.classList.add('hidden');
+            playerUsername = rawName;
+            localStorage.setItem(LAST_USER_KEY, playerUsername);
+
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn) startBtn.innerText = 'LOADING PROFILE...';
+
+            loadGameState();
+            const restoredFromCloud = await loadCloudProfile(playerUsername);
+
+            isGameStarted = true;
+            const hudUser = document.getElementById('hud-username');
+            const hudBadge = document.getElementById('hud-server-badge');
+            if (hudUser) hudUser.innerText = playerUsername.toUpperCase();
+            if (hudBadge) hudBadge.innerText = serverMode === 'public' ? 'PUBLIC CO-OP' : 'SOLO WORLD';
+
+            const startOverlay = document.getElementById('start-overlay');
+            if (startOverlay) startOverlay.classList.add('hidden');
+
+            if (!scene) initEngine();
+            updateInfiniteTerrain(player.x, player.z, true);
+            spawnInitialEnvironment();
+            updateHUD();
+            saveGameState(true);
+            syncPlayerStateToServer(true);
+
+            if (restoredFromCloud) {
+                showToast(`WELCOME BACK, ${playerUsername.toUpperCase()}! PROGRESS RESTORED`);
+            }
+            animate();
+        }
+
         function setupControls() {
             const bindBtn = (id, fn) => {
                 const el = document.getElementById(id);
@@ -2648,6 +3819,38 @@
                     fn();
                 });
             };
+
+            const lastSavedName = localStorage.getItem(LAST_USER_KEY);
+            const nameInput = document.getElementById('username-input');
+            if (lastSavedName && nameInput) {
+                nameInput.value = lastSavedName;
+            }
+
+            bindBtn('server-toggle-btn', () => {
+                const modal = document.getElementById('server-modal');
+                if (modal) modal.classList.remove('hidden');
+            });
+            bindBtn('select-private-btn', () => {
+                setServerMode('private');
+                const modal = document.getElementById('server-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+            bindBtn('select-public-btn', () => {
+                setServerMode('public');
+                const modal = document.getElementById('server-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+            bindBtn('close-server-modal-btn', () => {
+                const modal = document.getElementById('server-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+            bindBtn('start-btn', attemptJoinWorld);
+
+            if (nameInput) {
+                nameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') attemptJoinWorld();
+                });
+            }
 
             const joyZone = document.getElementById('joystick-zone');
             const joyKnob = document.getElementById('joystick-knob');
@@ -2755,7 +3958,6 @@
             bindHoldKey('btn-dive', 'q');
             bindHoldKey('btn-swim-up', ' ');
 
-            bindBtn('start-btn', startGame);
             bindBtn('open-weapons-btn', toggleWeaponMenu);
             bindBtn('close-weapon-btn', toggleWeaponMenu);
             bindBtn('open-bosses-btn', () => toggleBossMenu());
@@ -2774,9 +3976,9 @@
             bindBtn('close-craft-btn', toggleCraftingMenu);
 
             window.addEventListener('keydown', (e) => {
+                if (!isGameStarted) return;
                 const k = e.key.toLowerCase();
                 keys[k] = true;
-                if (!isGameStarted) return;
 
                 const weaponByKey = Object.values(WEAPONS).find(w => w.keyNum === k);
                 if (weaponByKey && player.unlockedWeapons.includes(weaponByKey.id)) {
@@ -2811,7 +4013,7 @@
             });
             window.addEventListener('mousedown', (e) => {
                 if (!isGameStarted) return;
-                if (e.target.tagName === 'BUTTON') return;
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
                 if (e.button === 2) {
                     toggleAim();
                     return;
@@ -2841,26 +4043,13 @@
                 }
             });
 
-            window.addEventListener('beforeunload', saveGameState);
+            window.addEventListener('beforeunload', () => saveGameState(true));
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') {
-                    saveGameState();
+                    saveGameState(true);
                 }
             });
         }
-
-        function startGame() {
-            if (isGameStarted) return;
-            isGameStarted = true;
-
-            const startOverlay = document.getElementById('start-overlay');
-            if (startOverlay) startOverlay.classList.add('hidden');
-
-            if (!scene) initEngine();
-            updateHUD();
-            animate();
-        }
-        window.startGame = startGame;
 
         function animate() {
             requestAnimationFrame(animate);
@@ -2871,7 +4060,7 @@
 
             if (isActionHeld && fireCooldown <= 0) {
                 const w = WEAPONS[player.selectedTool];
-                if (w && (w.id === 'ak47' || w.id === 'minigun' || w.id === 'chainsaw')) {
+                if (w && (w.id === 'ak47' || w.id === 'minigun' || w.id === 'dual_smg' || w.id === 'flamethrower' || w.id === 'chainsaw')) {
                     handlePrimaryAction();
                 }
             }
@@ -2880,6 +4069,12 @@
             if (autoSaveTimer >= 3.0) {
                 autoSaveTimer = 0;
                 saveGameState();
+            }
+
+            syncPlayerStateToServer(false);
+            for (const remoteObj of remotePlayers.values()) {
+                remoteObj.group.position.lerp(remoteObj.targetPos, Math.min(1, dt * 10));
+                remoteObj.group.rotation.y = remoteObj.targetYaw + Math.PI;
             }
 
             let forwardInput = (keys['w'] || keys['arrowup'] ? 1 : 0) - (keys['s'] || keys['arrowdown'] ? 1 : 0) - joystickVector.y;
@@ -2895,7 +4090,6 @@
             const groundY = terrainY + 2.0;
             const inWater = terrainY < WATER_LEVEL - 0.25 && player.y <= WATER_LEVEL + 1.2;
 
-            // Slightly slower swimming speed when in water
             const sprinting = keys['shift'] || player.isSprinting;
             const swimPenalty = inWater ? 0.68 : 1.0;
             const moveSpeed = player.speed * swimPenalty * (sprinting ? 1.55 : 1.0);
@@ -2911,6 +4105,14 @@
             updateInfiniteTerrain(player.x, player.z);
             updateInfiniteWorldEntities();
 
+            // Keep real-time directional shadows following the player everywhere in the world
+            if (dirLight) {
+                dirLight.castShadow = true;
+                dirLight.position.set(player.x + 70, 110, player.z + 50);
+                dirLight.target.position.set(player.x, 0, player.z);
+                dirLight.target.updateMatrixWorld();
+            }
+
             const nearCrate = findNearbyClosedCrate();
             const crateBtn = document.getElementById('btn-open-crate');
             if (crateBtn) {
@@ -2918,7 +4120,6 @@
                 crateBtn.classList.toggle('flex', Boolean(nearCrate));
             }
 
-            // Show Dive & Swim Up buttons only when in water
             const diveBtn = document.getElementById('btn-dive');
             const swimUpBtn = document.getElementById('btn-swim-up');
             if (diveBtn && swimUpBtn) {
@@ -2937,6 +4138,18 @@
                     savanna: 'SAVANNA',
                     desert: 'DESERT',
                     ice: 'ICE TUNDRA',
+                    taiga: 'BOREAL TAIGA',
+                    glacier: 'GLACIER PEAKS',
+                    lavender: 'LAVENDER HILLS',
+                    autumn_woods: 'AUTUMN WOODS',
+                    meadow: 'SUNLIT MEADOW',
+                    bamboo: 'BAMBOO GROVE',
+                    mushroom: 'MUSHROOM HOLLOW',
+                    redrock: 'REDROCK CANYON',
+                    mangrove: 'MANGROVE SWAMP',
+                    crystal_badlands: 'CRYSTAL BADLANDS',
+                    obsidian: 'OBSIDIAN WASTES',
+                    volcanic: 'VOLCANIC CALDERA',
                     ocean: 'OCEAN',
                     giant_ocean: 'GIANT OCEAN',
                     pond: 'FRESHWATER POND',
@@ -2945,11 +4158,13 @@
                 const label = labelMap[biome] || biome.toUpperCase();
                 if (biomeVal.innerText !== label) {
                     biomeVal.innerText = label;
-                    biomeVal.className = (biome === 'ocean' || biome === 'giant_ocean' || biome === 'pond' || biome === 'ice')
+                    biomeVal.className = (biome === 'ocean' || biome === 'giant_ocean' || biome === 'pond' || biome === 'ice' || biome === 'crystal_badlands' || biome === 'glacier')
                         ? 'text-[11px] font-black text-cyan-300'
-                        : (biome === 'desert' || biome === 'savanna' || biome === 'village_island'
+                        : (biome === 'desert' || biome === 'savanna' || biome === 'redrock' || biome === 'autumn_woods' || biome === 'village_island'
                             ? 'text-[11px] font-black text-amber-300'
-                            : 'text-[11px] font-black text-emerald-300');
+                            : (biome === 'mushroom' || biome === 'obsidian' || biome === 'volcanic' || biome === 'lavender'
+                                ? 'text-[11px] font-black text-purple-300'
+                                : 'text-[11px] font-black text-emerald-300'));
                 }
             }
 
@@ -2960,6 +4175,18 @@
                     savanna: [0.85, 0.78, 0.58],
                     desert: [0.88, 0.78, 0.60],
                     ice: [0.80, 0.89, 0.96],
+                    taiga: [0.68, 0.80, 0.88],
+                    glacier: [0.76, 0.90, 0.98],
+                    lavender: [0.78, 0.72, 0.90],
+                    autumn_woods: [0.84, 0.72, 0.56],
+                    meadow: [0.58, 0.82, 0.95],
+                    bamboo: [0.50, 0.76, 0.78],
+                    mushroom: [0.52, 0.42, 0.68],
+                    redrock: [0.86, 0.62, 0.48],
+                    mangrove: [0.46, 0.64, 0.60],
+                    crystal_badlands: [0.64, 0.84, 0.96],
+                    obsidian: [0.22, 0.18, 0.32],
+                    volcanic: [0.36, 0.18, 0.14],
                     ocean: [0.42, 0.74, 0.90],
                     giant_ocean: [0.38, 0.70, 0.88],
                     pond: [0.52, 0.73, 0.86],
@@ -2979,7 +4206,6 @@
                 underwaterOverlay.style.opacity = player.y < WATER_LEVEL ? '1' : '0';
             }
 
-            // Swimming & Deep Diving Physics
             if (player.isFlying) {
                 const flyUp = (keys[' '] ? 1 : 0) - (keys['q'] ? 1 : 0);
                 player.y += (flyUp + Math.sin(player.pitch) * forwardInput) * moveSpeed * dt;
@@ -3048,7 +4274,7 @@
                         distEl.innerText = 'ALL LOOTED!';
                     }
                     activeMesh.position.z += (tz - activeMesh.position.z) * Math.min(1, dt * 14);
-                } else if (player.selectedTool === 'axe') {
+                } else if (player.selectedTool === 'axe' || player.selectedTool === 'katana' || player.selectedTool === 'warhammer') {
                     if (swingTimer > 0) {
                         swingTimer -= dt;
                         activeMesh.rotation.x = 0.2 + Math.sin((0.28 - swingTimer) * 22) * 1.15;
@@ -3090,8 +4316,9 @@
                 b.position.y += b.userData.vy * dt;
                 b.position.z += b.userData.vz * dt;
 
-                if (b.userData.isRocket) {
-                    const velDir = new THREE.Vector3(b.userData.vx, b.userData.vy, b.userData.vz).normalize();
+                const velLen = Math.hypot(b.userData.vx, b.userData.vy, b.userData.vz);
+                if (velLen > 0.001) {
+                    const velDir = new THREE.Vector3(b.userData.vx / velLen, b.userData.vy / velLen, b.userData.vz / velLen);
                     b.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), velDir);
                 }
 
@@ -3103,16 +4330,18 @@
                         const dinoCenter = new THREE.Vector3(dino.position.x, dino.position.y + yOffset, dino.position.z);
                         if (b.position.distanceTo(dinoCenter) < (dino.userData.hitRadius || 1.9)) {
                             b.userData.hasHit = true;
-                            if (b.userData.isRocket) {
+                            if (b.userData.isRocket || b.userData.splashRadius > 0) {
                                 triggerExplosion(b.position, b.userData.splashRadius, b.userData.damage);
                             } else {
                                 dino.userData.hp -= b.userData.damage;
+                                dino.userData.isAlerted = true;
+                                dino.userData.alertTimer = 8.0;
                                 if (dino.userData.hp <= 0) {
                                     dino.userData.hp = 0;
                                     dino.userData.isDead = true;
                                     dino.userData.deathTimer = 0;
                                     recordDinoKill(dino);
-                                } else if (dino.userData.species === 'megalodon' || dino.userData.isBoss) {
+                                } else if (dino.userData.species === 'megalodon' || dino.userData.species === 'mosasaurus' || dino.userData.isBoss) {
                                     updateHUD();
                                 }
                             }
@@ -3123,7 +4352,7 @@
 
                 const terrainAtBullet = getTerrainHeight(b.position.x, b.position.z);
                 if (b.userData.hasHit || b.position.y <= terrainAtBullet || b.userData.life <= 0) {
-                    if (!b.userData.hasHit && b.userData.isRocket && b.position.y <= terrainAtBullet) {
+                    if (!b.userData.hasHit && (b.userData.isRocket || b.userData.splashRadius > 0) && b.position.y <= terrainAtBullet) {
                         triggerExplosion(b.position, b.userData.splashRadius, b.userData.damage);
                     }
                     scene.remove(b);
@@ -3131,7 +4360,6 @@
                 }
             }
 
-            // Rocket Explosion Expanding Fireballs
             for (let i = explosions.length - 1; i >= 0; i--) {
                 const ex = explosions[i];
                 ex.userData.age += dt;
@@ -3145,11 +4373,15 @@
                 }
             }
 
-            // Dinosaur & Marine Predator AI (Clean shoreline pacing, zero infinite spinning)
+            // Dinosaur & Marine Predator AI
             for (let i = dinosaurs.length - 1; i >= 0; i--) {
                 const dino = dinosaurs[i];
                 const d = dino.userData;
                 if (d.turnCooldown > 0) d.turnCooldown -= dt;
+                if (d.alertTimer > 0) {
+                    d.alertTimer -= dt;
+                    if (d.alertTimer <= 0 && !d.isBoss) d.isAlerted = false;
+                }
 
                 if (d.isDead) {
                     d.deathTimer += dt;
@@ -3175,29 +4407,63 @@
                 const dz = player.z - dino.position.z;
                 const dist = Math.hypot(dx, dz);
 
-                if (d.isAquatic) {
-                    const playerInWater = getTerrainHeight(player.x, player.z) < WATER_LEVEL - 0.2 && player.y <= WATER_LEVEL + 2.2;
-                    const aggroRange = d.isBoss ? 80 : (d.species === 'megalodon' ? 58 : 42);
-                    const chasesPlayer = playerInWater && dist < aggroRange;
+                if (d.isFlyingDino) {
+                    d.walkPhase += dt * 9.5;
+                    if (d.leftWingPivot && d.rightWingPivot) {
+                        d.leftWingPivot.rotation.z = Math.sin(d.walkPhase) * 0.55;
+                        d.rightWingPivot.rotation.z = -Math.sin(d.walkPhase) * 0.55;
+                    }
+
+                    const steerAerial = (desiredHeading, flySpeed, turnRate) => {
+                        const probeDist = 14.0;
+                        const whiskerOffset = 0.55;
+                        const minClearance = 3.2;
+
+                        const isBlocked = (ang) => {
+                            const px = dino.position.x + Math.sin(ang) * probeDist;
+                            const pz = dino.position.z + Math.cos(ang) * probeDist;
+                            const floorY = Math.max(getTerrainHeight(px, pz), WATER_LEVEL);
+                            return floorY + minClearance > dino.position.y + 2.5;
+                        };
+
+                        let safeHeading = desiredHeading;
+                        if (isBlocked(desiredHeading)) {
+                            const leftAng = desiredHeading + whiskerOffset;
+                            const rightAng = desiredHeading - whiskerOffset;
+                            const leftClear = !isBlocked(leftAng);
+                            const rightClear = !isBlocked(rightAng);
+                            if (leftClear || rightClear) {
+                                safeHeading = leftClear ? desiredHeading + 1.05 : desiredHeading - 1.05;
+                            } else {
+                                safeHeading = desiredHeading + Math.PI * 0.75;
+                            }
+                            d.wanderAngle = normalizeAngle(safeHeading);
+                        }
+
+                        dino.rotation.y = steerAngleTowards(dino.rotation.y, safeHeading, turnRate * dt);
+                        dino.position.x += Math.sin(dino.rotation.y) * flySpeed * dt;
+                        dino.position.z += Math.cos(dino.rotation.y) * flySpeed * dt;
+                    };
+
+                    const seesPlayer = canDinoSeePlayer(dino);
+                    if (seesPlayer) {
+                        d.isAlerted = true;
+                        d.alertTimer = 4.0;
+                    }
+                    const chasesPlayer = seesPlayer && dist < 56;
+                    const prevFlyY = dino.position.y;
 
                     if (chasesPlayer && dist > d.attackRange) {
-                        const nx = dino.position.x + (dx / dist) * d.speed * dt;
-                        const nz = dino.position.z + (dz / dist) * d.speed * dt;
-                        if (getTerrainHeight(nx, nz) < WATER_LEVEL - 0.6) {
-                            dino.position.x = nx;
-                            dino.position.z = nz;
-                        }
-                        dino.rotation.y = Math.atan2(dx, dz);
-                        d.walkPhase += dt * 11;
+                        steerAerial(Math.atan2(dx, dz), d.speed, 3.4);
                     } else if (chasesPlayer && dist <= d.attackRange) {
-                        dino.rotation.y = Math.atan2(dx, dz);
-                        d.walkPhase += dt * 8;
-                        const verticalGap = Math.abs((player.y - 1.2) - dino.position.y);
-                        if (verticalGap <= 3.8 * (d.scale || 1)) {
+                        dino.rotation.y = steerAngleTowards(dino.rotation.y, Math.atan2(dx, dz), dt * 4.5);
+                        const verticalGap = Math.abs((player.y - 0.8) - dino.position.y);
+                        if (verticalGap <= 3.2) {
                             d.attackCooldown -= dt;
                             if (d.attackCooldown <= 0) {
-                                d.attackCooldown = d.species === 'megalodon' ? 1.35 : 1.05;
+                                d.attackCooldown = 1.25;
                                 player.health -= d.damage;
+                                checkAutoMedkit();
                                 updateHUD();
                                 saveGameState();
                                 const flash = document.getElementById('damage-flash');
@@ -3218,40 +4484,148 @@
                     } else {
                         d.wanderTimer -= dt;
                         if (d.wanderTimer <= 0) {
-                            d.wanderTimer = 3.0 + Math.random() * 4;
-                            d.wanderAngle += (Math.random() - 0.5) * Math.PI * 1.1;
+                            d.wanderTimer = 3.5 + Math.random() * 4.5;
+                            d.wanderAngle = normalizeAngle(d.wanderAngle + (Math.random() - 0.5) * 1.3);
                         }
-                        const patrolSpeed = d.speed * 0.48;
-                        const lookAhead = 4.5;
-                        const probeX = dino.position.x + Math.sin(d.wanderAngle) * lookAhead;
-                        const probeZ = dino.position.z + Math.cos(d.wanderAngle) * lookAhead;
+                        steerAerial(d.wanderAngle, d.speed * 0.62, 2.1);
+                    }
 
-                        if (getTerrainHeight(probeX, probeZ) < WATER_LEVEL - 0.8) {
-                            dino.position.x += Math.sin(d.wanderAngle) * patrolSpeed * dt;
-                            dino.position.z += Math.cos(d.wanderAngle) * patrolSpeed * dt;
-                        } else if (d.turnCooldown <= 0) {
-                            d.wanderAngle += Math.PI + (Math.random() - 0.5) * 0.6;
-                            d.turnCooldown = 1.2;
+                    const surfaceBelow = Math.max(getTerrainHeight(dino.position.x, dino.position.z), WATER_LEVEL);
+                    if (!d.targetCruiseHeight || d.cruiseTimer <= 0) {
+                        d.cruiseTimer = 5.0 + Math.random() * 4.0;
+                        d.targetCruiseHeight = 9.0 + Math.random() * 6.0;
+                    }
+                    d.cruiseTimer -= dt;
+
+                    const desiredFlyY = chasesPlayer
+                        ? Math.max(surfaceBelow + 2.2, player.y + 0.6)
+                        : surfaceBelow + d.targetCruiseHeight;
+
+                    dino.position.y += (desiredFlyY - dino.position.y) * Math.min(1, dt * 2.4);
+                    const flyVy = (dino.position.y - prevFlyY) / Math.max(0.001, dt);
+                    dino.rotation.x = Math.max(-0.5, Math.min(0.5, -flyVy * 0.08));
+                    continue;
+                }
+
+                if (d.isAquatic) {
+                    const playerInWater = getTerrainHeight(player.x, player.z) < WATER_LEVEL - 0.2 && player.y <= WATER_LEVEL + 2.2;
+                    const aggroRange = d.isBoss ? 80 : (d.species === 'megalodon' || d.species === 'mosasaurus' ? 58 : 42);
+                    const seesPlayer = canDinoSeePlayer(dino);
+                    if (seesPlayer) {
+                        d.isAlerted = true;
+                        d.alertTimer = 4.0;
+                    }
+                    const chasesPlayer = (playerInWater || d.isAlerted) && dist < aggroRange;
+
+                    const steerAquatic = (desiredHeading, swimSpeed, turnRate) => {
+                        const probeDist = 10.0;
+                        const whiskerOffset = 0.65;
+                        const minDepth = WATER_LEVEL - 1.2;
+
+                        const isBlocked = (ang) => {
+                            const px = dino.position.x + Math.sin(ang) * probeDist;
+                            const pz = dino.position.z + Math.cos(ang) * probeDist;
+                            const floorY = getTerrainHeight(px, pz);
+                            return floorY > minDepth;
+                        };
+
+                        let safeHeading = desiredHeading;
+                        if (isBlocked(desiredHeading)) {
+                            const leftAng = desiredHeading + whiskerOffset;
+                            const rightAng = desiredHeading - whiskerOffset;
+                            const leftClear = !isBlocked(leftAng);
+                            const rightClear = !isBlocked(rightAng);
+                            if (leftClear || rightClear) {
+                                safeHeading = leftClear ? desiredHeading + 1.15 : desiredHeading - 1.15;
+                            } else {
+                                safeHeading = desiredHeading + Math.PI;
+                            }
+                            d.wanderAngle = normalizeAngle(safeHeading);
                         }
-                        dino.rotation.y = d.wanderAngle;
+
+                        dino.rotation.y = steerAngleTowards(dino.rotation.y, safeHeading, turnRate * dt);
+                        dino.position.x += Math.sin(dino.rotation.y) * swimSpeed * dt;
+                        dino.position.z += Math.cos(dino.rotation.y) * swimSpeed * dt;
+                    };
+
+                    if (chasesPlayer && dist > d.attackRange) {
+                        steerAquatic(Math.atan2(dx, dz), d.speed, 2.8);
+                        d.walkPhase += dt * 11;
+                    } else if (chasesPlayer && dist <= d.attackRange) {
+                        dino.rotation.y = steerAngleTowards(dino.rotation.y, Math.atan2(dx, dz), dt * 4.0);
+                        d.walkPhase += dt * 8;
+                        const verticalGap = Math.abs((player.y - 1.2) - dino.position.y);
+                        if (verticalGap <= 4.2 * (d.scale || 1)) {
+                            d.attackCooldown -= dt;
+                            if (d.attackCooldown <= 0) {
+                                d.attackCooldown = d.species === 'megalodon' || d.species === 'mosasaurus' ? 1.25 : 1.05;
+                                player.health -= d.damage;
+                                checkAutoMedkit();
+                                updateHUD();
+                                saveGameState();
+                                const flash = document.getElementById('damage-flash');
+                                if (flash) {
+                                    flash.style.opacity = '1';
+                                    setTimeout(() => { flash.style.opacity = '0'; }, 180);
+                                }
+                                if (player.health <= 0) {
+                                    player.health = 100;
+                                    player.x = 0;
+                                    player.z = 0;
+                                    player.y = getTerrainHeight(0, 0) + 2.0;
+                                    updateHUD();
+                                    saveGameState();
+                                }
+                            }
+                        }
+                    } else {
+                        d.wanderTimer -= dt;
+                        if (d.wanderTimer <= 0) {
+                            d.wanderTimer = 3.5 + Math.random() * 4.5;
+                            d.wanderAngle = normalizeAngle(d.wanderAngle + (Math.random() - 0.5) * 1.2);
+                        }
+                        steerAquatic(d.wanderAngle, d.speed * 0.52, 1.8);
                         d.walkPhase += dt * 6.5;
                     }
 
                     if (d.tailPivot) {
                         d.tailPivot.rotation.y = Math.sin(d.walkPhase) * 0.42;
                     }
-                    const seaFloorY = getTerrainHeight(dino.position.x, dino.position.z);
-                    const scale = d.scale || 1.05;
-                    const targetSwimY = Math.max(seaFloorY + 1.3 * scale, WATER_LEVEL - 0.9 * scale + Math.sin(d.walkPhase * 0.35) * 0.25);
-                    dino.position.y += (targetSwimY - dino.position.y) * Math.min(1, dt * 4);
+
+                    const seaBed = getTerrainHeight(dino.position.x, dino.position.z);
+                    const sc = d.scale || 1.05;
+                    const minSwim = seaBed + 1.4 * sc;
+                    const maxSwim = WATER_LEVEL - 0.9 * sc;
+                    if (!d.targetDepthRatio || d.depthTimer <= 0) {
+                        d.depthTimer = 5.0 + Math.random() * 5.0;
+                        d.targetDepthRatio = 0.25 + Math.random() * 0.6;
+                    }
+                    d.depthTimer -= dt;
+
+                    let desiredY;
+                    if (chasesPlayer) {
+                        desiredY = Math.min(maxSwim, player.y - 0.7);
+                    } else {
+                        desiredY = minSwim + (maxSwim - minSwim) * d.targetDepthRatio;
+                    }
+                    const targetSwimY = Math.max(minSwim, Math.min(maxSwim, desiredY));
+                    const prevSwimY = dino.position.y;
+                    dino.position.y += (targetSwimY - dino.position.y) * Math.min(1, dt * 1.8);
+                    const verticalVel = (dino.position.y - prevSwimY) / Math.max(0.001, dt);
+                    const targetPitch = Math.abs(verticalVel) > 0.15 ? Math.max(-0.35, Math.min(0.35, -verticalVel * 0.07)) : 0;
+                    dino.rotation.x += (targetPitch - dino.rotation.x) * Math.min(1, dt * 4.0);
                     continue;
                 }
 
                 // Land Dino AI
                 const verticalGap = Math.abs((player.y - 1.5) - dino.position.y);
                 const seesPlayer = canDinoSeePlayer(dino);
-
                 if (seesPlayer) {
+                    d.isAlerted = true;
+                    d.alertTimer = 4.0;
+                }
+
+                if (seesPlayer || d.isAlerted) {
                     if (dist > d.attackRange) {
                         const nx = dino.position.x + (dx / dist) * d.speed * dt;
                         const nz = dino.position.z + (dz / dist) * d.speed * dt;
@@ -3263,18 +4637,20 @@
                                 d.leftLeg.rotation.x = Math.sin(d.walkPhase) * 0.6;
                                 d.rightLeg.rotation.x = -Math.sin(d.walkPhase) * 0.6;
                             }
-                        } else if (d.leftLeg && d.rightLeg) {
-                            d.leftLeg.rotation.x = 0;
-                            d.rightLeg.rotation.x = 0;
+                            if (d.backLeftLeg && d.backRightLeg) {
+                                d.backLeftLeg.rotation.x = -Math.sin(d.walkPhase) * 0.6;
+                                d.backRightLeg.rotation.x = Math.sin(d.walkPhase) * 0.6;
+                            }
                         }
                         dino.rotation.y = Math.atan2(dx, dz);
                     } else {
                         dino.rotation.y = Math.atan2(dx, dz);
-                        if (verticalGap <= 3.4 * (d.scale || 1)) {
+                        if (verticalGap <= 3.8 * (d.scale || 1)) {
                             d.attackCooldown -= dt;
                             if (d.attackCooldown <= 0) {
                                 d.attackCooldown = d.species === 'raptor' ? 1.0 : 1.25;
                                 player.health -= d.damage;
+                                checkAutoMedkit();
                                 updateHUD();
                                 saveGameState();
                                 const flash = document.getElementById('damage-flash');
@@ -3297,7 +4673,7 @@
                     d.wanderTimer -= dt;
                     if (d.wanderTimer <= 0) {
                         d.wanderTimer = 3.0 + Math.random() * 4;
-                        d.wanderAngle += (Math.random() - 0.5) * Math.PI * 1.1;
+                        d.wanderAngle = normalizeAngle(d.wanderAngle + (Math.random() - 0.5) * 1.1);
                     }
                     const patrolSpeed = d.speed * 0.35;
                     const lookAhead = 3.5;
@@ -3308,7 +4684,7 @@
                         dino.position.x += Math.sin(d.wanderAngle) * patrolSpeed * dt;
                         dino.position.z += Math.cos(d.wanderAngle) * patrolSpeed * dt;
                     } else if (d.turnCooldown <= 0) {
-                        d.wanderAngle += Math.PI + (Math.random() - 0.5) * 0.6;
+                        d.wanderAngle = normalizeAngle(d.wanderAngle + Math.PI + (Math.random() - 0.5) * 0.6);
                         d.turnCooldown = 1.2;
                     }
                     dino.rotation.y = d.wanderAngle;
@@ -3317,6 +4693,10 @@
                     if (d.leftLeg && d.rightLeg) {
                         d.leftLeg.rotation.x = Math.sin(d.walkPhase) * 0.35;
                         d.rightLeg.rotation.x = -Math.sin(d.walkPhase) * 0.35;
+                    }
+                    if (d.backLeftLeg && d.backRightLeg) {
+                        d.backLeftLeg.rotation.x = -Math.sin(d.walkPhase) * 0.35;
+                        d.backRightLeg.rotation.x = Math.sin(d.walkPhase) * 0.35;
                     }
                 }
 
@@ -3332,6 +4712,10 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             setupControls();
+            initMultiplayer();
+            try {
+                initEngine();
+            } catch (e) {}
         });
     </script>
 </body>
