@@ -184,11 +184,15 @@
                 <span id="equipped-name" class="px-3 py-1.5 bg-emerald-600 rounded-lg text-xs font-black border border-emerald-400 shadow-md">AXE</span>
                 <button id="open-weapons-btn" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-black border border-slate-500 shadow-md cursor-pointer text-white">WEAPONS [B]</button>
                 <button id="open-bosses-btn" type="button" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 rounded-lg text-xs font-black border border-rose-500 text-rose-100 shadow-md cursor-pointer">BOSSES [K]</button>
+                <button id="open-logbook-btn" type="button" class="px-3 py-1.5 bg-amber-900 hover:bg-amber-800 rounded-lg text-xs font-black border border-amber-500 text-amber-100 shadow-md cursor-pointer">LOGBOOK [L]</button>
             </div>
-            <div id="compass-hud" class="hidden pt-2 mt-0.5 border-t border-white/15 flex items-center justify-between gap-3 text-xs">
-                <span id="compass-mode-label" class="text-slate-300 font-black">NEAREST:</span>
-                <span id="compass-dist" class="font-black text-amber-300">--- m</span>
-                <button id="open-compass-btn" type="button" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-md text-[10px] shadow cursor-pointer">TARGET [M]</button>
+            <div id="compass-hud" class="hidden pt-2 mt-0.5 border-t border-white/15 flex items-center justify-between gap-2 text-xs">
+                <span id="compass-mode-label" class="text-slate-300 font-black truncate max-w-[110px]">NEAREST:</span>
+                <span id="compass-dist" class="font-black text-amber-300 shrink-0">--- m</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button id="compass-cycle-btn" type="button" class="hidden px-2 py-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-md text-[10px] shadow cursor-pointer">CHANGE</button>
+                    <button id="open-compass-btn" type="button" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-md text-[10px] shadow cursor-pointer">TARGET [M]</button>
+                </div>
             </div>
             <div id="active-boss-hud" class="hidden pt-2 mt-0.5 border-t border-rose-500/50 flex flex-col gap-1.5">
                 <div class="flex justify-between text-[11px] font-black text-rose-200">
@@ -262,8 +266,8 @@
                     <div><span class="text-emerald-400 font-bold">Space / Q (Water):</span> Swim Up / Dive</div>
                     <div><span class="text-emerald-400 font-bold">[B] Key:</span> 18 Weapons & Tools</div>
                     <div><span class="text-emerald-400 font-bold">[E] Key:</span> Open Village Crates</div>
-                    <div><span class="text-emerald-400 font-bold">Right-Click / Z:</span> Aim / Scope</div>
-                    <div><span class="text-emerald-400 font-bold">[M] Key:</span> Village Compass</div>
+                    <div><span class="text-emerald-400 font-bold">[L] Key:</span> Explorer's Logbook</div>
+                    <div><span class="text-emerald-400 font-bold">[M] Key:</span> Explorer Compass</div>
                     <div><span class="text-emerald-400 font-bold">[C] Key:</span> Craft Medkits & Ammo</div>
                     <div><span class="text-emerald-400 font-bold">[K] Key:</span> 18 Apex Bosses</div>
                 </div>
@@ -326,8 +330,8 @@
         <!-- Compass Target Menu -->
         <div id="compass-menu" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-4">
             <div class="hud-panel p-6 rounded-2xl max-w-md w-full text-white flex flex-col items-center border border-amber-500/30">
-                <h2 class="text-xl font-black text-amber-400 mb-1">VILLAGE COMPASS TARGET</h2>
-                <p class="text-xs text-slate-300 mb-4 text-center">Choose which Village Island your compass needle tracks.</p>
+                <h2 class="text-xl font-black text-amber-400 mb-1">EXPLORER COMPASS TARGET</h2>
+                <p class="text-xs text-slate-300 mb-4 text-center">Choose what your compass needle tracks across the world.</p>
                 <div class="w-full flex flex-col gap-2.5 mb-4">
                     <button id="compass-nearest-btn" type="button" class="w-full p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-400/50 text-left cursor-pointer">
                         <div class="font-black text-sm text-amber-300">NEAREST VILLAGE</div>
@@ -337,8 +341,43 @@
                         <div class="font-black text-sm text-emerald-300">NEAREST NON-LOOTED VILLAGE</div>
                         <div class="text-xs text-slate-300">Skips fully looted villages and guides you to unopened crates.</div>
                     </button>
+                    <button id="compass-player-btn" type="button" class="w-full p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-400/50 text-left cursor-pointer">
+                        <div class="font-black text-sm text-cyan-300">PLAYER</div>
+                        <div class="text-xs text-slate-300">Tracks online players in Public Co-Op. Click CHANGE on the HUD to cycle players.</div>
+                    </button>
+                    <button id="compass-biome-btn" type="button" class="w-full p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-purple-400/50 text-left cursor-pointer">
+                        <div class="font-black text-sm text-purple-300">VISITED BIOME</div>
+                        <div class="text-xs text-slate-300">Guides you back to biomes you have already visited. Click CHANGE to cycle biomes.</div>
+                    </button>
                 </div>
                 <button id="close-compass-btn" type="button" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl cursor-pointer">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- Explorer's Logbook Menu -->
+        <div id="logbook-menu" class="absolute inset-0 z-40 bg-slate-950/88 backdrop-blur-md hidden flex flex-col items-center justify-center pointer-events-auto p-3 sm:p-6">
+            <div class="hud-panel p-4 sm:p-6 rounded-2xl max-w-4xl w-full max-h-[88vh] text-white flex flex-col border border-amber-500/40">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black text-amber-300">EXPLORER'S FIELD LOGBOOK</h2>
+                        <p class="text-xs text-slate-300">Click any dinosaur species or visited biome to read its description & stats.</p>
+                    </div>
+                    <button id="close-logbook-btn" type="button" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-black text-xs rounded-xl cursor-pointer shrink-0">CLOSE [L]</button>
+                </div>
+
+                <div class="flex gap-2 mb-3 border-b border-white/15 pb-2">
+                    <button id="logbook-tab-dinos" type="button" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs cursor-pointer">
+                        DINOSAURS & CREATURES (<span id="logbook-dino-count">0/0</span>)
+                    </button>
+                    <button id="logbook-tab-biomes" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xs cursor-pointer">
+                        VISITED BIOMES (<span id="logbook-biome-count">0/0</span>)
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 flex-1 overflow-hidden min-h-[260px]">
+                    <div id="logbook-list" class="md:col-span-5 flex flex-col gap-2 overflow-y-auto pr-1 max-h-[34vh] md:max-h-[54vh]"></div>
+                    <div id="logbook-detail" class="md:col-span-7 p-4 rounded-xl bg-slate-900/90 border border-white/15 overflow-y-auto max-h-[42vh] md:max-h-[54vh]"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -358,6 +397,178 @@
         const GIANT_SECTOR_SIZE = 1600;
         const CRATES_PER_VILLAGE = 8;
 
+        // Specific Dinosaur & Biome Logbook Catalog
+        const LOGBOOK_DINO_CATALOG = [
+            {
+                id: 'forest_rex',
+                name: 'Woodland Tyrannosaurus',
+                habitat: 'Forest & Rainforest',
+                category: 'Apex Carnivore',
+                baseHp: 130,
+                desc: 'A territorial forest predator with mottled green scales that blends into dense pine and oak canopies.'
+            },
+            {
+                id: 'frost_rex',
+                name: 'Glacial Frost Rex',
+                habitat: 'Ice Tundra & Boreal Taiga',
+                category: 'Cryo-Adapted Carnivore',
+                baseHp: 130,
+                desc: 'Pale-blue scales and thick insulating hide allow this tyrannosaur to stalk prey across sub-zero snowfields.'
+            },
+            {
+                id: 'desert_raptor',
+                name: 'Desert Velociraptor',
+                habitat: 'Desert & Savanna',
+                category: 'Pack Sprinter',
+                baseHp: 95,
+                desc: 'Sun-scorched, ochre-striped desert raptor built for blistering sprints across open sand dunes and dry scrubland.'
+            },
+            {
+                id: 'carnotaurus',
+                name: 'Redrock Carnotaurus',
+                habitat: 'Redrock Canyon',
+                category: 'Horned Charger',
+                baseHp: 240,
+                desc: 'Crowned with twin brow horns and rust-red armor plating, charging relentlessly through sandstone canyons.'
+            },
+            {
+                id: 'therizino',
+                name: 'Bamboo Therizinosaurus',
+                habitat: 'Bamboo Grove',
+                category: 'Scythe-Clawed Theropod',
+                baseHp: 220,
+                desc: 'Towering emerald theropod wielding meter-long golden scythe claws to defend dense bamboo thickets.'
+            },
+            {
+                id: 'void_giga',
+                name: 'Obsidian Giganotosaurus',
+                habitat: 'Obsidian Wastes',
+                category: 'Void Apex Predator',
+                baseHp: 320,
+                desc: 'A massive dark-violet titan infused with obsidian energy, towering over the shadowy volcanic glass plains.'
+            },
+            {
+                id: 'spinosaurus',
+                name: 'Mangrove Spinosaurus',
+                habitat: 'Mangrove Swamp',
+                category: 'Sail-Backed Predator',
+                baseHp: 295,
+                desc: 'Recognizable by its vibrant orange dorsal sail, ambushing explorers along murky mangrove roots.'
+            },
+            {
+                id: 'pteranodon',
+                name: 'Skycrest Pteranodon',
+                habitat: 'Redrock & High Skies',
+                category: 'Aerial Hunter',
+                baseHp: 115,
+                desc: 'Soars high above cliffs and valleys on wide leathery wings before swooping down with a razor beak.'
+            },
+            {
+                id: 'bronto',
+                name: 'Mushroom Brachiosaurus',
+                habitat: 'Mushroom Hollow',
+                category: 'Colossal Sauropod',
+                baseHp: 260,
+                desc: 'Long-necked violet giant grazing among glowing fungal caps in humid subterranean-style hollows.'
+            },
+            {
+                id: 'stegosaurus',
+                name: 'Sunlit Stegosaurus',
+                habitat: 'Sunlit Meadow',
+                category: 'Plated Herbivore',
+                baseHp: 210,
+                desc: 'Armored with rows of amber back plates and a spiked thagomizer tail for defending flower-filled meadows.'
+            },
+            {
+                id: 'ankylo',
+                name: 'Crystal Ankylosaurus',
+                habitat: 'Crystal Badlands',
+                category: 'Armored Juggernaut',
+                baseHp: 290,
+                desc: 'Encased in mineral-hardened cobalt plating with a heavy bone tail club capable of shattering crystal spires.'
+            },
+            {
+                id: 'triceratops',
+                name: 'Autumn Triceratops',
+                habitat: 'Autumn Woods',
+                category: 'Three-Horned Charger',
+                baseHp: 270,
+                desc: 'Heavy bronze ceratopsian with a broad bone frill and three forward spears roaming golden autumn forests.'
+            },
+            {
+                id: 'mammoth',
+                name: 'Glacier Woolly Mammoth',
+                habitat: 'Glacier Peaks',
+                category: 'Permafrost Titan',
+                baseHp: 340,
+                desc: 'Shaggy ice-age giant with sweeping ivory tusks, built to endure the harshest glacial peaks.'
+            },
+            {
+                id: 'magmasaur',
+                name: 'Volcanic Magmasaur',
+                habitat: 'Volcanic Caldera',
+                category: 'Molten Behemoth',
+                baseHp: 360,
+                desc: 'Forged in active lava calderas with glowing magma fissures running across its volcanic basalt shell.'
+            },
+            {
+                id: 'parasaurolophus',
+                name: 'Lavender Parasaurolophus',
+                habitat: 'Lavender Hills',
+                category: 'Crested Runner',
+                baseHp: 155,
+                desc: 'Swift violet-hued runner that darts across fragrant lavender hills with resonant crest calls.'
+            },
+            {
+                id: 'shark',
+                name: 'Great White Shark',
+                habitat: 'Ocean & Giant Ocean',
+                category: 'Marine Predator',
+                baseHp: 90,
+                desc: 'Fast, streamlined pelagic shark patrolling coastal waters and deep blue ocean trenches.'
+            },
+            {
+                id: 'megalodon',
+                name: 'Abyssal Megalodon',
+                habitat: 'Deep Ocean',
+                category: 'Sea Leviathan',
+                baseHp: 650,
+                desc: 'Prehistoric super-shark of colossal proportions capable of swallowing boats whole.'
+            },
+            {
+                id: 'mosasaurus',
+                name: 'Trench Mosasaurus',
+                habitat: 'Deep Ocean',
+                category: 'Marine Apex Reptile',
+                baseHp: 780,
+                desc: 'Deep-indigo aquatic leviathan ruling the abyssal waters around distant Village Islands.'
+            }
+        ];
+
+        const LOGBOOK_BIOME_CATALOG = [
+            { id: 'forest', name: 'Forest', climate: 'Temperate Woodland', desc: 'Lush green pine and oak woodlands teeming with timber, apples, and Woodland Tyrannosaurs.' },
+            { id: 'rainforest', name: 'Rainforest', climate: 'Tropical Canopy', desc: 'Dense emerald jungle towers with thick foliage and abundant wood harvests.' },
+            { id: 'savanna', name: 'Savanna', climate: 'Warm Grassland', desc: 'Golden plains dotted with flat-topped acacia trees and fast-moving raptors.' },
+            { id: 'desert', name: 'Desert', climate: 'Arid Dunes', desc: 'Rolling golden sand dunes with blooming saguaro cacti and agile Desert Velociraptors.' },
+            { id: 'ice', name: 'Ice Tundra', climate: 'Freezing Snowfield', desc: 'Snow-blanketed plains and frost-covered pines patrolled by Glacial Frost Rexes.' },
+            { id: 'taiga', name: 'Boreal Taiga', climate: 'Sub-Arctic Conifer', desc: 'Cold northern spruce forests bridging temperate lands and frozen tundras.' },
+            { id: 'glacier', name: 'Glacier Peaks', climate: 'Extreme Permafrost', desc: 'Jagged ice ridges and frozen plateaus where Woolly Mammoths roam.' },
+            { id: 'lavender', name: 'Lavender Hills', climate: 'Mild Highland', desc: 'Vibrant violet rolling hills inhabited by swift Lavender Parasaurolophus.' },
+            { id: 'autumn_woods', name: 'Autumn Woods', climate: 'Crisp Deciduous', desc: 'Amber and copper oak forests guarded by heavy Autumn Triceratops.' },
+            { id: 'meadow', name: 'Sunlit Meadow', climate: 'Temperate Field', desc: 'Bright grassy clearings where Sunlit Stegosaurus graze peacefully until provoked.' },
+            { id: 'bamboo', name: 'Bamboo Grove', climate: 'Humid Highland', desc: 'Towering stalks of green bamboo fiercely protected by Bamboo Therizinosaurus.' },
+            { id: 'mushroom', name: 'Mushroom Hollow', climate: 'Humid Fungal Woods', desc: 'Mystical purple-tinted clearings filled with giant glowing mushrooms and Brachiosaurus.' },
+            { id: 'redrock', name: 'Redrock Canyon', climate: 'Arid Badlands', desc: 'Terracotta mesas and canyon ridges stalked by Redrock Carnotaurus and Pteranodons.' },
+            { id: 'mangrove', name: 'Mangrove Swamp', climate: 'Coastal Wetland', desc: 'Tangled tropical wetlands home to sail-backed Mangrove Spinosaurus.' },
+            { id: 'crystal_badlands', name: 'Crystal Badlands', climate: 'Crystalline Tundra', desc: 'Glittering cyan crystal spires jutting from frozen stone, guarded by Crystal Ankylosaurus.' },
+            { id: 'obsidian', name: 'Obsidian Wastes', climate: 'Ashen Glassland', desc: 'Dark volcanic glass plains under a twilight sky, ruled by Obsidian Giganotosaurus.' },
+            { id: 'volcanic', name: 'Volcanic Caldera', climate: 'Scorching Magma Field', desc: 'Charred basalt terrain where glowing Volcanic Magmasaurs thrive.' },
+            { id: 'ocean', name: 'Ocean', climate: 'Open Sea', desc: 'Deep turquoise waters teeming with Great White Sharks, Megalodons, and Mosasaurus.' },
+            { id: 'giant_ocean', name: 'Giant Ocean', climate: 'Abyssal Expanse', desc: 'Vast deep-sea rings surrounding remote Village Islands.' },
+            { id: 'pond', name: 'Freshwater Pond', climate: 'Calm Oasis', desc: 'Peaceful inland swimming holes free from ocean sharks.' },
+            { id: 'village_island', name: 'Village Island', climate: 'Island Outpost', desc: 'Isolated island settlements stocked with 8 supply crates containing rare weapons.' }
+        ];
+
         // Multiplayer & Cloud Profile State
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'dino-survival-default';
         let db = null;
@@ -370,6 +581,20 @@
         const remotePlayers = new Map();
         let lastSyncTime = 0;
         let lastCloudSaveTime = 0;
+
+        function setServerMode(mode) {
+            serverMode = mode === 'public' ? 'public' : 'private';
+            const toggleBtn = document.getElementById('server-toggle-btn');
+            const descEl = document.getElementById('server-mode-desc');
+            if (toggleBtn) {
+                toggleBtn.innerText = serverMode === 'public' ? 'SERVER: PUBLIC' : 'SERVER: PRIVATE';
+            }
+            if (descEl) {
+                descEl.innerText = serverMode === 'public'
+                    ? 'Public Server — Peaceful co-op with online explorers'
+                    : 'Private Server — Solo expedition';
+            }
+        }
 
         async function initMultiplayer() {
             try {
@@ -422,7 +647,6 @@
             } catch (e) {}
         }
 
-        // Persistent Cloud Profile Save & Load (survives redeploys and new sessions by username)
         async function loadCloudProfile(username) {
             if (!db || !currentUserId || !username) return false;
             try {
@@ -509,12 +733,14 @@
 
                 scene.add(group);
                 entry = {
+                    username: data.username || 'Explorer',
                     group,
                     targetPos: new THREE.Vector3(data.x || 0, (data.y || 2) - 1.7, data.z || 0),
                     targetYaw: data.yaw || 0
                 };
                 remotePlayers.set(uid, entry);
             }
+            if (data.username) entry.username = data.username;
             entry.targetPos.set(data.x || 0, (data.y || 2) - 1.7, data.z || 0);
             entry.targetYaw = data.yaw || 0;
         }
@@ -663,7 +889,7 @@
                 damage: 0, treeHits: 0, cooldown: 0.3, range: 0,
                 ammoType: null, craftCost: 0, craftGain: 0,
                 hipPos: [0.24, -0.24, -0.42], aimPos: [0.08, -0.18, -0.34], aimFov: 65,
-                desc: 'Points its needle toward the nearest or non-looted Village Island'
+                desc: 'Points its needle toward villages, players, or visited biomes'
             }
         };
 
@@ -803,6 +1029,9 @@
         let isActionHeld = false;
         let fireCooldown = 0;
 
+        let logbookTab = 'dinos';
+        let selectedLogbookId = 'forest_rex';
+
         let sharedResources = null;
         let weaponMeshes = {};
         let compassNeedlePivot = null;
@@ -824,6 +1053,10 @@
             selectedTool: 'axe',
             unlockedWeapons: ['axe', 'rifle', 'compass'],
             compassMode: 'nearest',
+            compassPlayerIndex: 0,
+            compassBiomeIndex: 0,
+            visitedBiomes: ['forest'],
+            specificDinoKills: {},
             magAmmo: {
                 chainsaw: 100,
                 pistol: 15,
@@ -963,6 +1196,140 @@
                 if (best) break;
             }
             return best;
+        }
+
+        function findNearestVisitedBiomeCoords(targetBiomeId, px, pz) {
+            if (!targetBiomeId) return null;
+            if (getBiomeType(px, pz) === targetBiomeId) {
+                return { cx: px, cz: pz, dist: 0, arrived: true };
+            }
+
+            const step = 48;
+            const maxRing = 48;
+            let best = null;
+            let bestDist = Infinity;
+
+            for (let r = 1; r <= maxRing; r++) {
+                for (let dx = -r; dx <= r; dx++) {
+                    for (let dz = -r; dz <= r; dz++) {
+                        if (Math.abs(dx) !== r && Math.abs(dz) !== r) continue;
+                        const sx = px + dx * step;
+                        const sz = pz + dz * step;
+                        if (getBiomeType(sx, sz) === targetBiomeId) {
+                            const dist = Math.hypot(sx - px, sz - pz);
+                            if (dist < bestDist) {
+                                bestDist = dist;
+                                best = { cx: sx, cz: sz, dist, arrived: false };
+                            }
+                        }
+                    }
+                }
+                if (best) break;
+            }
+            return best;
+        }
+
+        function getCompassTargetInfo() {
+            const mode = player.compassMode || 'nearest';
+
+            if (mode === 'player') {
+                const list = Array.from(remotePlayers.values());
+                if (list.length === 0) {
+                    return {
+                        label: 'PLAYER:',
+                        statusText: 'NO PLAYERS',
+                        hasCoords: false
+                    };
+                }
+                const rawIdx = Number.isFinite(player.compassPlayerIndex) ? player.compassPlayerIndex : 0;
+                const idx = ((rawIdx % list.length) + list.length) % list.length;
+                const targetPlayer = list[idx];
+                const tx = targetPlayer && targetPlayer.targetPos ? targetPlayer.targetPos.x : 0;
+                const tz = targetPlayer && targetPlayer.targetPos ? targetPlayer.targetPos.z : 0;
+                const dist = Math.hypot(tx - player.x, tz - player.z);
+                const shortName = ((targetPlayer && targetPlayer.username) || 'PLAYER').toUpperCase();
+                return {
+                    label: `${shortName}:`,
+                    cx: tx,
+                    cz: tz,
+                    dist,
+                    arrived: dist < 6,
+                    statusText: dist < 6 ? 'NEARBY!' : `${Math.round(dist)} m`,
+                    hasCoords: true
+                };
+            }
+
+            if (mode === 'biome') {
+                const visited = (Array.isArray(player.visitedBiomes) && player.visitedBiomes.length > 0)
+                    ? player.visitedBiomes
+                    : ['forest'];
+                const rawIdx = Number.isFinite(player.compassBiomeIndex) ? player.compassBiomeIndex : 0;
+                const idx = ((rawIdx % visited.length) + visited.length) % visited.length;
+                const biomeId = visited[idx];
+                const bMeta = LOGBOOK_BIOME_CATALOG.find(b => b.id === biomeId);
+                const bName = (bMeta ? bMeta.name : biomeId).toUpperCase();
+                const found = findNearestVisitedBiomeCoords(biomeId, player.x, player.z);
+
+                if (!found) {
+                    return {
+                        label: `${bName}:`,
+                        statusText: 'FAR AWAY',
+                        hasCoords: false
+                    };
+                }
+                return {
+                    label: `${bName}:`,
+                    cx: found.cx,
+                    cz: found.cz,
+                    dist: found.dist,
+                    arrived: found.arrived,
+                    statusText: found.arrived ? 'HERE!' : `${Math.round(found.dist)} m`,
+                    hasCoords: !found.arrived
+                };
+            }
+
+            const village = findTargetVillage(player.x, player.z, mode);
+            const label = mode === 'unlooted' ? 'NON-LOOTED:' : 'NEAREST:';
+            if (!village) {
+                return {
+                    label,
+                    statusText: 'ALL LOOTED!',
+                    hasCoords: false
+                };
+            }
+            return {
+                label,
+                cx: village.cx,
+                cz: village.cz,
+                dist: village.dist,
+                arrived: village.dist < 135,
+                statusText: village.dist < 135 ? 'ARRIVED!' : `${Math.round(village.dist)} m`,
+                hasCoords: true
+            };
+        }
+
+        function cycleCompassSubtarget() {
+            if (player.compassMode === 'player') {
+                const count = remotePlayers.size;
+                if (count > 0) {
+                    player.compassPlayerIndex = ((player.compassPlayerIndex || 0) + 1) % count;
+                    const list = Array.from(remotePlayers.values());
+                    const target = list[player.compassPlayerIndex];
+                    showToast(`TRACKING PLAYER: ${(target?.username || 'EXPLORER').toUpperCase()}`);
+                } else {
+                    showToast('NO OTHER ONLINE PLAYERS IN SERVER');
+                }
+            } else if (player.compassMode === 'biome') {
+                const visited = player.visitedBiomes || ['forest'];
+                if (visited.length > 0) {
+                    player.compassBiomeIndex = ((player.compassBiomeIndex || 0) + 1) % visited.length;
+                    const bId = visited[player.compassBiomeIndex];
+                    const bMeta = LOGBOOK_BIOME_CATALOG.find(b => b.id === bId);
+                    showToast(`TRACKING BIOME: ${(bMeta ? bMeta.name : bId).toUpperCase()}`);
+                }
+            }
+            updateHUD();
+            saveGameState();
         }
 
         // Smooth Large Oceans
@@ -1162,6 +1529,10 @@
                     selectedTool: player.selectedTool,
                     unlockedWeapons: player.unlockedWeapons,
                     compassMode: player.compassMode,
+                    compassPlayerIndex: player.compassPlayerIndex,
+                    compassBiomeIndex: player.compassBiomeIndex,
+                    visitedBiomes: player.visitedBiomes,
+                    specificDinoKills: player.specificDinoKills,
                     magAmmo: player.magAmmo,
                     reserveAmmo: player.reserveAmmo,
                     killStats: player.killStats,
@@ -1195,8 +1566,20 @@
                 if (data.player.selectedTool && WEAPONS[data.player.selectedTool]) {
                     player.selectedTool = data.player.selectedTool;
                 }
-                if (data.player.compassMode === 'unlooted' || data.player.compassMode === 'nearest') {
+                if (['unlooted', 'nearest', 'player', 'biome'].includes(data.player.compassMode)) {
                     player.compassMode = data.player.compassMode;
+                }
+                if (Number.isFinite(data.player.compassPlayerIndex)) {
+                    player.compassPlayerIndex = data.player.compassPlayerIndex;
+                }
+                if (Number.isFinite(data.player.compassBiomeIndex)) {
+                    player.compassBiomeIndex = data.player.compassBiomeIndex;
+                }
+                if (Array.isArray(data.player.visitedBiomes) && data.player.visitedBiomes.length > 0) {
+                    player.visitedBiomes = data.player.visitedBiomes;
+                }
+                if (data.player.specificDinoKills && typeof data.player.specificDinoKills === 'object') {
+                    player.specificDinoKills = data.player.specificDinoKills;
                 }
                 if (data.player.magAmmo) Object.assign(player.magAmmo, data.player.magAmmo);
                 if (data.player.reserveAmmo) Object.assign(player.reserveAmmo, data.player.reserveAmmo);
@@ -2692,7 +3075,7 @@
             const inOcean = (biome === 'ocean' || biome === 'giant_ocean') && groundY < WATER_LEVEL - 0.8;
             let group, leftLeg = null, rightLeg = null, backLeftLeg = null, backRightLeg = null;
             let tailPivot = null, leftWingPivot = null, rightWingPivot = null;
-            let species, maxHp, speed, damage, attackRange, hitRadius, scale = 1.0, isFlyingDino = false;
+            let species, logId, maxHp, speed, damage, attackRange, hitRadius, scale = 1.0, isFlyingDino = false;
 
             if (inOcean) {
                 group = new THREE.Group();
@@ -2709,6 +3092,7 @@
                 group.position.set(x, swimY, z);
 
                 species = isMosasaur ? 'mosasaurus' : (isMegalodon ? 'megalodon' : 'shark');
+                logId = species;
                 maxHp = isMosasaur ? 780 : (isMegalodon ? 650 : 90);
                 speed = isMosasaur ? 6.2 : (isMegalodon ? 5.6 : 7.4);
                 damage = isMosasaur ? 32 : (isMegalodon ? 28 : 14);
@@ -2720,87 +3104,88 @@
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
                 group.position.set(x, groundY, z);
-                species = 'mammoth'; maxHp = 340; speed = 4.6; damage = 26; attackRange = 3.5; hitRadius = 2.5;
+                species = 'mammoth'; logId = 'mammoth'; maxHp = 340; speed = 4.6; damage = 26; attackRange = 3.5; hitRadius = 2.5;
             } else if (biome === 'autumn_woods') {
                 const built = buildTriceratopsMesh(sharedResources.triceraMat, 1.08);
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
                 group.position.set(x, groundY, z);
-                species = 'triceratops'; maxHp = 270; speed = 5.4; damage = 24; attackRange = 3.3; hitRadius = 2.3;
+                species = 'triceratops'; logId = 'triceratops'; maxHp = 270; speed = 5.4; damage = 24; attackRange = 3.3; hitRadius = 2.3;
             } else if (biome === 'mangrove') {
                 const built = buildSpinosaurusMesh(sharedResources.spinoMat, 1.15);
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-                species = 'spinosaurus'; maxHp = 295; speed = 6.0; damage = 25; attackRange = 3.3; hitRadius = 2.2;
+                species = 'spinosaurus'; logId = 'spinosaurus'; maxHp = 295; speed = 6.0; damage = 25; attackRange = 3.3; hitRadius = 2.2;
             } else if (biome === 'volcanic') {
                 const built = buildAnkylosaurusMesh(sharedResources.magmaMat, 1.18);
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
                 group.position.set(x, groundY, z);
-                species = 'magmasaur'; maxHp = 360; speed = 4.8; damage = 30; attackRange = 3.4; hitRadius = 2.4;
+                species = 'magmasaur'; logId = 'magmasaur'; maxHp = 360; speed = 4.8; damage = 30; attackRange = 3.4; hitRadius = 2.4;
             } else if (biome === 'lavender') {
                 const built = buildBipedDinoMesh(sharedResources.parasaurMat, 1.04, 'raptor');
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-                species = 'parasaurolophus'; maxHp = 155; speed = 6.6; damage = 16; attackRange = 2.9; hitRadius = 1.9;
+                species = 'parasaurolophus'; logId = 'parasaurolophus'; maxHp = 155; speed = 6.6; damage = 16; attackRange = 2.9; hitRadius = 1.9;
             } else if (biome === 'mushroom') {
                 const built = buildSauropodMesh(sharedResources.brontoMat, 1.15);
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
                 group.position.set(x, groundY, z);
-                species = 'bronto'; maxHp = 260; speed = 4.2; damage = 20; attackRange = 3.6; hitRadius = 2.6;
+                species = 'bronto'; logId = 'bronto'; maxHp = 260; speed = 4.2; damage = 20; attackRange = 3.6; hitRadius = 2.6;
             } else if (biome === 'meadow') {
                 const built = buildStegosaurusMesh(sharedResources.stegoMat, 1.05);
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
                 group.position.set(x, groundY, z);
-                species = 'stegosaurus'; maxHp = 210; speed = 4.8; damage = 18; attackRange = 3.2; hitRadius = 2.2;
+                species = 'stegosaurus'; logId = 'stegosaurus'; maxHp = 210; speed = 4.8; damage = 18; attackRange = 3.2; hitRadius = 2.2;
             } else if (biome === 'crystal_badlands') {
                 const built = buildAnkylosaurusMesh(sharedResources.ankyloMat, 1.08);
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 backLeftLeg = built.backLeftLeg; backRightLeg = built.backRightLeg;
                 group.position.set(x, groundY, z);
-                species = 'ankylo'; maxHp = 290; speed = 4.4; damage = 22; attackRange = 3.2; hitRadius = 2.3;
+                species = 'ankylo'; logId = 'ankylo'; maxHp = 290; speed = 4.4; damage = 22; attackRange = 3.2; hitRadius = 2.3;
             } else if ((biome === 'redrock' && Math.random() < 0.55) || (!inOcean && Math.random() < 0.16)) {
                 const built = buildPteranodonMesh(sharedResources.pteraMat, 1.15);
                 group = built.group;
                 leftWingPivot = built.leftWingPivot;
                 rightWingPivot = built.rightWingPivot;
                 group.position.set(x, Math.max(groundY, WATER_LEVEL) + 11.0, z);
-                species = 'pteranodon'; isFlyingDino = true; maxHp = 115; speed = 8.8; damage = 14; attackRange = 3.1; hitRadius = 2.1;
+                species = 'pteranodon'; logId = 'pteranodon'; isFlyingDino = true; maxHp = 115; speed = 8.8; damage = 14; attackRange = 3.1; hitRadius = 2.1;
             } else if (biome === 'bamboo') {
                 const built = buildBipedDinoMesh(sharedResources.therizinoMat, 1.12, 'therizino');
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-                species = 'therizino'; maxHp = 220; speed = 5.8; damage = 24; attackRange = 3.2; hitRadius = 2.1;
+                species = 'therizino'; logId = 'therizino'; maxHp = 220; speed = 5.8; damage = 24; attackRange = 3.2; hitRadius = 2.1;
             } else if (biome === 'redrock') {
                 const built = buildBipedDinoMesh(sharedResources.carnoMat, 1.1, 'carnotaurus');
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-                species = 'carnotaurus'; maxHp = 240; speed = 6.5; damage = 26; attackRange = 3.0; hitRadius = 2.0;
+                species = 'carnotaurus'; logId = 'carnotaurus'; maxHp = 240; speed = 6.5; damage = 26; attackRange = 3.0; hitRadius = 2.0;
             } else if (biome === 'obsidian') {
                 const built = buildBipedDinoMesh(sharedResources.voidGigaMat, 1.25, 'rex');
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-                species = 'void_giga'; maxHp = 320; speed = 5.6; damage = 30; attackRange = 3.4; hitRadius = 2.3;
+                species = 'void_giga'; logId = 'void_giga'; maxHp = 320; speed = 5.6; damage = 30; attackRange = 3.4; hitRadius = 2.3;
             } else if (biome === 'desert' || biome === 'savanna') {
                 const built = buildBipedDinoMesh(sharedResources.raptorMat, 1.0, 'raptor');
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-                species = 'raptor'; maxHp = 95; speed = 6.8 + Math.random() * 1.4; damage = 13; attackRange = 2.8; hitRadius = 1.9;
+                species = 'raptor'; logId = 'desert_raptor'; maxHp = 95; speed = 6.8 + Math.random() * 1.4; damage = 13; attackRange = 2.8; hitRadius = 1.9;
             } else {
-                const mat = (biome === 'ice' || biome === 'taiga')
+                const isFrost = (biome === 'ice' || biome === 'taiga');
+                const mat = isFrost
                     ? sharedResources.iceDinoMat
                     : (biome === 'rainforest'
                         ? sharedResources.jungleDinoMat
@@ -2809,11 +3194,13 @@
                 group = built.group;
                 leftLeg = built.leftLeg; rightLeg = built.rightLeg;
                 group.position.set(x, groundY, z);
-                species = 'rex'; maxHp = 130; speed = 4.6 + Math.random() * 1.4; damage = 16; attackRange = 2.8; hitRadius = 1.9;
+                species = 'rex'; logId = isFrost ? 'frost_rex' : 'forest_rex'; maxHp = 130; speed = 4.6 + Math.random() * 1.4; damage = 16; attackRange = 2.8; hitRadius = 1.9;
             }
 
             group.userData = {
                 species,
+                logId,
+                spawnBiome: biome,
                 isAquatic: inOcean,
                 isFlyingDino,
                 isBoss: false,
@@ -2944,6 +3331,7 @@
 
             group.userData = {
                 species: bossCfg.species,
+                logId: bossCfg.species === 'ice_dino' ? 'frost_rex' : (bossCfg.species === 'raptor' ? 'desert_raptor' : (bossCfg.species === 'omega_trex' ? 'forest_rex' : bossCfg.species)),
                 bossId: bossCfg.id,
                 bossName: bossCfg.name,
                 isAquatic: bossCfg.isAquatic,
@@ -3153,8 +3541,28 @@
             return true;
         }
 
+        function recordBiomeVisit(biomeId) {
+            if (!biomeId) return;
+            if (!Array.isArray(player.visitedBiomes)) player.visitedBiomes = ['forest'];
+            if (!player.visitedBiomes.includes(biomeId)) {
+                player.visitedBiomes.push(biomeId);
+                const meta = LOGBOOK_BIOME_CATALOG.find(b => b.id === biomeId);
+                showToast(`LOGBOOK: VISITED ${(meta ? meta.name : biomeId).toUpperCase()}!`);
+                saveGameState();
+            }
+        }
+
         function recordDinoKill(dino) {
             const d = dino.userData;
+            const logKey = d.logId || d.species;
+            if (logKey) {
+                player.specificDinoKills[logKey] = (player.specificDinoKills[logKey] || 0) + 1;
+                const catalogEntry = LOGBOOK_DINO_CATALOG.find(item => item.id === logKey);
+                if (catalogEntry && player.specificDinoKills[logKey] === 1) {
+                    showToast(`LOGBOOK ENTRY UNLOCKED: ${catalogEntry.name.toUpperCase()}!`);
+                }
+            }
+
             const herbivoreSpecies = ['bronto', 'stegosaurus', 'ankylo', 'triceratops', 'mammoth', 'parasaurolophus'];
             if (d.isBoss) {
                 if (!player.defeatedBosses.includes(d.bossId)) {
@@ -3260,11 +3668,8 @@
             const weapon = WEAPONS[player.selectedTool] || WEAPONS.axe;
 
             if (weapon.type === 'tool') {
-                const target = findTargetVillage(player.x, player.z, player.compassMode);
-                if (target) {
-                    const label = player.compassMode === 'unlooted' ? 'NON-LOOTED VILLAGE' : 'NEAREST VILLAGE';
-                    showToast(`${label}: ${Math.round(target.dist)}m AWAY`);
-                }
+                const info = getCompassTargetInfo();
+                showToast(`${info.label} ${info.statusText}`);
                 return;
             }
 
@@ -3639,10 +4044,201 @@
 
         function setCompassMode(mode) {
             player.compassMode = mode;
+            if (mode === 'player') {
+                player.compassPlayerIndex = 0;
+            } else if (mode === 'biome') {
+                player.compassBiomeIndex = 0;
+            }
+            if (!player.unlockedWeapons.includes('compass')) {
+                player.unlockedWeapons.push('compass');
+            }
+            player.selectedTool = 'compass';
+            toggleAim(false);
             updateHUD();
             saveGameState();
             toggleCompassMenu(false);
-            showToast(mode === 'unlooted' ? 'COMPASS: NON-LOOTED VILLAGES' : 'COMPASS: NEAREST VILLAGE');
+
+            const toastNames = {
+                nearest: 'COMPASS: NEAREST VILLAGE',
+                unlooted: 'COMPASS: NON-LOOTED VILLAGES',
+                player: 'COMPASS: PLAYER TRACKER',
+                biome: 'COMPASS: VISITED BIOMES'
+            };
+            showToast(toastNames[mode] || 'COMPASS UPDATED');
+        }
+
+        function toggleLogbookMenu(forceState) {
+            const menu = document.getElementById('logbook-menu');
+            if (!menu) return;
+            const shouldOpen = typeof forceState === 'boolean' ? forceState : menu.classList.contains('hidden');
+            if (shouldOpen) {
+                renderLogbookMenu();
+                menu.classList.remove('hidden');
+                if (document.pointerLockElement) document.exitPointerLock();
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
+
+        function switchLogbookTab(tab) {
+            logbookTab = tab;
+            selectedLogbookId = tab === 'dinos' ? LOGBOOK_DINO_CATALOG[0].id : LOGBOOK_BIOME_CATALOG[0].id;
+            renderLogbookMenu();
+        }
+
+        function renderLogbookMenu() {
+            const killedSpeciesCount = LOGBOOK_DINO_CATALOG.filter(d => (player.specificDinoKills[d.id] || 0) > 0).length;
+            const visitedCount = (player.visitedBiomes || []).length;
+
+            const dinoCountEl = document.getElementById('logbook-dino-count');
+            const biomeCountEl = document.getElementById('logbook-biome-count');
+            if (dinoCountEl) dinoCountEl.innerText = `${killedSpeciesCount}/${LOGBOOK_DINO_CATALOG.length}`;
+            if (biomeCountEl) biomeCountEl.innerText = `${visitedCount}/${LOGBOOK_BIOME_CATALOG.length}`;
+
+            const dinoTabBtn = document.getElementById('logbook-tab-dinos');
+            const biomeTabBtn = document.getElementById('logbook-tab-biomes');
+            if (dinoTabBtn && biomeTabBtn) {
+                if (logbookTab === 'dinos') {
+                    dinoTabBtn.className = 'px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs cursor-pointer';
+                    biomeTabBtn.className = 'px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xs cursor-pointer';
+                } else {
+                    biomeTabBtn.className = 'px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs cursor-pointer';
+                    dinoTabBtn.className = 'px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xs cursor-pointer';
+                }
+            }
+
+            const listEl = document.getElementById('logbook-list');
+            const detailEl = document.getElementById('logbook-detail');
+            if (!listEl || !detailEl) return;
+            listEl.innerHTML = '';
+
+            if (logbookTab === 'dinos') {
+                for (const item of LOGBOOK_DINO_CATALOG) {
+                    const kills = player.specificDinoKills[item.id] || 0;
+                    const discovered = kills > 0;
+                    const isSelected = selectedLogbookId === item.id;
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = isSelected
+                        ? 'w-full p-2.5 rounded-xl bg-amber-500/25 border border-amber-400 text-left flex justify-between items-center cursor-pointer'
+                        : 'w-full p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-white/10 text-left flex justify-between items-center cursor-pointer';
+
+                    btn.innerHTML = `
+                        <div class="min-w-0 pr-2">
+                            <div class="text-xs font-black truncate ${discovered ? 'text-white' : 'text-slate-400'}">
+                                ${discovered ? item.name : 'Unknown Species'}
+                            </div>
+                            <div class="text-[11px] text-slate-400 truncate">${item.habitat}</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black shrink-0 ${discovered ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'}">
+                            ${discovered ? `${kills} KILLED` : 'UNHUNTED'}
+                        </span>
+                    `;
+                    btn.onclick = () => {
+                        selectedLogbookId = item.id;
+                        renderLogbookMenu();
+                    };
+                    listEl.appendChild(btn);
+                }
+
+                const entry = LOGBOOK_DINO_CATALOG.find(d => d.id === selectedLogbookId) || LOGBOOK_DINO_CATALOG[0];
+                const kills = player.specificDinoKills[entry.id] || 0;
+                const discovered = kills > 0;
+
+                detailEl.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <div class="flex justify-between items-start gap-2 border-b border-white/15 pb-3">
+                            <div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-black ${discovered ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
+                                    ${discovered ? 'SPECIES DOCUMENTED' : 'UNDISCOVERED SPECIMEN'}
+                                </span>
+                                <h3 class="text-lg font-black text-white mt-1">${discovered ? entry.name : '??? (Defeat to Unlock Entry)'}</h3>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-[10px] font-bold text-slate-400">KILLS</div>
+                                <div class="text-xl font-black text-amber-300">${kills}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-xs">
+                            <div class="p-2.5 rounded-lg bg-slate-800/80 border border-white/10">
+                                <div class="text-[10px] text-slate-400 font-bold">HABITAT</div>
+                                <div class="font-black text-slate-200 mt-0.5">${entry.habitat}</div>
+                            </div>
+                            <div class="p-2.5 rounded-lg bg-slate-800/80 border border-white/10">
+                                <div class="text-[10px] text-slate-400 font-bold">CLASS</div>
+                                <div class="font-black text-cyan-300 mt-0.5">${discovered ? entry.category : '???'}</div>
+                            </div>
+                            <div class="p-2.5 rounded-lg bg-slate-800/80 border border-white/10">
+                                <div class="text-[10px] text-slate-400 font-bold">BASE HP</div>
+                                <div class="font-black text-rose-400 mt-0.5">${discovered ? entry.baseHp + ' HP' : '???'}</div>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-800/60 border border-white/10">
+                            <div class="text-[11px] font-black text-amber-300 mb-1">FIELD NOTES & DESCRIPTION</div>
+                            <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                                ${discovered
+                                    ? entry.desc
+                                    : `Explore ${entry.habitat} and defeat this species to unlock its full field description.`}
+                            </p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                for (const bItem of LOGBOOK_BIOME_CATALOG) {
+                    const visited = (player.visitedBiomes || []).includes(bItem.id);
+                    const isSelected = selectedLogbookId === bItem.id;
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = isSelected
+                        ? 'w-full p-2.5 rounded-xl bg-amber-500/25 border border-amber-400 text-left flex justify-between items-center cursor-pointer'
+                        : 'w-full p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-white/10 text-left flex justify-between items-center cursor-pointer';
+
+                    btn.innerHTML = `
+                        <div class="min-w-0 pr-2">
+                            <div class="text-xs font-black truncate ${visited ? 'text-white' : 'text-slate-400'}">
+                                ${visited ? bItem.name : 'Uncharted Biome'}
+                            </div>
+                            <div class="text-[11px] text-slate-400 truncate">${visited ? bItem.climate : 'Explore world to discover'}</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black shrink-0 ${visited ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-700 text-slate-400'}">
+                            ${visited ? 'VISITED' : 'LOCKED'}
+                        </span>
+                    `;
+                    btn.onclick = () => {
+                        selectedLogbookId = bItem.id;
+                        renderLogbookMenu();
+                    };
+                    listEl.appendChild(btn);
+                }
+
+                const bEntry = LOGBOOK_BIOME_CATALOG.find(b => b.id === selectedLogbookId) || LOGBOOK_BIOME_CATALOG[0];
+                const visited = (player.visitedBiomes || []).includes(bEntry.id);
+
+                detailEl.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <div class="border-b border-white/15 pb-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black ${visited ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'}">
+                                ${visited ? 'REGION MAPPED' : 'UNCHARTED TERRITORY'}
+                            </span>
+                            <h3 class="text-lg font-black text-white mt-1">${visited ? bEntry.name : '??? (Visit Biome to Unlock)'}</h3>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-slate-800/80 border border-white/10 text-xs">
+                            <div class="text-[10px] text-slate-400 font-bold">CLIMATE CLASSIFICATION</div>
+                            <div class="font-black text-emerald-300 mt-0.5">${visited ? bEntry.climate : '???'}</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-800/60 border border-white/10">
+                            <div class="text-[11px] font-black text-cyan-300 mb-1">BIOME SURVEY & DESCRIPTION</div>
+                            <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                                ${visited
+                                    ? bEntry.desc
+                                    : 'Travel across the island to discover this biome and record its survey notes in your Logbook.'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         function updateHUD() {
@@ -3657,37 +4253,68 @@
             const weapon = WEAPONS[player.selectedTool] || WEAPONS.axe;
 
             if (healthVal) healthVal.innerText = `${Math.max(0, Math.round(player.health))}%`;
-            if (healthBar) healthBar.style.width = Math.max(0, player.health) + '%';
+            if (healthBar) healthBar.style.width = `${Math.max(0, Math.min(100, player.health))}%`;
             if (medkitVal) medkitVal.innerText = player.medkits;
             if (woodVal) woodVal.innerText = player.wood;
             if (equippedName) equippedName.innerText = weapon.name.toUpperCase();
 
-            if (ammoLabel && ammoVal) {
-                if (!weapon.ammoType) {
-                    ammoLabel.innerText = weapon.type === 'tool' ? 'MODE' : 'DURABILITY';
-                    ammoVal.innerText = weapon.type === 'tool'
-                        ? (player.compassMode === 'unlooted' ? 'UNLOOTED' : 'NEAREST')
-                        : 'INFINITE';
-                } else {
-                    ammoLabel.innerText = weapon.id === 'chainsaw' ? 'FUEL' : 'AMMO';
-                    const cur = player.magAmmo[weapon.id] || 0;
-                    const res = player.reserveAmmo[weapon.ammoType] || 0;
-                    ammoVal.innerText = `${cur} / ${res}`;
+            const compassHud = document.getElementById('compass-hud');
+            const compassModeLabel = document.getElementById('compass-mode-label');
+            const compassCycleBtn = document.getElementById('compass-cycle-btn');
+            const compassDist = document.getElementById('compass-dist');
+
+            if (compassHud) {
+                const isCompass = player.selectedTool === 'compass';
+                compassHud.classList.toggle('hidden', !isCompass);
+                if (isCompass) {
+                    const info = getCompassTargetInfo();
+                    if (compassModeLabel) compassModeLabel.innerText = info.label;
+                    if (compassDist) compassDist.innerText = info.statusText;
+                    if (compassCycleBtn) {
+                        const showCycle = (player.compassMode === 'player' || player.compassMode === 'biome');
+                        compassCycleBtn.classList.toggle('hidden', !showCycle);
+                    }
                 }
             }
 
-            const isRanged = weapon.type === 'ranged';
-            const isTool = weapon.type === 'tool';
-            const hasReload = weapon.ammoType !== null;
-            const hasAim = isRanged || isTool;
-
-            const compassHud = document.getElementById('compass-hud');
-            const compassModeLabel = document.getElementById('compass-mode-label');
-            if (compassHud) {
-                compassHud.classList.toggle('hidden', player.selectedTool !== 'compass');
+            if (ammoLabel && ammoVal) {
+                if (weapon.ammoType) {
+                    ammoLabel.innerText = weapon.id === 'chainsaw' ? 'FUEL' : 'AMMO';
+                    ammoVal.innerText = `${player.magAmmo[weapon.id] || 0} / ${player.reserveAmmo[weapon.ammoType] || 0}`;
+                } else {
+                    ammoLabel.innerText = 'AMMO';
+                    ammoVal.innerText = 'UNLIMITED';
+                }
             }
-            if (compassModeLabel) {
-                compassModeLabel.innerText = player.compassMode === 'unlooted' ? 'NON-LOOTED:' : 'NEAREST:';
+
+            const actionBtn = document.getElementById('btn-action');
+            const reloadBtn = document.getElementById('btn-reload');
+            const scopeBtn = document.getElementById('btn-scope');
+
+            if (actionBtn) {
+                if (weapon.type === 'tool') {
+                    actionBtn.innerText = 'PING';
+                    actionBtn.className = 'touch-btn px-6 h-14 rounded-xl text-sm font-black text-slate-950 bg-amber-400 border border-amber-200 flex items-center justify-center shadow-2xl cursor-pointer';
+                } else if (weapon.type === 'melee') {
+                    actionBtn.innerText = weapon.id === 'chainsaw' ? 'SAW' : 'CHOP';
+                    actionBtn.className = 'touch-btn px-6 h-14 rounded-xl text-sm font-black text-white bg-emerald-600 border border-emerald-400 flex items-center justify-center shadow-2xl cursor-pointer';
+                } else {
+                    actionBtn.innerText = 'FIRE';
+                    actionBtn.className = 'touch-btn px-6 h-14 rounded-xl text-sm font-black text-white bg-rose-600 border border-rose-400 flex items-center justify-center shadow-2xl cursor-pointer';
+                }
+            }
+
+            if (reloadBtn && scopeBtn) {
+                const usesAmmo = weapon.ammoType !== null;
+                reloadBtn.classList.toggle('hidden', !usesAmmo);
+                reloadBtn.classList.toggle('flex', usesAmmo);
+
+                const canAim = weapon.type === 'ranged';
+                scopeBtn.classList.toggle('hidden', !canAim);
+                scopeBtn.classList.toggle('flex', canAim);
+                scopeBtn.innerText = weapon.id === 'rifle'
+                    ? (player.isAiming ? 'UNSCOPE [Z]' : 'SCOPE [Z]')
+                    : (player.isAiming ? 'UNAIM [Z]' : 'AIM [Z]');
             }
 
             const bossHud = document.getElementById('active-boss-hud');
@@ -3698,48 +4325,14 @@
                     const bHp = document.getElementById('boss-hud-hp');
                     const bBar = document.getElementById('boss-hud-bar');
                     if (bName) bName.innerText = activeBoss.userData.bossName;
-                    if (bHp) bHp.innerText = `${activeBoss.userData.hp} / ${activeBoss.userData.maxHp}`;
+                    if (bHp) bHp.innerText = `${Math.max(0, Math.round(activeBoss.userData.hp))} / ${activeBoss.userData.maxHp}`;
                     if (bBar) bBar.style.width = `${Math.max(0, (activeBoss.userData.hp / activeBoss.userData.maxHp) * 100)}%`;
                 } else {
                     bossHud.classList.add('hidden');
                 }
             }
 
-            const actionBtn = document.getElementById('btn-action');
-            if (actionBtn) {
-                actionBtn.innerText = isTool ? 'PING [E]' : (isRanged ? 'SHOOT' : (weapon.id === 'chainsaw' ? 'SAW' : 'ATTACK'));
-            }
-
-            const reloadBtn = document.getElementById('btn-reload');
-            const scopeBtn = document.getElementById('btn-scope');
-            if (reloadBtn) {
-                reloadBtn.innerText = weapon.id === 'chainsaw' ? 'REFUEL [R]' : 'RELOAD [R]';
-                reloadBtn.classList.toggle('hidden', !hasReload);
-                reloadBtn.classList.toggle('flex', hasReload);
-            }
-            if (scopeBtn) {
-                scopeBtn.innerText = weapon.id === 'rifle'
-                    ? (player.isAiming ? 'UNSCOPE [Z]' : 'SCOPE [Z]')
-                    : (player.isAiming ? 'UNAIM [Z]' : 'AIM [Z]');
-                scopeBtn.classList.toggle('hidden', !hasAim);
-                scopeBtn.classList.toggle('flex', hasAim);
-            }
-
             updateVisibleWeaponMesh();
-        }
-
-        function setServerMode(mode) {
-            serverMode = mode;
-            const toggleBtn = document.getElementById('server-toggle-btn');
-            const descEl = document.getElementById('server-mode-desc');
-            if (toggleBtn) {
-                toggleBtn.innerText = mode === 'public' ? 'SERVER: PUBLIC' : 'SERVER: PRIVATE';
-            }
-            if (descEl) {
-                descEl.innerText = mode === 'public'
-                    ? 'Public Server — Live online explorers (No PvP)'
-                    : 'Private Server — Solo expedition';
-            }
         }
 
         async function attemptJoinWorld() {
@@ -3795,6 +4388,7 @@
             if (!scene) initEngine();
             updateInfiniteTerrain(player.x, player.z, true);
             spawnInitialEnvironment();
+            recordBiomeVisit(getBiomeType(player.x, player.z));
             updateHUD();
             saveGameState(true);
             syncPlayerStateToServer(true);
@@ -3962,10 +4556,17 @@
             bindBtn('close-weapon-btn', toggleWeaponMenu);
             bindBtn('open-bosses-btn', () => toggleBossMenu());
             bindBtn('close-boss-btn', () => toggleBossMenu(false));
+            bindBtn('open-logbook-btn', () => toggleLogbookMenu());
+            bindBtn('close-logbook-btn', () => toggleLogbookMenu(false));
+            bindBtn('logbook-tab-dinos', () => switchLogbookTab('dinos'));
+            bindBtn('logbook-tab-biomes', () => switchLogbookTab('biomes'));
             bindBtn('open-compass-btn', () => toggleCompassMenu());
             bindBtn('close-compass-btn', () => toggleCompassMenu(false));
             bindBtn('compass-nearest-btn', () => setCompassMode('nearest'));
             bindBtn('compass-unlooted-btn', () => setCompassMode('unlooted'));
+            bindBtn('compass-player-btn', () => setCompassMode('player'));
+            bindBtn('compass-biome-btn', () => setCompassMode('biome'));
+            bindBtn('compass-cycle-btn', cycleCompassSubtarget);
             bindBtn('btn-open-crate', tryOpenNearbyCrate);
             bindBtn('btn-reload', reloadGun);
             bindBtn('btn-scope', () => toggleAim());
@@ -3990,6 +4591,7 @@
 
                 if (k === 'b') toggleWeaponMenu();
                 if (k === 'k') toggleBossMenu();
+                if (k === 'l') toggleLogbookMenu();
                 if (k === 'm') toggleCompassMenu();
                 if (k === 'e') tryOpenNearbyCrate();
                 if (k === 'r') reloadGun();
@@ -4130,6 +4732,8 @@
             }
 
             const biome = getBiomeType(player.x, player.z);
+            recordBiomeVisit(biome);
+
             const biomeVal = document.getElementById('biome-val');
             if (biomeVal) {
                 const labelMap = {
@@ -4259,19 +4863,22 @@
                 activeMesh.position.y += ((ty + bob * (player.isAiming ? 0.25 : 0.7)) - activeMesh.position.y) * Math.min(1, dt * 14);
 
                 if (player.selectedTool === 'compass') {
-                    const target = findTargetVillage(player.x, player.z, player.compassMode);
+                    const targetInfo = getCompassTargetInfo();
+                    const modeLabelEl = document.getElementById('compass-mode-label');
                     const distEl = document.getElementById('compass-dist');
-                    if (target) {
-                        const dx = target.cx - player.x;
-                        const dz = target.cz - player.z;
+                    const cycleBtn = document.getElementById('compass-cycle-btn');
+                    if (modeLabelEl) modeLabelEl.innerText = targetInfo.label;
+                    if (distEl) distEl.innerText = targetInfo.statusText;
+                    if (cycleBtn) {
+                        const showCycle = (player.compassMode === 'player' || player.compassMode === 'biome');
+                        cycleBtn.classList.toggle('hidden', !showCycle);
+                    }
+                    if (targetInfo.hasCoords && compassNeedlePivot) {
+                        const dx = targetInfo.cx - player.x;
+                        const dz = targetInfo.cz - player.z;
                         const worldTargetYaw = Math.atan2(-dx, -dz);
                         const relAngle = worldTargetYaw - player.yaw;
-                        if (compassNeedlePivot) compassNeedlePivot.rotation.y = relAngle;
-                        if (distEl) {
-                            distEl.innerText = target.dist < 135 ? 'ARRIVED!' : `${Math.round(target.dist)} m`;
-                        }
-                    } else if (distEl) {
-                        distEl.innerText = 'ALL LOOTED!';
+                        compassNeedlePivot.rotation.y = relAngle;
                     }
                     activeMesh.position.z += (tz - activeMesh.position.z) * Math.min(1, dt * 14);
                 } else if (player.selectedTool === 'axe' || player.selectedTool === 'katana' || player.selectedTool === 'warhammer') {
